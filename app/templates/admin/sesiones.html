@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sesiones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/admin" class="text-2xl">←</a>
+            <h1 class="text-2xl font-bold">Sesiones de Estacionamiento</h1>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <p class="text-2xl font-bold text-blue-600" id="activas">-</p>
+                <p class="text-xs text-gray-500">Activas ahora</p>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <p class="text-2xl font-bold text-green-600" id="hoy">-</p>
+                <p class="text-xs text-gray-500">Totales hoy</p>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <p class="text-2xl font-bold text-purple-600" id="ingresosHoy">-</p>
+                <p class="text-xs text-gray-500">Ingresos hoy</p>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <p class="text-2xl font-bold text-yellow-600" id="pendientesPago">-</p>
+                <p class="text-xs text-gray-500">Pendientes pago</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="text-left p-4">ID</th>
+                        <th class="text-left p-4">Espacio</th>
+                        <th class="text-left p-4">Conductor</th>
+                        <th class="text-left p-4">Inicio</th>
+                        <th class="text-left p-4">Fin</th>
+                        <th class="text-left p-4">Costo</th>
+                        <th class="text-left p-4">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaSesiones"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function cargar() {
+            const res = await fetch("/api/sesiones");
+            const data = await res.json();
+            const tabla = document.getElementById("tablaSesiones");
+
+            const ahora = new Date();
+            const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+            const activas = data.filter(s => !s.hora_fin);
+            const deHoy = data.filter(s => new Date(s.hora_inicio) >= hoy);
+            const ingresos = deHoy.reduce((sum, s) => sum + (s.costo_total || 0), 0);
+            const pendientes = data.filter(s => !s.pagado && s.hora_fin);
+
+            document.getElementById("activas").textContent = activas.length;
+            document.getElementById("hoy").textContent = deHoy.length;
+            document.getElementById("ingresosHoy").textContent = "$" + ingresos;
+            document.getElementById("pendientesPago").textContent = pendientes.length;
+
+            tabla.innerHTML = data.length === 0
+                ? '<tr><td colspan="7" class="p-8 text-center text-gray-400">Sin sesiones registradas</td></tr>'
+                : data.map(s => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4 font-mono">${s.id}</td>
+                        <td class="p-4">#${s.espacio_id}</td>
+                        <td class="p-4">#${s.conductor_id}</td>
+                        <td class="p-4">${new Date(s.hora_inicio).toLocaleString()}</td>
+                        <td class="p-4">${s.hora_fin ? new Date(s.hora_fin).toLocaleString() : '<span class="text-blue-600">● Activo</span>'}</td>
+                        <td class="p-4">${s.costo_total ? '$' + s.costo_total : '-'}</td>
+                        <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${s.pagado ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${s.pagado ? 'Pagado' : 'Pendiente'}</span></td>
+                    </tr>
+                `).join("");
+        }
+        cargar();
+    </script>
+</body>
+</html>

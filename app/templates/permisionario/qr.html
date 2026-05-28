@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR - {{ permisionario.nombre }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/permisionario/{{ permisionario.id }}/panel" class="text-2xl">←</a>
+            <h1 class="text-xl font-bold">Códigos QR</h1>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-4">Imprimí estos códigos para colocarlos en tu cuadra. Los conductores los escanean para registrar entrada y salida.</p>
+
+        <div class="space-y-4">
+            {% for e in espacios %}
+            <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                <p class="font-semibold text-gray-800 mb-2">{{ e.ubicacion }}</p>
+                <p class="text-xs text-gray-500 mb-3">Espacio #{{ e.id }} · ${{ e.precio_por_hora }}/hora</p>
+                <img src="data:image/png;base64,{{ qrs[e.id] }}" class="mx-auto w-40 h-40">
+                <p class="text-xs text-gray-400 mt-2">Escaneá para check-in</p>
+                <a href="/conductor/checkout/0" class="text-xs text-blue-600 mt-1 block">Link directo: check-out</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

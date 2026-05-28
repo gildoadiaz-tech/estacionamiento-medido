@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reservar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/conductor" class="text-2xl">←</a>
+            <h1 class="text-xl font-bold">Reservar Espacio</h1>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+            <p class="text-gray-600 text-sm">Seleccioná el espacio en el mapa o elegí de la lista:</p>
+        </div>
+
+        <div class="space-y-3 mb-6">
+            {% for e in espacios %}
+            <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold">{{ e.ubicacion }}</p>
+                        <p class="text-sm text-gray-500">${{ e.precio_por_hora }}/hora</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full {{ 'bg-green-100 text-green-700' if e.disponible else 'bg-red-100 text-red-700' }}">
+                        {{ 'Disponible' if e.disponible else 'Ocupado' }}
+                    </span>
+                </div>
+                {% if e.disponible %}
+                <button onclick="reservar({{ e.id }})" class="mt-3 w-full bg-green-600 text-white py-2 rounded-xl font-medium hover:bg-green-700 transition text-sm">
+                    Reservar
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="modalReserva" class="hidden fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+            <div class="bg-white rounded-t-3xl w-full max-w-sm p-6">
+                <h3 class="font-bold text-lg mb-4">Nueva Reserva</h3>
+                <input type="hidden" id="reservaEspacioId">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm text-gray-600">Inicio</label>
+                        <input type="datetime-local" id="reservaInicio" class="w-full border rounded-xl px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600">Fin</label>
+                        <input type="datetime-local" id="reservaFin" class="w-full border rounded-xl px-4 py-3">
+                    </div>
+                    <button onclick="confirmarReserva()" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold">
+                        Solicitar Reserva
+                    </button>
+                    <button onclick="cerrarModal()" class="w-full text-gray-500 py-2 text-sm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultado" class="hidden bg-blue-50 rounded-2xl p-4 border border-blue-200 text-center">
+            <p class="text-blue-700 font-semibold">✅ Solicitud enviada</p>
+            <p class="text-sm text-blue-600">Esperá la aprobación del permisionario</p>
+        </div>
+    </div>
+
+    <script>
+        let reservandoId = null;
+
+        function reservar(id) {
+            reservandoId = id;
+            document.getElementById("reservaEspacioId").value = id;
+            document.getElementById("modalReserva").classList.remove("hidden");
+        }
+
+        function cerrarModal() {
+            document.getElementById("modalReserva").classList.add("hidden");
+        }
+
+        async function confirmarReserva() {
+            const conductorId = parseInt(localStorage.getItem("conductorId") || "1");
+            const data = {
+                espacio_id: reservandoId,
+                conductor_id: conductorId,
+                hora_inicio: new Date(document.getElementById("reservaInicio").value).toISOString(),
+                hora_fin: new Date(document.getElementById("reservaFin").value).toISOString(),
+            };
+
+            const res = await fetch("/api/reservas", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                cerrarModal();
+                document.getElementById("resultado").classList.remove("hidden");
+            } else {
+                const err = await res.json();
+                alert("Error: " + (err.detail || "desconocido"));
+            }
+        }
+    </script>
+</body>
+</html>

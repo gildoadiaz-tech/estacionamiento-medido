@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Reservas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/admin" class="text-2xl">←</a>
+            <h1 class="text-2xl font-bold">Todas las Reservas</h1>
+        </div>
+
+        <div class="flex gap-2 mb-4 overflow-x-auto">
+            <button onclick="filtrar('todas')" class="px-4 py-2 rounded-xl text-sm bg-gray-200" id="f-todas">Todas</button>
+            <button onclick="filtrar('pendiente')" class="px-4 py-2 rounded-xl text-sm bg-yellow-100" id="f-pendiente">Pendientes</button>
+            <button onclick="filtrar('aprobada')" class="px-4 py-2 rounded-xl text-sm bg-green-100" id="f-aprobada">Aprobadas</button>
+            <button onclick="filtrar('rechazada')" class="px-4 py-2 rounded-xl text-sm bg-red-100" id="f-rechazada">Rechazadas</button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="text-left p-4">ID</th>
+                        <th class="text-left p-4">Espacio</th>
+                        <th class="text-left p-4">Conductor</th>
+                        <th class="text-left p-4">Inicio</th>
+                        <th class="text-left p-4">Fin</th>
+                        <th class="text-left p-4">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaReservas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let todas = [];
+
+        async function cargar() {
+            const res = await fetch("/api/reservas");
+            todas = await res.json();
+            filtrar("todas");
+        }
+
+        function filtrar(estado) {
+            document.querySelectorAll("[id^='f-']").forEach(b => b.className = b.className.replace(' ring-2 ring-offset-2', ''));
+            document.getElementById("f-" + estado).className += " ring-2 ring-offset-2";
+
+            const data = estado === "todas" ? todas : todas.filter(r => r.estado === estado);
+            const tabla = document.getElementById("tablaReservas");
+            const estadoColors = { pendiente: "bg-yellow-100 text-yellow-700", aprobada: "bg-green-100 text-green-700", rechazada: "bg-red-100 text-red-700" };
+
+            tabla.innerHTML = data.length === 0
+                ? '<tr><td colspan="6" class="p-8 text-center text-gray-400">Sin reservas</td></tr>'
+                : data.map(r => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4 font-mono">${r.id}</td>
+                        <td class="p-4">#${r.espacio_id}</td>
+                        <td class="p-4">#${r.conductor_id}</td>
+                        <td class="p-4">${new Date(r.hora_inicio).toLocaleString()}</td>
+                        <td class="p-4">${new Date(r.hora_fin).toLocaleString()}</td>
+                        <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${estadoColors[r.estado] || ''}">${r.estado}</span></td>
+                    </tr>
+                `).join("");
+        }
+
+        cargar();
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Espacios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/admin" class="text-2xl">←</a>
+            <h1 class="text-2xl font-bold">Espacios de Estacionamiento</h1>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+            <h2 class="font-semibold mb-4">Nuevo Espacio</h2>
+            <form id="formEsp" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input name="ubicacion" placeholder="Dirección" required class="border rounded-xl px-4 py-2">
+                <input name="permisionario_id" type="number" placeholder="ID Permisionario" required class="border rounded-xl px-4 py-2">
+                <input name="precio_por_hora" type="number" step="0.5" placeholder="Precio/hora" value="50" class="border rounded-xl px-4 py-2">
+                <button type="submit" class="bg-green-600 text-white py-2 rounded-xl hover:bg-green-700">Crear</button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="text-left p-4">ID</th>
+                        <th class="text-left p-4">Ubicación</th>
+                        <th class="text-left p-4">Permisionario</th>
+                        <th class="text-left p-4">Precio/h</th>
+                        <th class="text-left p-4">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaEspacios"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("formEsp").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const data = Object.fromEntries(fd);
+            data.precio_por_hora = parseFloat(data.precio_por_hora);
+            data.permisionario_id = parseInt(data.permisionario_id);
+            await fetch("/api/espacios", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data),
+            });
+            e.target.reset();
+            cargar();
+        });
+
+        async function cargar() {
+            const res = await fetch("/api/espacios");
+            const data = await res.json();
+            document.getElementById("tablaEspacios").innerHTML = data.map(e => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-4 font-mono">${e.id}</td>
+                    <td class="p-4">${e.ubicacion}</td>
+                    <td class="p-4">#${e.permisionario_id}</td>
+                    <td class="p-4">$${e.precio_por_hora}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${e.disponible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${e.disponible ? 'Disponible' : 'Ocupado'}</span></td>
+                </tr>
+            `).join("");
+        }
+        cargar();
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Reportes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/admin" class="text-2xl">←</a>
+            <h1 class="text-2xl font-bold">Reportes</h1>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="font-semibold text-gray-700 mb-2">💰 Recaudación Total</h3>
+                <p class="text-3xl font-bold text-green-600" id="recaudacionTotal">$0</p>
+                <p class="text-xs text-gray-400">De todas las sesiones finalizadas</p>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="font-semibold text-gray-700 mb-2">📊 Ocupación Promedio</h3>
+                <p class="text-3xl font-bold text-blue-600" id="ocupacionPromedio">0%</p>
+                <p class="text-xs text-gray-400">De los espacios registrados</p>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="font-semibold text-gray-700 mb-2">🎯 Tarifa Promedio</h3>
+                <p class="text-3xl font-bold text-purple-600" id="tarifaPromedio">$0</p>
+                <p class="text-xs text-gray-400">Precio por hora promedio</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="font-semibold mb-4">Sesiones por día (últimos 7)</h3>
+                <canvas id="graficoSesiones"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h3 class="font-semibold mb-4">Estado de pagos</h3>
+                <canvas id="graficoPagos"></canvas>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4">📋 Últimas 10 Sesiones</h3>
+            <div id="ultimasSesiones" class="text-sm"></div>
+        </div>
+    </div>
+
+    <script>
+        async function cargarReportes() {
+            const res = await fetch("/api/sesiones");
+            const sesiones = await res.json();
+            const resEsp = await fetch("/api/espacios");
+            const espacios = await resEsp.json();
+
+            const finalizadas = sesiones.filter(s => s.hora_fin && s.costo_total);
+            const totalRecaudado = finalizadas.reduce((sum, s) => sum + s.costo_total, 0);
+            document.getElementById("recaudacionTotal").textContent = "$" + totalRecaudado;
+
+            const activas = sesiones.filter(s => !s.hora_fin).length;
+            const ocupacion = espacios.length > 0 ? Math.round((activas / espacios.length) * 100) : 0;
+            document.getElementById("ocupacionPromedio").textContent = ocupacion + "%";
+
+            const tarifaProm = espacios.length > 0 ? espacios.reduce((sum, e) => sum + e.precio_por_hora, 0) / espacios.length : 0;
+            document.getElementById("tarifaPromedio").textContent = "$" + tarifaProm.toFixed(1);
+
+            const hoy = new Date();
+            const labels = [];
+            const data = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(hoy);
+                d.setDate(d.getDate() - i);
+                labels.push(d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric" }));
+                const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const fin = new Date(inicio);
+                fin.setDate(fin.getDate() + 1);
+                data.push(sesiones.filter(s => {
+                    const si = new Date(s.hora_inicio);
+                    return si >= inicio && si < fin;
+                }).length);
+            }
+
+            new Chart(document.getElementById("graficoSesiones"), {
+                type: "bar",
+                data: { labels, datasets: [{ label: "Sesiones", data, backgroundColor: "#3b82f6" }] },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            const pagados = sesiones.filter(s => s.pagado).length;
+            const noPagados = sesiones.filter(s => !s.pagado && s.hora_fin).length;
+            new Chart(document.getElementById("graficoPagos"), {
+                type: "doughnut",
+                data: {
+                    labels: ["Pagados", "Pendientes"],
+                    datasets: [{ data: [pagados, noPagados], backgroundColor: ["#22c55e", "#eab308"] }]
+                },
+                options: { responsive: true }
+            });
+
+            const ultimas = finalizadas.slice(-10).reverse();
+            document.getElementById("ultimasSesiones").innerHTML = ultimas.length === 0
+                ? '<p class="text-gray-400">Sin sesiones finalizadas</p>'
+                : ultimas.map(s => `
+                    <div class="flex justify-between py-2 border-b last:border-0">
+                        <span>Espacio #${s.espacio_id} · Conductor #${s.conductor_id}</span>
+                        <span class="font-medium">$${s.costo_total} · ${s.pagado ? '✅' : '⏳'}</span>
+                    </div>
+                `).join("");
+        }
+
+        cargarReportes();
+    </script>
+</body>
+</html>

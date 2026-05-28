@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Reservas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/conductor" class="text-2xl">←</a>
+            <h1 class="text-xl font-bold">Mis Reservas</h1>
+        </div>
+
+        <div class="mb-4">
+            <label class="text-sm text-gray-600">Tu ID de conductor:</label>
+            <input type="number" id="conductorId" value="1" class="w-full border rounded-xl px-4 py-2 mt-1">
+        </div>
+
+        <div id="listaReservas" class="space-y-3">
+            <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
+        </div>
+    </div>
+
+    <script>
+        async function cargarReservas() {
+            const conductorId = document.getElementById("conductorId").value;
+            const res = await fetch(`/api/reservas/conductor/${conductorId}`);
+            const reservas = await res.json();
+            const container = document.getElementById("listaReservas");
+
+            if (reservas.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">No tenés reservas</p>';
+                return;
+            }
+
+            const estadoColors = { pendiente: "bg-yellow-100 text-yellow-700", aprobada: "bg-green-100 text-green-700", rechazada: "bg-red-100 text-red-700" };
+
+            container.innerHTML = reservas.map(r => `
+                <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">Espacio #${r.espacio_id}</p>
+                            <p class="text-xs text-gray-500">${new Date(r.hora_inicio).toLocaleString()} → ${new Date(r.hora_fin).toLocaleString()}</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-full ${estadoColors[r.estado] || 'bg-gray-100'}">${r.estado}</span>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        document.getElementById("conductorId").addEventListener("change", cargarReservas);
+        cargarReservas();
+    </script>
+</body>
+</html>

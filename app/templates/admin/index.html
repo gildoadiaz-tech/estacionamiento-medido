@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Estacionamiento Medido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="text-4xl">⚙️</div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Panel de Administración</h1>
+                <p class="text-gray-500">Gestión integral del sistema de estacionamiento</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-blue-600" id="totalPermisionarios">-</p>
+                <p class="text-sm text-gray-500">Permisionarios</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-green-600" id="totalConductores">-</p>
+                <p class="text-sm text-gray-500">Conductores</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-purple-600" id="totalEspacios">-</p>
+                <p class="text-sm text-gray-500">Espacios</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-yellow-600" id="totalSesiones">-</p>
+                <p class="text-sm text-gray-500">Sesiones hoy</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h2 class="text-xl font-bold mb-4">Gestión</h2>
+                <div class="space-y-3">
+                    <a href="/admin/permisionarios" class="block p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition">
+                        <p class="font-semibold text-purple-800">👤 Permisionarios</p>
+                        <p class="text-sm text-purple-600">Altas, bajas y modificación de permisionarios</p>
+                    </a>
+                    <a href="/admin/conductores" class="block p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition">
+                        <p class="font-semibold text-blue-800">🚗 Conductores</p>
+                        <p class="text-sm text-blue-600">Gestión de usuarios conductores</p>
+                    </a>
+                    <a href="/admin/espacios" class="block p-4 bg-green-50 rounded-xl hover:bg-green-100 transition">
+                        <p class="font-semibold text-green-800">🅿️ Espacios</p>
+                        <p class="text-sm text-green-600">Configurar espacios y tarifas por cuadra</p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h2 class="text-xl font-bold mb-4">Monitoreo</h2>
+                <div class="space-y-3">
+                    <a href="/admin/sesiones" class="block p-4 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition">
+                        <p class="font-semibold text-yellow-800">📊 Sesiones Activas</p>
+                        <p class="text-sm text-yellow-600">Ver estacionamientos en curso</p>
+                    </a>
+                    <a href="/admin/reservas" class="block p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition">
+                        <p class="font-semibold text-orange-800">📋 Todas las Reservas</p>
+                        <p class="text-sm text-orange-600">Historial completo de reservas</p>
+                    </a>
+                    <a href="/admin/reportes" class="block p-4 bg-red-50 rounded-xl hover:bg-red-100 transition">
+                        <p class="font-semibold text-red-800">📈 Reportes</p>
+                        <p class="text-sm text-red-600">Recaudación, ocupación y estadísticas</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
+        </div>
+    </div>
+
+    <script>
+        async function cargarStats() {
+            const endpoints = [
+                ["/api/permisionarios", "totalPermisionarios"],
+                ["/api/conductores", "totalConductores"],
+                ["/api/espacios", "totalEspacios"],
+                ["/api/sesiones/activas", "totalSesiones"],
+            ];
+            for (const [url, id] of endpoints) {
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    document.getElementById(id).textContent = Array.isArray(data) ? data.length : data.total || data.count || "-";
+                } catch { document.getElementById(id).textContent = "-"; }
+            }
+        }
+        cargarStats();
+    </script>
+</body>
+</html>

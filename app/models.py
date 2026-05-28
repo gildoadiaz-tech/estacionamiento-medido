@@ -55,7 +55,7 @@ class SesionEstacionamiento(Base):
     id = Column(Integer, primary_key=True, index=True)
     espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False)
     conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False)
-    hora_inicio = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    hora_inicio = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     hora_fin = Column(DateTime, nullable=True)
     costo_total = Column(Float, nullable=True)
     pagado = Column(Boolean, default=False)
@@ -74,7 +74,7 @@ class Reserva(Base):
     hora_inicio = Column(DateTime, nullable=False)
     hora_fin = Column(DateTime, nullable=False)
     estado = Column(Enum(EstadoReserva), default=EstadoReserva.pendiente)
-    creada_en = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    creada_en = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     espacio = relationship("Espacio", back_populates="reservas")
     conductor = relationship("Conductor", back_populates="reservas")

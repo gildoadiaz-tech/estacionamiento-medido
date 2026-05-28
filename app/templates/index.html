@@ -6,22 +6,36 @@
     <title>Estacionamiento Medido</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Estacionamiento Medido</h1>
-        <p class="text-gray-600 mb-8">Sistema de estacionamiento inteligente</p>
+        <div class="text-5xl mb-4">🅿️</div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Estacionamiento Medido</h1>
+        <p class="text-gray-500 mb-8">Sistema inteligente de estacionamiento</p>
+
         <div class="space-y-4">
-            <a href="/checkin/1" class="block w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition">
-                🔵 Escanear QR de Entrada
-            </a>
-            <a href="/reservar/1" class="block w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition">
-                📅 Reservar Espacio
-            </a>
-            <a href="/permisionario/1/panel" class="block w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700 transition">
-                👤 Panel Permisionario
-            </a>
+            <div class="bg-blue-50 rounded-xl p-4">
+                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-3">App Conductor</p>
+                <a href="/conductor" class="block bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition font-semibold">
+                    📱 Ingresar como Conductor
+                </a>
+            </div>
+
+            <div class="bg-purple-50 rounded-xl p-4">
+                <p class="text-xs text-purple-600 font-semibold uppercase tracking-wider mb-3">App Permisionario</p>
+                <a href="/permisionario" class="block bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700 transition font-semibold">
+                    👤 Ingresar como Permisionario
+                </a>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-4">
+                <p class="text-xs text-gray-600 font-semibold uppercase tracking-wider mb-3">Administración</p>
+                <a href="/admin" class="block bg-gray-800 text-white py-3 rounded-xl hover:bg-gray-900 transition font-semibold">
+                    ⚙️ Panel de Administración
+                </a>
+            </div>
         </div>
-        <p class="mt-6 text-xs text-gray-400">Demo - Estacionamiento Medido v1.0</p>
+
+        <p class="mt-8 text-xs text-gray-400">Estacionamiento Medido v1.0 · Demo</p>
     </div>
 </body>
 </html>

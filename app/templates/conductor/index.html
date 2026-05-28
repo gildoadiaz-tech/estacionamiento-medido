@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Estacionamiento - Conductor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="text-center mb-8">
+            <div class="text-5xl mb-2">🅿️</div>
+            <h1 class="text-2xl font-bold text-gray-800">Estacionamiento</h1>
+            <p class="text-gray-500 text-sm">App del Conductor</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+            <h2 class="font-semibold text-gray-700 mb-3">Identificación</h2>
+            <input type="number" id="conductorId" placeholder="Tu ID de conductor" value="1"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg mb-3">
+            <div class="text-xs text-gray-400 text-center">Contactá al administrador si no tenés ID</div>
+        </div>
+
+        <div class="space-y-3">
+            <a href="/conductor/checkin" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-blue-50 transition">
+                <span class="text-3xl">📷</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Escanear QR de Entrada</p>
+                    <p class="text-sm text-gray-500">Registrá tu llegada al estacionar</p>
+                </div>
+            </a>
+
+            <a href="/conductor/mis-reservas" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-green-50 transition">
+                <span class="text-3xl">📅</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Mis Reservas</p>
+                    <p class="text-sm text-gray-500">Ver y gestionar reservas activas</p>
+                </div>
+            </a>
+
+            <a href="/conductor/historial" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition">
+                <span class="text-3xl">📋</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Historial</p>
+                    <p class="text-sm text-gray-500">Tus estacionamientos anteriores</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
+        </div>
+    </div>
+</body>
+</html>

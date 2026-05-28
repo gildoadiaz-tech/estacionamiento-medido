@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Check-Out</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/conductor" class="text-2xl">←</a>
+            <h1 class="text-xl font-bold">Retirar Vehículo</h1>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center mb-4">
+            <div class="text-6xl mb-4">🏁</div>
+            <p class="text-gray-500 mb-1">{{ espacio.ubicacion if espacio else '' }}</p>
+            <p class="text-sm text-gray-400">Sesión #{{ sesion.id }}</p>
+        </div>
+
+        <div class="bg-blue-50 rounded-2xl p-4 border border-blue-200 mb-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Ingreso:</span>
+                <span class="font-medium" id="horaInicio">{{ sesion.hora_inicio.strftime('%H:%M') }}</span>
+            </div>
+        </div>
+
+        <button id="btnCheckout" class="w-full bg-red-600 text-white py-4 rounded-xl font-semibold text-lg hover:bg-red-700 transition">
+            Finalizar Estacionamiento
+        </button>
+
+        <div id="resultado" class="hidden mt-4 space-y-3">
+            <div class="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 text-center">
+                <p class="text-3xl font-bold text-gray-800" id="costoTotal"></p>
+                <p class="text-sm text-gray-500" id="detalleTiempo"></p>
+            </div>
+            <a id="linkPago" target="_blank" class="block w-full bg-green-600 text-white text-center py-4 rounded-xl font-semibold hover:bg-green-700 transition">
+                💳 Pagar con Mercado Pago
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("btnCheckout").addEventListener("click", async () => {
+            const res = await fetch("/api/checkout", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ sesion_id: {{ sesion.id }} }),
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                document.getElementById("resultado").classList.remove("hidden");
+                document.getElementById("costoTotal").textContent = "$" + data.costo_total;
+                document.getElementById("detalleTiempo").textContent = data.horas + " horas de estacionamiento";
+                document.getElementById("linkPago").href = data.link_pago;
+                document.getElementById("btnCheckout").disabled = true;
+                document.getElementById("btnCheckout").textContent = "✅ Finalizado";
+            } else {
+                alert("Error: " + (data.detail || "desconocido"));
+            }
+        });
+    </script>
+</body>
+</html>

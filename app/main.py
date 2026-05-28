@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
+from datetime import datetime, timezone, timedelta
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, update
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 import os
@@ -35,84 +34,186 @@ app = FastAPI(title="Estacionamiento Medido", lifespan=lifespan)
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 
-# ─── HTML ROUTES ───────────────────────────────────
+# ─── HELPERS ────────────────────────────────────────
+
+def now_naive():
+    return datetime.utcnow()
+
+
+def sesion_to_dict(s):
+    return {
+        "id": s.id, "espacio_id": s.espacio_id, "conductor_id": s.conductor_id,
+        "hora_inicio": s.hora_inicio.isoformat() if s.hora_inicio else None,
+        "hora_fin": s.hora_fin.isoformat() if s.hora_fin else None,
+        "costo_total": s.costo_total, "pagado": s.pagado, "pago_id": s.pago_id,
+    }
+
+
+def reserva_to_dict(r):
+    return {
+        "id": r.id, "espacio_id": r.espacio_id, "conductor_id": r.conductor_id,
+        "hora_inicio": r.hora_inicio.isoformat() if r.hora_inicio else None,
+        "hora_fin": r.hora_fin.isoformat() if r.hora_fin else None,
+        "estado": r.estado.value if r.estado else None,
+        "creada_en": r.creada_en.isoformat() if r.creada_en else None,
+    }
+
+
+# ─── LANDING ────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 
-@app.get("/permisionario/{perm_id}/panel", response_class=HTMLResponse)
-async def panel_permisionario(request: Request, perm_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Permisionario).where(Permisionario.id == perm_id)
-    )
-    perm = result.scalar_one_or_none()
-    if not perm:
-        raise HTTPException(404, "Permisionario no encontrado")
+# ═══════════════════════════════════════════════════════
+# PANEL 1: CONDUCTOR APP (mobile-first)
+# ═══════════════════════════════════════════════════════
 
-    result = await db.execute(
-        select(Espacio).where(Espacio.permisionario_id == perm_id)
-    )
-    espacios = result.scalars().all()
-
-    result = await db.execute(
-        select(Reserva).where(Reserva.espacio_id.in_([e.id for e in espacios]))
-    )
-    reservas = result.scalars().all()
-
-    return templates.TemplateResponse("panel.html", {
-        "request": request,
-        "permisionario": perm,
-        "espacios": espacios,
-        "reservas": reservas,
-    })
+@app.get("/conductor", response_class=HTMLResponse)
+async def conductor_home(request: Request):
+    return templates.TemplateResponse(request, "conductor/index.html", {})
 
 
-@app.get("/checkin/{espacio_id}", response_class=HTMLResponse)
-async def checkin_page(request: Request, espacio_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Espacio).where(Espacio.id == espacio_id))
-    espacio = result.scalar_one_or_none()
-    if not espacio:
-        raise HTTPException(404, "Espacio no encontrado")
-    return templates.TemplateResponse("checkin.html", {
-        "request": request,
-        "espacio": espacio,
-    })
+@app.get("/conductor/checkin", response_class=HTMLResponse)
+async def conductor_checkin(request: Request):
+    return templates.TemplateResponse(request, "conductor/checkin.html", {"conductor_id": 1})
 
 
-@app.get("/checkout/{sesion_id}", response_class=HTMLResponse)
-async def checkout_page(request: Request, sesion_id: int, db: AsyncSession = Depends(get_db)):
+@app.get("/conductor/checkout/{sesion_id}", response_class=HTMLResponse)
+async def conductor_checkout(request: Request, sesion_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).where(SesionEstacionamiento.id == sesion_id)
     )
     sesion = result.scalar_one_or_none()
     if not sesion:
         raise HTTPException(404, "Sesión no encontrada")
-
     result = await db.execute(select(Espacio).where(Espacio.id == sesion.espacio_id))
     espacio = result.scalar_one()
-
-    return templates.TemplateResponse("checkout.html", {
-        "request": request,
-        "sesion": sesion,
-        "espacio": espacio,
+    return templates.TemplateResponse(request, "conductor/checkout.html", {
+        "sesion": sesion, "espacio": espacio,
     })
 
 
-@app.get("/reservar/{espacio_id}", response_class=HTMLResponse)
-async def reservar_page(request: Request, espacio_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Espacio).where(Espacio.id == espacio_id))
-    espacio = result.scalar_one_or_none()
-    if not espacio:
-        raise HTTPException(404, "Espacio no encontrado")
-    return templates.TemplateResponse("reservar.html", {
-        "request": request,
-        "espacio": espacio,
+@app.get("/conductor/reservar", response_class=HTMLResponse)
+async def conductor_reservar(request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Espacio))
+    espacios = result.scalars().all()
+    return templates.TemplateResponse(request, "conductor/reservar.html", {"espacios": espacios})
+
+
+@app.get("/conductor/mis-reservas", response_class=HTMLResponse)
+async def conductor_mis_reservas(request: Request):
+    return templates.TemplateResponse(request, "conductor/mis_reservas.html", {})
+
+
+@app.get("/conductor/historial", response_class=HTMLResponse)
+async def conductor_historial(request: Request):
+    return templates.TemplateResponse(request, "conductor/historial.html", {})
+
+
+# ═══════════════════════════════════════════════════════
+# PANEL 2: PERMISIONARIO APP (mobile-first)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/permisionario", response_class=HTMLResponse)
+async def permisionario_home(request: Request):
+    return templates.TemplateResponse(request, "permisionario/index.html", {})
+
+
+@app.get("/permisionario/{perm_id}/panel", response_class=HTMLResponse)
+async def permisionario_panel(request: Request, perm_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Permisionario).where(Permisionario.id == perm_id))
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(404, "Permisionario no encontrado")
+
+    result = await db.execute(select(Espacio).where(Espacio.permisionario_id == perm_id))
+    espacios = result.scalars().all()
+
+    return templates.TemplateResponse(request, "permisionario/panel.html", {
+        "permisionario": perm, "espacios": espacios,
     })
 
 
-# ─── API ROUTES ────────────────────────────────────
+@app.get("/permisionario/{perm_id}/reservas", response_class=HTMLResponse)
+async def permisionario_reservas(request: Request, perm_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Permisionario).where(Permisionario.id == perm_id))
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(404, "Permisionario no encontrado")
+    return templates.TemplateResponse(request, "permisionario/reservas.html", {"permisionario": perm})
+
+
+@app.get("/permisionario/{perm_id}/qr", response_class=HTMLResponse)
+async def permisionario_qr(request: Request, perm_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Permisionario).where(Permisionario.id == perm_id))
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(404, "Permisionario no encontrado")
+
+    result = await db.execute(select(Espacio).where(Espacio.permisionario_id == perm_id))
+    espacios = result.scalars().all()
+
+    base_url = os.getenv("BASE_URL", "http://localhost:8000")
+    qrs = {}
+    for e in espacios:
+        qr_data = f"{base_url}/conductor/checkin"
+        qrs[e.id] = generar_qr_base64(qr_data)
+
+    return templates.TemplateResponse(request, "permisionario/qr.html", {
+        "permisionario": perm, "espacios": espacios, "qrs": qrs,
+    })
+
+
+# ═══════════════════════════════════════════════════════
+# PANEL 3: ADMIN PANEL (web)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_home(request: Request):
+    return templates.TemplateResponse(request, "admin/index.html", {})
+
+
+@app.get("/admin/permisionarios", response_class=HTMLResponse)
+async def admin_permisionarios(request: Request):
+    return templates.TemplateResponse(request, "admin/permisionarios.html", {})
+
+
+@app.get("/admin/conductores", response_class=HTMLResponse)
+async def admin_conductores(request: Request):
+    return templates.TemplateResponse(request, "admin/conductores.html", {})
+
+
+@app.get("/admin/espacios", response_class=HTMLResponse)
+async def admin_espacios(request: Request):
+    return templates.TemplateResponse(request, "admin/espacios.html", {})
+
+
+@app.get("/admin/sesiones", response_class=HTMLResponse)
+async def admin_sesiones(request: Request):
+    return templates.TemplateResponse(request, "admin/sesiones.html", {})
+
+
+@app.get("/admin/reservas", response_class=HTMLResponse)
+async def admin_reservas(request: Request):
+    return templates.TemplateResponse(request, "admin/reservas.html", {})
+
+
+@app.get("/admin/reportes", response_class=HTMLResponse)
+async def admin_reportes(request: Request):
+    return templates.TemplateResponse(request, "admin/reportes.html", {})
+
+
+# ═══════════════════════════════════════════════════════
+# API: PERMISIONARIOS
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/permisionarios", response_model=list[PermisionarioOut])
+async def listar_permisionarios(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Permisionario))
+    return result.scalars().all()
+
 
 @app.post("/api/permisionarios", response_model=PermisionarioOut)
 async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depends(get_db)):
@@ -121,6 +222,16 @@ async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depe
     await db.commit()
     await db.refresh(perm)
     return perm
+
+
+# ═══════════════════════════════════════════════════════
+# API: CONDUCTORES
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores", response_model=list[ConductorOut])
+async def listar_conductores(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Conductor))
+    return result.scalars().all()
 
 
 @app.post("/api/conductores", response_model=ConductorOut)
@@ -132,6 +243,16 @@ async def crear_conductor(data: ConductorCreate, db: AsyncSession = Depends(get_
     return cond
 
 
+# ═══════════════════════════════════════════════════════
+# API: ESPACIOS
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/espacios", response_model=list[EspacioOut])
+async def listar_espacios(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Espacio))
+    return result.scalars().all()
+
+
 @app.post("/api/espacios", response_model=EspacioOut)
 async def crear_espacio(data: EspacioCreate, db: AsyncSession = Depends(get_db)):
     esp = Espacio(**data.model_dump())
@@ -141,11 +262,9 @@ async def crear_espacio(data: EspacioCreate, db: AsyncSession = Depends(get_db))
     return esp
 
 
-@app.get("/api/espacios", response_model=list[EspacioOut])
-async def listar_espacios(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Espacio))
-    return result.scalars().all()
-
+# ═══════════════════════════════════════════════════════
+# API: CHECK-IN / CHECK-OUT
+# ═══════════════════════════════════════════════════════
 
 @app.post("/api/checkin", response_model=CheckInResponse)
 async def checkin(data: CheckInRequest, db: AsyncSession = Depends(get_db)):
@@ -159,14 +278,14 @@ async def checkin(data: CheckInRequest, db: AsyncSession = Depends(get_db)):
     sesion = SesionEstacionamiento(
         espacio_id=data.espacio_id,
         conductor_id=data.conductor_id,
-        hora_inicio=datetime.now(timezone.utc),
+        hora_inicio=now_naive(),
     )
     db.add(sesion)
     espacio.disponible = False
     await db.commit()
     await db.refresh(sesion)
 
-    qr_data = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/checkout/{sesion.id}"
+    qr_data = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/conductor/checkout/{sesion.id}"
     qr_b64 = generar_qr_base64(qr_data)
 
     return CheckInResponse(
@@ -193,7 +312,7 @@ async def checkout(data: CheckOutRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Conductor).where(Conductor.id == sesion.conductor_id))
     conductor = result.scalar_one()
 
-    ahora = datetime.now(timezone.utc)
+    ahora = now_naive()
     sesion.hora_fin = ahora
 
     horas = max((ahora - sesion.hora_inicio).total_seconds() / 3600, 0.25)
@@ -218,6 +337,89 @@ async def checkout(data: CheckOutRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
+# ═══════════════════════════════════════════════════════
+# API: SESIONES
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/sesiones")
+async def listar_sesiones(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SesionEstacionamiento).order_by(SesionEstacionamiento.hora_inicio.desc())
+    )
+    return [sesion_to_dict(s) for s in result.scalars().all()]
+
+
+@app.get("/api/sesiones/activas")
+async def sesiones_activas(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SesionEstacionamiento).where(SesionEstacionamiento.hora_fin == None)
+    )
+    sesiones = result.scalars().all()
+    return [sesion_to_dict(s) for s in sesiones]
+
+
+@app.get("/api/sesiones/conductor/{conductor_id}")
+async def sesiones_por_conductor(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.conductor_id == conductor_id)
+        .order_by(SesionEstacionamiento.hora_inicio.desc())
+    )
+    return [sesion_to_dict(s) for s in result.scalars().all()]
+
+
+# ═══════════════════════════════════════════════════════
+# API: RESERVAS
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/reservas", response_model=list[ReservaOut])
+async def listar_reservas(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Reserva).order_by(Reserva.creada_en.desc()))
+    return result.scalars().all()
+
+
+@app.get("/api/reservas/conductor/{conductor_id}")
+async def reservas_por_conductor(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Reserva)
+        .where(Reserva.conductor_id == conductor_id)
+        .order_by(Reserva.creada_en.desc())
+    )
+    return [reserva_to_dict(r) for r in result.scalars().all()]
+
+
+@app.get("/api/reservas/permisionario/{permisionario_id}")
+async def reservas_por_permisionario(permisionario_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Espacio.id).where(Espacio.permisionario_id == permisionario_id)
+    )
+    espacio_ids = result.scalars().all()
+    if not espacio_ids:
+        return []
+    result = await db.execute(
+        select(Reserva)
+        .where(Reserva.espacio_id.in_(espacio_ids))
+        .order_by(Reserva.creada_en.desc())
+    )
+    return [reserva_to_dict(r) for r in result.scalars().all()]
+
+
+@app.get("/api/reservas/pendientes/{permisionario_id}")
+async def reservas_pendientes(permisionario_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Espacio.id).where(Espacio.permisionario_id == permisionario_id)
+    )
+    espacio_ids = result.scalars().all()
+    if not espacio_ids:
+        return []
+    result = await db.execute(
+        select(Reserva)
+        .where(Reserva.espacio_id.in_(espacio_ids))
+        .where(Reserva.estado == EstadoReserva.pendiente)
+    )
+    return [reserva_to_dict(r) for r in result.scalars().all()]
+
+
 @app.post("/api/reservas", response_model=ReservaOut)
 async def crear_reserva(data: ReservaCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Espacio).where(Espacio.id == data.espacio_id))
@@ -237,23 +439,6 @@ async def crear_reserva(data: ReservaCreate, db: AsyncSession = Depends(get_db))
     return reserva
 
 
-@app.get("/api/reservas/pendientes/{permisionario_id}", response_model=list[ReservaOut])
-async def reservas_pendientes(permisionario_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Espacio.id).where(Espacio.permisionario_id == permisionario_id)
-    )
-    espacio_ids = result.scalars().all()
-    if not espacio_ids:
-        return []
-
-    result = await db.execute(
-        select(Reserva)
-        .where(Reserva.espacio_id.in_(espacio_ids))
-        .where(Reserva.estado == EstadoReserva.pendiente)
-    )
-    return result.scalars().all()
-
-
 @app.post("/api/reservas/aprobar")
 async def aprobar_reserva(data: ReservaAprobar, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Reserva).where(Reserva.id == data.reserva_id))
@@ -268,9 +453,3 @@ async def aprobar_reserva(data: ReservaAprobar, db: AsyncSession = Depends(get_d
 
     await db.commit()
     return {"ok": True, "estado": reserva.estado.value}
-
-
-@app.post("/api/checkin/{sesion_id}")
-async def checkin_form(sesion_id: int, conductor_id: int = Form(...), db: AsyncSession = Depends(get_db)):
-    data = CheckInRequest(espacio_id=sesion_id, conductor_id=conductor_id)
-    return await checkin(data, db)

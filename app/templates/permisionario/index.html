@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Permisionario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-sm mx-auto p-4">
+        <div class="text-center mb-8">
+            <div class="text-5xl mb-2">👤</div>
+            <h1 class="text-2xl font-bold text-gray-800">App Permisionario</h1>
+            <p class="text-gray-500 text-sm">Gestión de tu cuadra</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+            <label class="text-sm text-gray-600">Tu ID de permisionario:</label>
+            <input type="number" id="permId" value="1" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg mt-1">
+        </div>
+
+        <div class="space-y-3">
+            <a href="#" onclick="irPanel()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-purple-50 transition">
+                <span class="text-3xl">📊</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Mi Panel</p>
+                    <p class="text-sm text-gray-500">Espacios, sesiones activas y ganancias</p>
+                </div>
+            </a>
+
+            <a href="#" onclick="irReservas()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-green-50 transition">
+                <span class="text-3xl">📋</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Reservas Pendientes</p>
+                    <p class="text-sm text-gray-500">Aprobá o rechazá solicitudes</p>
+                </div>
+            </a>
+
+            <a href="#" onclick="irQR()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-blue-50 transition">
+                <span class="text-3xl">📱</span>
+                <div>
+                    <p class="font-semibold text-gray-800">Generar QR</p>
+                    <p class="text-sm text-gray-500">Códigos para imprimir en tu cuadra</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
+        </div>
+    </div>
+
+    <script>
+        function getPermId() {
+            return document.getElementById("permId").value || 1;
+        }
+        function irPanel() { window.location.href = "/permisionario/" + getPermId() + "/panel"; }
+        function irReservas() { window.location.href = "/permisionario/" + getPermId() + "/reservas"; }
+        function irQR() { window.location.href = "/permisionario/" + getPermId() + "/qr"; }
+    </script>
+</body>
+</html>
