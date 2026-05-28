@@ -4,70 +4,411 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Panel - {{ permisionario.nombre }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --radius-sm: 10px;
+            --danger: #FF453A;
+            --warning: #FF9F0A;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: 20px;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 500px; margin: 0 auto; padding: 16px; }
+        .header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+        }
+        .header .back { color: var(--uber-green); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header .title { font-size: 20px; font-weight: 700; flex: 1; }
+        .header .csv-btn {
+            background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary);
+            font-size: 12px; padding: 8px 14px; border-radius: 20px; cursor: pointer;
+            font-weight: 600; font-family: inherit; -webkit-appearance: none;
+        }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 12px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; margin-top: 16px;
+        }
+
+        /* Stats row */
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .stat-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px; text-align: center;
+        }
+        .stat-box .value { font-size: 28px; font-weight: 700; }
+        .stat-box .label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .stat-box.green .value { color: var(--uber-green); }
+
+        /* Active session card */
+        .active-session {
+            background: var(--uber-green); border-radius: var(--radius);
+            padding: 14px; margin-bottom: 8px; position: relative;
+        }
+        .active-session * { color: #000 !important; }
+        .active-session .top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .active-session .ubicacion { font-weight: 700; font-size: 16px; }
+        .active-session .estado {
+            font-size: 11px; font-weight: 700; padding: 3px 10px;
+            background: rgba(0,0,0,0.2); border-radius: 12px; color: #FFF !important;
+        }
+        .active-session .info-row {
+            display: flex; gap: 16px; margin: 8px 0;
+        }
+        .active-session .info-item label { font-size: 11px; opacity: 0.6; }
+        .active-session .info-item span { font-size: 16px; font-weight: 700; }
+
+        /* Completed session */
+        .session-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .session-row:last-child { border-bottom: none; }
+        .session-row .left { flex: 1; }
+        .session-row .ubicacion { font-weight: 600; }
+        .session-row .meta { font-size: 12px; color: var(--text-secondary); }
+        .session-row .right { text-align: right; }
+        .session-row .monto { font-weight: 700; }
+        .badge-paid { color: var(--uber-green); font-size: 11px; font-weight: 600; }
+        .badge-unpaid { color: var(--danger); font-size: 11px; font-weight: 600; }
+
+        .empty {
+            text-align: center; color: var(--text-tertiary);
+            font-size: 13px; padding: 24px 0;
+        }
+
+        .bottom {
+            display: flex; gap: 8px; margin-top: 16px;
+        }
+        .bottom a {
+            flex: 1; text-align: center; padding: 12px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); text-decoration: none;
+            color: var(--text-secondary); font-size: 13px; font-weight: 600;
+        }
+        .bottom a:active { background: var(--bg-elevated); }
+
+        .chart-wrap {
+            background: var(--bg-card); border-radius: var(--radius);
+            padding: 14px; margin-bottom: 12px;
+        }
+
+        /* QR Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8); z-index: 200;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-content {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; text-align: center;
+            max-width: 320px; width: 90%;
+        }
+        .modal-content .qr-img { width: 200px; height: 200px; margin: 12px auto; }
+        .modal-content .close-btn {
+            margin-top: 12px; background: var(--bg-elevated); border: none;
+            color: var(--text-primary); padding: 10px 24px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; font-family: inherit; font-size: 14px;
+            -webkit-appearance: none;
+        }
+
+        .active-session .btn-cobrar {
+            display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 700;
+            background: rgba(0,0,0,0.2); border: none; color: #000;
+            padding: 8px 16px; border-radius: 10px; cursor: pointer;
+            font-family: inherit; -webkit-appearance: none;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/permisionario" class="text-2xl">←</a>
-            <div>
-                <h1 class="text-xl font-bold">{{ permisionario.nombre }}</h1>
-                <p class="text-sm text-gray-500">Permisionario · ID {{ permisionario.id }}</p>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="/permisionario" class="back">←</a>
+            <h1 class="title">{{ permisionario.nombre }}</h1>
+            <button onclick="exportarCSV()" class="csv-btn">📥 CSV</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-box">
+                <p class="value" style="color:#5E5CE6">{{ espacios|length }}</p>
+                <p class="label">Espacios</p>
+            </div>
+            <div class="stat-box green">
+                <p class="value" id="activosCount">0</p>
+                <p class="label">Estacionando</p>
+            </div>
+            <div class="stat-box">
+                <p class="value" style="color:#FF9F0A" id="pendientesCount">0</p>
+                <p class="label">Reservas</p>
+            </div>
+            <div class="stat-box green">
+                <p class="value" id="pagadasHoy">$0</p>
+                <p class="label">Pagado hoy</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-                <p class="text-2xl font-bold text-blue-600">{{ espacios|length }}</p>
-                <p class="text-xs text-gray-500">Espacios</p>
-            </div>
-            <div class="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-                <p class="text-2xl font-bold text-green-600" id="activos">0</p>
-                <p class="text-xs text-gray-500">Activos</p>
-            </div>
-            <div class="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-                <p class="text-2xl font-bold text-yellow-600" id="pendientes">0</p>
-                <p class="text-xs text-gray-500">Reservas</p>
-            </div>
+        <!-- Active sessions -->
+        <p class="section-title">Estacionando ahora</p>
+        <div id="activasContainer">
+            <p class="empty">Sin sesiones activas</p>
         </div>
 
-        <h2 class="font-semibold text-gray-700 mb-3">Mis Espacios</h2>
-        <div class="space-y-3 mb-6">
+        <!-- Espacios -->
+        <p class="section-title">Mis espacios</p>
+        <div class="card" id="espaciosContainer">
             {% for e in espacios %}
-            <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-semibold">{{ e.ubicacion }}</p>
-                        <p class="text-sm text-gray-500">${{ e.precio_por_hora }}/hora</p>
-                    </div>
-                    <span class="text-xs px-2 py-1 rounded-full {{ 'bg-green-100 text-green-700' if e.disponible else 'bg-red-100 text-red-700' }}">
-                        {{ 'Libre' if e.disponible else 'Ocupado' }}
-                    </span>
+            <div class="session-row">
+                <div class="left">
+                    <p class="ubicacion">{{ e.ubicacion }}</p>
+                    <p class="meta">${{ e.precio_por_hora }}/hora</p>
                 </div>
+                <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;background:rgba(6,193,103,0.2);color:var(--uber-green)" class="badge-{{ 'ok' if e.disponible else 'off' }}">
+                    {{ 'Libre' if e.disponible else 'Ocupado' }}
+                </span>
             </div>
             {% endfor %}
         </div>
 
-        <div class="flex gap-2">
-            <a href="/permisionario/{{ permisionario.id }}/reservas" class="flex-1 bg-green-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-green-700 transition">
-                📋 Reservas
-            </a>
-            <a href="/permisionario/{{ permisionario.id }}/qr" class="flex-1 bg-blue-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-blue-700 transition">
-                📱 QR
-            </a>
-            <a href="/permisionario/{{ permisionario.id }}/mapa" class="flex-1 bg-purple-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-purple-700 transition">
-                🗺️ Mapa
-            </a>
+        <!-- Chart -->
+        <p class="section-title">Ganancias por día</p>
+        <div class="chart-wrap">
+            <canvas id="chartGanancias" height="140"></canvas>
+        </div>
+
+        <!-- Last sessions -->
+        <p class="section-title">Últimas sesiones</p>
+        <div id="completadasContainer" class="card">
+            <p class="empty">Sin sesiones</p>
+        </div>
+
+        <!-- Bottom links -->
+        <div class="bottom">
+            <a href="/permisionario/{{ permisionario.id }}/reservas">📋 Reservas</a>
+            <a href="/permisionario/{{ permisionario.id }}/qr">📱 QR</a>
+            <a href="/permisionario/{{ permisionario.id }}/mapa">🗺️ Mapa</a>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qrModal" class="modal-overlay" onclick="if(event.target===this)cerrarQR()">
+        <div class="modal-content">
+            <p id="modalTitle" style="font-size:16px;font-weight:700;margin-bottom:4px">QR de salida</p>
+            <p id="modalSub" style="font-size:13px;color:var(--text-secondary);margin-bottom:4px"></p>
+            <img id="modalQR" class="qr-img" src="" alt="QR">
+            <p style="font-size:12px;color:var(--text-tertiary)">Mostrale este QR al conductor para que lo escanee</p>
+            <button class="close-btn" onclick="cerrarQR()">Cerrar</button>
         </div>
     </div>
 
     <script>
-        async function cargarStats() {
-            const res = await fetch("/api/reservas/pendientes/{{ permisionario.id }}");
-            const reservas = await res.json();
-            document.getElementById("pendientes").textContent = reservas.length;
+        const PERM_ID = {{ permisionario.id }};
+
+        function exportarCSV() {
+            fetch(`/api/sesiones/permisionario/${PERM_ID}`)
+                .then(r => r.json())
+                .then(sesiones => {
+                    let csv = "id,espacio,conductor,patente,hora_inicio,hora_fin,costo,pagado\n";
+                    sesiones.forEach(s => {
+                        csv += `${s.id},${s.ubicacion||s.espacio_id},${s.conductor_nombre||s.conductor_id},${s.patente||''},${s.hora_inicio||''},${s.hora_fin||''},${s.costo_total||0},${s.pagado||false}\n`;
+                    });
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `sesiones_perm_${PERM_ID}.csv`;
+                    a.click(); URL.revokeObjectURL(url);
+                });
         }
-        cargarStats();
+
+        async function cargarDashboard() {
+            // Sessions detail
+            const det = await fetch(`/api/sesiones/permisionario/${PERM_ID}/detalle`).then(r => r.json());
+            document.getElementById('activosCount').textContent = det.activas.length;
+            document.getElementById('pagadasHoy').textContent = '$' + (det.pagadas_hoy || 0).toFixed(0);
+
+            // Pendientes
+            const pend = await fetch(`/api/reservas/pendientes/${PERM_ID}`).then(r => r.json());
+            document.getElementById('pendientesCount').textContent = pend.length;
+
+            // Active sessions
+            const activasContainer = document.getElementById('activasContainer');
+            if (det.activas.length === 0) {
+                activasContainer.innerHTML = '<p class="empty">Sin sesiones activas</p>';
+            } else {
+                activasContainer.innerHTML = det.activas.map(s => {
+                    const metodo = s.metodo_pago || null;
+                    const pagado = s.pagado || false;
+                    const lista = s.lista_para_salir || false;
+                    let btnHTML = '';
+                    if (!pagado && metodo === 'efectivo') {
+                        btnHTML = `<button class="btn-cobrar" onclick="cobrarEfectivo(${s.id}, '${s.patente || ''}')">💰 Cobrar efectivo</button>`;
+                    } else if (!pagado && metodo === 'mercadopago') {
+                        btnHTML = `<span style="font-size:11px;opacity:0.7">⏳ Esperando pago MP…</span>`;
+                    } else if (pagado && !lista) {
+                        btnHTML = `<span style="font-size:11px;opacity:0.7">⏳ Procesando…</span>`;
+                    } else if (pagado && lista) {
+                        btnHTML = `<button class="btn-cobrar" onclick="generarQR(${s.id}, '${s.patente || ''}')">📱 Mostrar QR salida</button>`;
+                    }
+                    return `
+                    <div class="active-session">
+                        <div class="top">
+                            <div>
+                                <p class="ubicacion">${s.ubicacion || 'Espacio #'+s.espacio_id}</p>
+                                <p style="font-size:12px;opacity:0.7">${s.conductor_nombre || 'Conductor #'+s.conductor_id}</p>
+                            </div>
+                            <span class="estado">● En curso</span>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-item">
+                                <label>Patente</label>
+                                <span>${s.patente || '—'}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Tiempo</label>
+                                <span class="timer" data-inicio="${s.hora_inicio}">00:00</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Pago</label>
+                                <span style="font-size:13px">${metodo === 'efectivo' ? '💵 Efectivo' : metodo === 'mercadopago' ? '📱 MP' : '—'}</span>
+                            </div>
+                        </div>
+                        ${btnHTML}
+                    </div>`;
+                }).join('');
+
+                // Start timers for active sessions
+                document.querySelectorAll('.timer').forEach(el => {
+                    const inicio = new Date(el.dataset.inicio).getTime();
+                    function tick() {
+                        const m = Math.floor((Date.now()-inicio)/60000);
+                        const ss = Math.floor(((Date.now()-inicio)%60000)/1000);
+                        el.textContent = String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+                    }
+                    tick();
+                    setInterval(tick, 1000);
+                });
+            }
+
+            // Completed sessions
+            const compContainer = document.getElementById('completadasContainer');
+            if (det.completadas.length === 0) {
+                compContainer.innerHTML = '<p class="empty">Sin sesiones</p>';
+            } else {
+                compContainer.innerHTML = det.completadas.slice(0, 20).map(s => `
+                    <div class="session-row">
+                        <div class="left">
+                            <p class="ubicacion">${s.ubicacion || 'Espacio #'+s.espacio_id}</p>
+                            <p class="meta">${s.patente || ''} · ${s.hora_inicio ? new Date(s.hora_inicio).toLocaleString() : ''}</p>
+                        </div>
+                        <div class="right">
+                            <p class="monto">$${(s.costo_total || 0).toFixed(0)}</p>
+                            <span class="${s.pagado ? 'badge-paid' : 'badge-unpaid'}">${s.pagado ? '✅ Pagado' : '⏳ Pendiente'}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Load earnings chart
+            const ganancias = await fetch(`/api/sesiones/ingresos/${PERM_ID}`).then(r => r.json());
+            const dias = [], ingresos = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const key = d.toISOString().slice(0,10);
+                const label = d.toLocaleDateString('es', { weekday: 'short' });
+                dias.push(label);
+                const total = ganancias
+                    .filter(s => s.hora_inicio && s.hora_inicio.slice(0,10) === key)
+                    .reduce((sum, s) => sum + (s.costo_total || 0), 0);
+                ingresos.push(total);
+            }
+            new Chart(document.getElementById('chartGanancias'), {
+                type: 'bar',
+                data: {
+                    labels: dias,
+                    datasets: [{
+                        label: 'Pagado ($)',
+                        data: ingresos,
+                        backgroundColor: '#06C167',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false, color: '#3A3A3C' }, ticks: { color: '#98989F' } },
+                        x: { grid: { display: false }, ticks: { color: '#98989F' } }
+                    }
+                }
+            });
+        }
+        async function cobrarEfectivo(sesionId, patente) {
+            if (!confirm(`Confirmar pago en efectivo de ${patente}?`)) return;
+            try {
+                const res = await fetch(`/api/sesion/${sesionId}/confirmar-pago-efectivo`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    const modal = document.getElementById('qrModal');
+                    document.getElementById('modalQR').src = 'data:image/png;base64,' + data.qr_salida;
+                    document.getElementById('modalTitle').textContent = 'QR de salida';
+                    document.getElementById('modalSub').textContent = 'Patente: ' + patente;
+                    modal.classList.add('show');
+                } else {
+                    alert('Error: ' + (data.detail || ''));
+                }
+            } catch { alert('Error de conexión'); }
+        }
+
+        async function generarQR(sesionId, patente) {
+            try {
+                const res = await fetch(`/api/sesion/${sesionId}/exit-qr`);
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('modalQR').src = 'data:image/png;base64,' + data.qr_salida;
+                    document.getElementById('modalTitle').textContent = 'QR de salida';
+                    document.getElementById('modalSub').textContent = 'Patente: ' + patente;
+                    document.getElementById('qrModal').classList.add('show');
+                } else {
+                    alert('Error: ' + (data.detail || ''));
+                }
+            } catch { alert('Error de conexión'); }
+        }
+
+        function cerrarQR() {
+            document.getElementById('qrModal').classList.remove('show');
+        }
+
+        cargarDashboard();
+        // Auto-refresh cada 15s
+        setInterval(cargarDashboard, 15000);
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
     </script>
 </body>
 </html>

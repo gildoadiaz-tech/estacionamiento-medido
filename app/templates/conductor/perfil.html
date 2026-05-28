@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Perfil</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --radius-sm: 10px;
+            --danger: #FF453A;
+            --warning: #FF9F0A;
+            --nav-height: 72px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .header .back { color: var(--uber-green); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header .title { font-size: 20px; font-weight: 700; }
+
+        .profile-avatar { text-align: center; margin-bottom: 16px; }
+        .profile-avatar .icon { width: 80px; height: 80px; background: var(--bg-card); border-radius: 40px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 36px; }
+        .profile-avatar .name { font-size: 22px; font-weight: 700; }
+        .profile-avatar .role { font-size: 14px; color: var(--text-secondary); }
+
+        .field-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .field-row:last-child { border-bottom: none; }
+        .field-row .label { font-size: 15px; color: var(--text-secondary); }
+        .field-row .value { font-size: 15px; font-weight: 500; text-align: right; }
+        .field-row .value.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-weight: 600; font-size: 17px; }
+        .field-row .edit-btn {
+            color: var(--uber-green); font-size: 13px; font-weight: 600;
+            background: none; border: none; cursor: pointer; font-family: inherit;
+            -webkit-appearance: none; padding: 4px 8px;
+        }
+
+        .fin-status { background: var(--bg-card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+        .fin-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0;
+            font-size: 14px;
+        }
+        .fin-row .l { color: var(--text-secondary); }
+        .fin-row .v { font-weight: 600; }
+
+        .block-card {
+            background: #391C1C;
+            border: 1px solid var(--danger);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .block-card .title { font-weight: 700; color: var(--danger); font-size: 16px; }
+        .block-card .reason { font-size: 13px; color: #F87171; margin-top: 4px; }
+        .block-card .btn-pay {
+            margin-top: 12px;
+            background: var(--uber-green);
+            color: #000;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 12px 24px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+        .block-card .btn-pay:active { opacity: 0.85; }
+
+        .pen-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+        }
+        .pen-item .motivo { font-size: 14px; font-weight: 500; flex: 1; }
+        .pen-item .fecha { font-size: 12px; color: var(--text-tertiary); }
+        .pen-item .monto { font-size: 14px; font-weight: 700; color: var(--danger); }
+
+        .edit-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .edit-section input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            text-align: center;
+            text-transform: uppercase;
+            -webkit-appearance: none;
+        }
+        .edit-section input:focus { border-color: var(--uber-green); }
+        .edit-section .actions { display: flex; gap: 8px; margin-top: 10px; }
+        .edit-section .btn-save {
+            flex: 1; background: var(--uber-green); color: #000; border: none;
+            border-radius: var(--radius-sm); padding: 10px; font-weight: 600;
+            font-size: 14px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .edit-section .btn-cancel {
+            background: none; border: none; color: var(--text-secondary); font-size: 14px;
+            cursor: pointer; font-family: inherit; padding: 10px 16px; -webkit-appearance: none;
+        }
+
+        .toast {
+            background: var(--uber-green); color: #000;
+            padding: 12px 16px; border-radius: var(--radius-sm);
+            text-align: center; font-size: 14px; font-weight: 600;
+            display: none; margin-bottom: 12px;
+        }
+        .toast.error { background: #391C1C; color: var(--danger); }
+        .toast.show { display: block; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: var(--nav-height);
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+            gap: 2px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--uber-green); }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+
+        .section-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+        .empty { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 16px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Toast -->
+        <div id="toast" class="toast"></div>
+
+        <!-- Header -->
+        <div class="header">
+            <a href="/conductor" class="back">←</a>
+            <h1 class="title">Perfil</h1>
+        </div>
+
+        <!-- Profile card -->
+        <div class="profile-avatar">
+            <div class="icon">👤</div>
+            <h2 id="nombreGrande" class="name">-</h2>
+            <p class="role">Conductor</p>
+        </div>
+
+        <!-- Info fields -->
+        <div class="card">
+            <p class="section-title">Información personal</p>
+            <div class="field-row">
+                <span class="label">Nombre</span>
+                <span class="value" id="campoNombre">-</span>
+            </div>
+            <div class="field-row">
+                <span class="label">Email</span>
+                <span class="value" id="campoEmail">-</span>
+            </div>
+            <div class="field-row">
+                <span class="label">Teléfono</span>
+                <span class="value" id="campoTelefono">-</span>
+            </div>
+            <div class="field-row">
+                <span class="label">Patente</span>
+                <span class="value mono" id="campoPatente">-</span>
+                <button class="edit-btn" onclick="mostrarEditarPatente()">Editar</button>
+            </div>
+        </div>
+
+        <!-- Edit patente -->
+        <div id="editPatente" class="edit-section" style="display:none">
+            <p style="font-size:14px;font-weight:600;margin-bottom:10px">Editar patente</p>
+            <input type="text" id="inputPatente" placeholder="AB123CD" maxlength="10">
+            <div class="actions">
+                <button class="btn-save" onclick="guardarPatente()">Guardar</button>
+                <button class="btn-cancel" onclick="cancelarEdit()">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Financial card -->
+        <p class="section-title">Finanzas</p>
+        <div class="fin-status">
+            <div class="fin-row">
+                <span class="l">Deuda actual</span>
+                <span class="v" style="color:var(--danger)" id="campoDeuda">$0</span>
+            </div>
+            <div class="fin-row">
+                <span class="l">Penalizaciones este mes</span>
+                <span class="v" id="campoPenalizaciones">0</span>
+            </div>
+            <div class="fin-row">
+                <span class="l">Límite deuda</span>
+                <span class="v" style="color:var(--text-secondary)" id="campoLimiteDeuda">$10,000</span>
+            </div>
+            <div class="fin-row">
+                <span class="l">Límite penalizaciones</span>
+                <span class="v" style="color:var(--text-secondary)" id="campoLimitePen">5/mes</span>
+            </div>
+        </div>
+
+        <!-- Bloqueo -->
+        <div id="bloqueoCard" class="block-card" style="display:none">
+            <p class="title">🚫 Cuenta bloqueada</p>
+            <p class="reason" id="motivoBloqueoInfo">-</p>
+            <button class="btn-pay" onclick="pagarMulta()">Pagar multa ($5.000)</button>
+        </div>
+
+        <!-- Penalties -->
+        <p class="section-title">Últimas penalizaciones</p>
+        <div id="listaPenalizaciones">
+            <p class="empty">Sin penalizaciones</p>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="/conductor">
+            <span class="nav-icon">🏠</span>
+            <span>Inicio</span>
+        </a>
+        <a href="/conductor/mapa">
+            <span class="nav-icon">🗺️</span>
+            <span>Mapa</span>
+        </a>
+        <a href="/conductor/mis-reservas">
+            <span class="nav-icon">📋</span>
+            <span>Reservas</span>
+        </a>
+        <a href="/conductor/perfil" class="active">
+            <span class="nav-icon">👤</span>
+            <span>Perfil</span>
+        </a>
+    </nav>
+
+    <script>
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
+
+        function toast(texto, tipo) {
+            const t = document.getElementById('toast');
+            t.textContent = texto;
+            t.className = 'toast ' + (tipo || '') + ' show';
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        async function cargarPerfil() {
+            try {
+                const [r1, r2] = await Promise.all([
+                    fetch(`/api/conductores/${CONDUCTOR_ID}`),
+                    fetch(`/api/conductores/${CONDUCTOR_ID}/status`),
+                ]);
+                if (!r1.ok) return;
+                const c = await r1.json();
+                document.getElementById('nombreGrande').textContent = c.nombre;
+                document.getElementById('campoNombre').textContent = c.nombre;
+                document.getElementById('campoEmail').textContent = c.email;
+                document.getElementById('campoTelefono').textContent = c.telefono || '—';
+                document.getElementById('campoPatente').textContent = c.patente || '—';
+
+                if (r2.ok) {
+                    const s = await r2.json();
+                    document.getElementById('campoDeuda').textContent = '$' + s.saldo_deudor.toFixed(0);
+                    document.getElementById('campoPenalizaciones').textContent = s.penalizaciones_mes + '/' + s.max_penalizaciones;
+                    document.getElementById('campoLimiteDeuda').textContent = '$' + (s.deuda_maxima || 10000).toLocaleString();
+                    document.getElementById('campoLimitePen').textContent = (s.max_penalizaciones || 5) + '/mes';
+                    if (s.bloqueado) {
+                        document.getElementById('bloqueoCard').style.display = 'block';
+                        document.getElementById('motivoBloqueoInfo').textContent = s.motivo_bloqueo || 'Violación de términos';
+                    }
+                }
+            } catch {}
+
+            try {
+                const pr = await fetch(`/api/conductores/${CONDUCTOR_ID}/penalizaciones`);
+                const pens = await pr.json();
+                const c = document.getElementById('listaPenalizaciones');
+                if (!pens.length) { c.innerHTML = '<p class="empty">Sin penalizaciones</p>'; return; }
+                c.innerHTML = pens.slice(0, 10).map(p => `
+                    <div class="pen-item">
+                        <div style="flex:1">
+                            <p class="motivo">${p.motivo}</p>
+                            <p class="fecha">${new Date(p.fecha).toLocaleDateString()}</p>
+                        </div>
+                        <span class="monto">$${p.monto.toFixed(0)}</span>
+                    </div>
+                `).join('');
+            } catch {}
+        }
+
+        function mostrarEditarPatente() {
+            document.getElementById('editPatente').style.display = 'block';
+            const actual = document.getElementById('campoPatente').textContent;
+            document.getElementById('inputPatente').value = actual === '—' ? '' : actual;
+        }
+
+        function cancelarEdit() {
+            document.getElementById('editPatente').style.display = 'none';
+        }
+
+        async function guardarPatente() {
+            const patente = document.getElementById('inputPatente').value.trim().toUpperCase();
+            if (!patente) { toast('Ingresá una patente', 'error'); return; }
+            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ patente }),
+            });
+            if (res.ok) {
+                toast('✅ Patente guardada');
+                document.getElementById('editPatente').style.display = 'none';
+                cargarPerfil();
+            } else {
+                toast('Error al guardar', 'error');
+            }
+        }
+
+        async function pagarMulta() {
+            if (!confirm('¿Pagar multa de $5.000 para desbloquear tu cuenta?')) return;
+            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/pagar-multa`, { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                toast(data.mensaje);
+                document.getElementById('bloqueoCard').style.display = 'none';
+                cargarPerfil();
+            } else {
+                toast('Error al pagar', 'error');
+            }
+        }
+
+        cargarPerfil();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    </script>
+</body>
+</html>

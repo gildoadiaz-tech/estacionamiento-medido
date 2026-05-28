@@ -3,61 +3,521 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Estacionamiento - Conductor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Estacionamiento — Conductor</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --danger: #FF453A;
+            --warning: #FF9F0A;
+            --nav-height: 72px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+        .bloqueo-banner {
+            background: #391C1C;
+            border: 1px solid var(--danger);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+        .bloqueo-banner.show { display: flex; }
+        .bloqueo-banner .icon { font-size: 28px; flex-shrink: 0; }
+        .bloqueo-banner .text { flex: 1; }
+        .bloqueo-banner .title { font-weight: 700; font-size: 15px; color: var(--danger); }
+        .bloqueo-banner .reason { font-size: 13px; color: #F87171; }
+        .bloqueo-banner .link { color: #FFF; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 14px; background: #4A1A1A; border-radius: 20px; white-space: nowrap; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .header .greeting { font-size: 22px; font-weight: 700; }
+        .header .avatar { width: 40px; height: 40px; border-radius: 20px; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 20px; text-decoration: none; }
+
+        .stats-row { display: flex; gap: 8px; margin-bottom: 14px; }
+        .stat-card {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 12px;
+            text-align: center;
+            min-width: 0;
+        }
+        .stat-card .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 4px; }
+        .stat-card .value { font-size: 24px; font-weight: 700; margin: 4px 0 2px; }
+        .stat-card .label { font-size: 12px; color: var(--text-secondary); }
+
+        .sesion-card {
+            background: var(--uber-green);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .sesion-card.show { display: block; }
+        .sesion-card * { color: #000 !important; }
+        .sesion-card .badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.25);
+            color: #FFF !important;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .sesion-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .sesion-card .ubicacion { font-size: 18px; font-weight: 700; }
+        .sesion-card .patente { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
+        .sesion-card .timer-row { display: flex; gap: 24px; margin-bottom: 12px; }
+        .sesion-card .timer-value { font-size: 32px; font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; }
+        .sesion-card .timer-label { font-size: 12px; opacity: 0.7; }
+        .sesion-card .actions { display: flex; gap: 8px; }
+        .sesion-card .btn-outline {
+            background: rgba(0,0,0,0.15);
+            border: 1.5px solid rgba(0,0,0,0.3);
+            color: #000 !important;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+            -webkit-appearance: none;
+        }
+        .sesion-card .btn-outline:first-child { flex: 1; }
+        .sesion-card .qr-container { margin-top: 12px; text-align: center; display: none; }
+        .sesion-card .qr-container.show { display: block; }
+
+        .action-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+        .action-link:active { background: var(--bg-elevated); }
+        .action-link .icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+        .action-link .info { flex: 1; }
+        .action-link .title { font-size: 15px; font-weight: 600; }
+        .action-link .desc { font-size: 13px; color: var(--text-secondary); margin-top: 1px; }
+        .action-link .arrow { color: var(--text-tertiary); font-size: 18px; }
+
+        .highlight-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #06C167 0%, #059550 100%);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            color: #000;
+            font-weight: 600;
+        }
+        .highlight-link:active { opacity: 0.9; }
+        .highlight-link .icon { font-size: 28px; }
+        .highlight-link .title { font-size: 15px; }
+
+        #qrScanner { display: none; margin-bottom: 8px; position: relative; }
+        #qrScanner.show { display: block; }
+        #qrScanner video { width: 100%; border-radius: 12px; display: block; }
+        #qrScanner .close { color: var(--text-secondary); font-size: 13px; background: none; border: none; cursor: pointer; font-family: inherit; -webkit-appearance: none; margin-top: 4px; }
+        .scan-frame {
+            position: absolute; top: 50%; left: 50%;
+            width: 200px; height: 200px;
+            transform: translate(-50%, -50%);
+            border: 3px solid var(--uber-green);
+            border-radius: 16px;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+        }
+        .scan-frame::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 3px; background: var(--uber-green);
+            animation: scanLine 2s ease-in-out infinite;
+            border-radius: 2px;
+        }
+        @keyframes scanLine {
+            0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; }
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: var(--nav-height);
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+            gap: 2px;
+            transition: color 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--uber-green); }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="text-center mb-8">
-            <div class="text-5xl mb-2">🅿️</div>
-            <h1 class="text-2xl font-bold text-gray-800">Estacionamiento</h1>
-            <p class="text-gray-500 text-sm">App del Conductor</p>
+<body>
+    <div class="container">
+        <!-- Bloqueo -->
+        <div id="bloqueoBanner" class="bloqueo-banner">
+            <span class="icon">🚫</span>
+            <div class="text">
+                <p class="title">Cuenta bloqueada</p>
+                <p class="reason" id="motivoBloqueo">-</p>
+            </div>
+            <a href="/conductor/perfil" class="link">Ver</a>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-            <h2 class="font-semibold text-gray-700 mb-3">Identificación</h2>
-            <input type="number" id="conductorId" placeholder="Tu ID de conductor" value="1"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg mb-3">
-            <div class="text-xs text-gray-400 text-center">Contactá al administrador si no tenés ID</div>
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <p class="greeting" id="greeting">¡Hola!</p>
+            </div>
+            <a href="/conductor/perfil" class="avatar">👤</a>
         </div>
 
-        <div class="space-y-3">
-            <a href="/conductor/mapa" class="flex items-center gap-4 bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 transition">
-                <span class="text-3xl">🗺️</span>
-                <div>
-                    <p class="font-semibold">Buscar Dónde Estacionar</p>
-                    <p class="text-sm text-green-100">Mapa interactivo del centro de Salta</p>
-                </div>
-            </a>
-
-            <a href="/conductor/checkin" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-blue-50 transition">
-                <span class="text-3xl">📷</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Escanear QR de Entrada</p>
-                    <p class="text-sm text-gray-500">Registrá tu llegada al estacionar</p>
-                </div>
-            </a>
-
-            <a href="/conductor/mis-reservas" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-green-50 transition">
-                <span class="text-3xl">📅</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Mis Reservas</p>
-                    <p class="text-sm text-gray-500">Ver y gestionar reservas activas</p>
-                </div>
-            </a>
-
-            <a href="/conductor/historial" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition">
-                <span class="text-3xl">📋</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Historial</p>
-                    <p class="text-sm text-gray-500">Tus estacionamientos anteriores</p>
-                </div>
-            </a>
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="dot" style="background:#06C167"></span>
+                <p class="value" style="color:#06C167" id="countLibres">-</p>
+                <p class="label">Libres</p>
+            </div>
+            <div class="stat-card">
+                <span class="dot" style="background:#FF453A"></span>
+                <p class="value" style="color:#FF453A" id="countOcupados">-</p>
+                <p class="label">Ocupados</p>
+            </div>
+            <div class="stat-card">
+                <span class="dot" style="background:#5E5CE6"></span>
+                <p class="value" style="color:#5E5CE6" id="countTotal">-</p>
+                <p class="label">Total</p>
+            </div>
         </div>
 
-        <div class="mt-8 text-center">
-            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
+        <!-- Active Session -->
+        <div id="sesionActiva" class="sesion-card">
+            <div class="top-row">
+                <div>
+                    <p id="espacioActivo" class="ubicacion">-</p>
+                    <p id="patenteDisplay" class="patente" style="display:none">Patente: <span id="patenteTexto"></span></p>
+                </div>
+                <span class="badge">● En curso</span>
+            </div>
+            <div class="timer-row">
+                <div>
+                    <p class="timer-label">Tiempo</p>
+                    <p id="timerDisplay" class="timer-value">00:00</p>
+                </div>
+                <div>
+                    <p class="timer-label">Costo</p>
+                    <p id="costoDisplay" class="timer-value">$0</p>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="btnCheckout" class="btn-outline">Finalizar</button>
+                <button id="btnVerQR" class="btn-outline">QR</button>
+            </div>
+            <div id="qrSalida" class="qr-container"></div>
         </div>
+
+        <!-- Actions -->
+        <a href="/conductor/mapa" class="highlight-link" style="margin-bottom:8px">
+            <span class="icon">🗺️</span>
+            <span class="title">Buscar dónde estacionar</span>
+            <span style="flex:1"></span>
+            <span class="arrow" style="color:rgba(0,0,0,0.6)">→</span>
+        </a>
+
+        <a href="/conductor/reservar" class="action-link">
+            <span class="icon">📅</span>
+            <div class="info">
+                <p class="title">Reservar</p>
+                <p class="desc">Apartá un lugar con anticipación</p>
+            </div>
+            <span class="arrow">→</span>
+        </a>
+
+        <button id="btnScannerQR" class="action-link" style="width:100%; text-align:left">
+            <span class="icon">📷</span>
+            <div class="info">
+                <p class="title">Escanear QR</p>
+                <p class="desc">Leé el código del permisionario</p>
+            </div>
+            <span class="arrow">→</span>
+        </button>
+
+        <div id="qrScanner" class="card">
+            <video id="videoQR" autoplay playsinline></video>
+            <canvas id="canvasQR" style="display:none"></canvas>
+            <div class="scan-frame"></div>
+            <p id="qrResult" style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:6px;"></p>
+            <button id="btnCerrarScanner" class="close">✕ Cerrar</button>
+        </div>
+
+        <a href="/conductor/mis-reservas" class="action-link">
+            <span class="icon">📋</span>
+            <div class="info">
+                <p class="title">Mis reservas</p>
+                <p class="desc">Ver y gestionar tus reservas</p>
+            </div>
+            <span class="arrow">→</span>
+        </a>
+
+        <a href="/conductor/historial" class="action-link">
+            <span class="icon">⏱️</span>
+            <div class="info">
+                <p class="title">Historial</p>
+                <p class="desc">Estacionamientos anteriores</p>
+            </div>
+            <span class="arrow">→</span>
+        </a>
     </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="/conductor" class="active">
+            <span class="nav-icon">🏠</span>
+            <span>Inicio</span>
+        </a>
+        <a href="/conductor/mapa">
+            <span class="nav-icon">🗺️</span>
+            <span>Mapa</span>
+        </a>
+        <a href="/conductor/mis-reservas">
+            <span class="nav-icon">📋</span>
+            <span>Reservas</span>
+        </a>
+        <a href="/conductor/perfil">
+            <span class="nav-icon">👤</span>
+            <span>Perfil</span>
+        </a>
+    </nav>
+
+    <script>
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
+        let timerInterval = null, sesionActual = null, alertaProgramada = null;
+
+        // Greeting
+        document.getElementById('greeting').textContent = `¡${localStorage.getItem('user_nombre') || 'Hola'}!`;
+
+        async function cargarSesionActiva() {
+            try {
+                const res = await fetch(`/api/sesiones/activa/${CONDUCTOR_ID}`);
+                sesionActual = await res.json();
+                if (sesionActual && sesionActual.id) mostrarSesionActiva(sesionActual);
+                else ocultarSesionActiva();
+            } catch { ocultarSesionActiva(); }
+        }
+
+        function mostrarSesionActiva(s) {
+            document.getElementById('sesionActiva').classList.add('show');
+            document.getElementById('espacioActivo').textContent = s.ubicacion || `Espacio #${s.espacio_id}`;
+            if (s.patente) {
+                document.getElementById('patenteDisplay').style.display = 'block';
+                document.getElementById('patenteTexto').textContent = s.patente;
+            }
+            const inicio = new Date(s.hora_inicio).getTime();
+            function tick() {
+                const diff = Date.now() - inicio;
+                const m = Math.floor(diff / 60000), s2 = Math.floor((diff % 60000) / 1000);
+                document.getElementById('timerDisplay').textContent = String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0');
+                document.getElementById('costoDisplay').textContent = '—';
+            }
+            tick();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(tick, 1000);
+            if (Notification.permission === 'granted' && !alertaProgramada) {
+                const alerta = (60*60*1000)-(5*60*1000);
+                const restante = inicio+alerta-Date.now();
+                if (restante>0) alertaProgramada = setTimeout(() => {
+                    new Notification('⏰ 5 min restantes', { body: `Tu estacionamiento vence pronto` });
+                }, restante);
+            }
+        }
+
+        function ocultarSesionActiva() {
+            document.getElementById('sesionActiva').classList.remove('show');
+            if (timerInterval) clearInterval(timerInterval);
+            if (alertaProgramada) { clearTimeout(alertaProgramada); alertaProgramada = null; }
+        }
+
+        document.getElementById('btnCheckout').addEventListener('click', async () => {
+            if (!sesionActual) return;
+            window.location.href = '/conductor/checkout/' + sesionActual.id;
+        });
+
+        document.getElementById('btnVerQR').addEventListener('click', async () => {
+            if (!sesionActual) return;
+            const c = document.getElementById('qrSalida');
+            if (c.classList.contains('show')) { c.classList.remove('show'); c.innerHTML=''; return; }
+            const res = await fetch('/api/checkin-qr/'+sesionActual.id);
+            const d = await res.json();
+            c.innerHTML = `<img src="data:image/png;base64,${d.qr}" style="width:160px;height:160px;margin:0 auto;display:block"><p style="font-size:11px;opacity:0.7;margin-top:6px;color:#000;text-align:center">QR para finalizar</p>`;
+            c.classList.add('show');
+        });
+
+        // QR Scanner
+        let scanInterval = null, scanningActive = false;
+
+        document.getElementById('btnScannerQR').addEventListener('click', async () => {
+            const scanner = document.getElementById('qrScanner');
+            if (scanner.classList.contains('show')) { scanner.classList.remove('show'); stopScanner(); return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
+                document.getElementById('videoQR').srcObject = stream;
+                scanner.classList.add('show');
+                document.getElementById('qrResult').textContent = 'Enfocá el QR…';
+                scanningActive = true;
+                scanLoop();
+            } catch { alert('No se pudo acceder a la cámara'); }
+        });
+        document.getElementById('btnCerrarScanner').addEventListener('click', () => { document.getElementById('qrScanner').classList.remove('show'); stopScanner(); });
+
+        function stopScanner() {
+            scanningActive = false;
+            if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
+            const v = document.getElementById('videoQR');
+            if (v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+        }
+
+        async function scanLoop() {
+            if (!scanningActive) return;
+            const video = document.getElementById('videoQR');
+            if (!video.videoWidth || !video.videoHeight) { scanInterval = requestAnimationFrame(scanLoop); return; }
+            const canvas = document.getElementById('canvasQR');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+            if (code) {
+                document.getElementById('qrResult').textContent = '✅ QR detectado';
+                try { navigator.vibrate(100); } catch {}
+                const url = code.data;
+                console.log('QR:', url);
+                // check-in QR: /conductor/checkin/perm/{perm_id}
+                const matchPerm = url.match(/\/conductor\/checkin\/perm\/(\d+)/);
+                if (matchPerm) {
+                    const permId = parseInt(matchPerm[1]);
+                    stopScanner();
+                    document.getElementById('qrScanner').classList.remove('show');
+                    if (confirm(`¿Estacionar en esta cuadra?`)) {
+                        document.getElementById('qrResult').textContent = 'Registrando…';
+                        fetch('/api/checkin-por-perm', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ permisionario_id: permId, conductor_id: CONDUCTOR_ID }),
+                        }).then(r => {
+                            if (r.ok) {
+                                alert('✅ Estacionando');
+                                cargarSesionActiva();
+                            } else {
+                                r.json().then(d => alert('Error: ' + (d.detail || 'desconocido')));
+                            }
+                        }).catch(() => alert('Error de conexión'));
+                    }
+                    return;
+                }
+                // checkout QR: /conductor/checkout/{sesion_id}
+                const matchCheckout = url.match(/\/conductor\/checkout\/(\d+)/);
+                if (matchCheckout) {
+                    const sesionId = parseInt(matchCheckout[1]);
+                    stopScanner();
+                    document.getElementById('qrScanner').classList.remove('show');
+                    if (confirm(`¿Finalizar estacionamiento?`)) {
+                        document.getElementById('qrResult').textContent = 'Finalizando…';
+                        try {
+                            const fin = await fetch(`/api/sesion/${sesionId}/finalizar-por-scan`, { method: 'POST' });
+                            const data = await fin.json();
+                            if (fin.ok) {
+                                alert('✅ Estacionamiento finalizado. Costo: $' + (data.costo_total || 0));
+                                cargarSesionActiva();
+                            } else {
+                                // Not ready yet — redirect to checkout page
+                                window.location.href = '/conductor/checkout/' + sesionId;
+                            }
+                        } catch {
+                            alert('Error de conexión');
+                        }
+                    }
+                    return;
+                }
+                // Unknown QR — try again
+                document.getElementById('qrResult').textContent = '🔁 QR no reconocido, intentá de nuevo';
+            } else {
+                document.getElementById('qrResult').textContent = '🔍 Buscando QR…';
+            }
+            scanInterval = requestAnimationFrame(scanLoop);
+        }
+
+        if (Notification.permission === 'default') Notification.requestPermission();
+        cargarSesionActiva();
+
+        fetch('/api/espacios/con-estado').then(r=>r.json()).then(d => {
+            document.getElementById('countLibres').textContent = d.libres;
+            document.getElementById('countOcupados').textContent = d.ocupados;
+            document.getElementById('countTotal').textContent = (d.libres||0)+(d.ocupados||0);
+        }).catch(()=>{});
+
+        fetch(`/api/conductores/${CONDUCTOR_ID}/status`).then(r=>r.json()).then(s => {
+            if (s.bloqueado) {
+                document.getElementById('bloqueoBanner').classList.add('show');
+                document.getElementById('motivoBloqueo').textContent = s.motivo_bloqueo || 'Violación de términos';
+            }
+        }).catch(()=>{});
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    </script>
 </body>
 </html>

@@ -4,6 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mapa - Permisionario</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-light: #d1fae5;
+            --primary-dark: #065f46;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #34d399;
+                --primary-light: #064e3b;
+                --primary-dark: #6ee7b7;
+                --accent: #fbbf24;
+                --bg: #0f172a;
+                --card: #1e293b;
+                --border: #334155;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+            }
+            .bg-white, .card-dark { background: var(--card) !important; }
+            .bg-gray-50 { background: var(--bg) !important; }
+            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
+            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
+            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
+            .text-gray-400 { color: #64748b !important; }
+            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+            .hover\:bg-gray-50:hover { background: var(--card) !important; }
+            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
+            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
+            a { color: #60a5fa !important; }
+        }
+        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .animate-slide-up { animation: slideUp 0.25s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,10 +70,13 @@
             <p class="text-xs text-gray-500 font-semibold uppercase mb-2">TUS ESPACIOS EN EL MAPA</p>
             <div id="listaEspacios" class="space-y-2 text-sm"></div>
         </div>
+
+        <div class="mt-2 text-xs text-center text-gray-400">
+            Datos oficiales: <a href="https://idemsa.municipalidadsalta.gob.ar/" target="_blank" class="underline">IDEMSA - Municipalidad de Salta</a>
+        </div>
     </div>
 
     <script>
-        const callesData = {{ calles_json|safe }};
         const misEspacios = {{ espacios_json|safe }};
         const sesionesActivas = {{ sesiones_json|safe }};
 
@@ -36,12 +85,22 @@
             attribution: '© OpenStreetMap', maxZoom: 19,
         }).addTo(map);
 
-        callesData.forEach(c => {
-            const style = c.tipo === 'estacionamiento_medido'
-                ? { color: '#22c55e', weight: 5, opacity: 0.7 }
-                : { color: '#ef4444', weight: 4, opacity: 0.6 };
-            L.polyline(c.puntos, style).addTo(map);
-        });
+        const medidoLayer = L.layerGroup();
+        const prohibidoLayer = L.layerGroup();
+        map.addLayer(medidoLayer);
+        map.addLayer(prohibidoLayer);
+
+        fetch('/api/mapa/idemsa-calles')
+            .then(r => r.json())
+            .then(calles => {
+                calles.forEach(c => {
+                    if (c.tipo === 'estacionamiento_medido') {
+                        L.polyline(c.puntos, { color: '#22c55e', weight: 5, opacity: 0.7 }).addTo(medidoLayer);
+                    } else if (c.tipo === 'prohibido_estacionar') {
+                        L.polyline(c.puntos, { color: '#ef4444', weight: 4, opacity: 0.6 }).addTo(prohibidoLayer);
+                    }
+                });
+            });
 
         const ocupados = new Set(sesionesActivas.filter(s => s.espacio_id).map(s => s.espacio_id));
 
@@ -63,6 +122,11 @@
                 <span class="text-xs px-2 py-1 rounded-full ${ocupado ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">${ocupado ? 'Ocupado' : 'Libre'} · $${e.precio_por_hora}</span>
             </div>`;
         }).join('');
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
     </script>
 </body>
 </html>

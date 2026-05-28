@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Penalizaciones</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-light: #d1fae5;
+            --primary-dark: #065f46;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #34d399;
+                --primary-light: #064e3b;
+                --primary-dark: #6ee7b7;
+                --accent: #fbbf24;
+                --bg: #0f172a;
+                --card: #1e293b;
+                --border: #334155;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+            }
+            .bg-white, .card-dark { background: var(--card) !important; }
+            .bg-gray-50 { background: var(--bg) !important; }
+            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
+            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
+            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
+            .text-gray-400 { color: #64748b !important; }
+            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+            .hover\:bg-gray-50:hover { background: var(--card) !important; }
+            .hover\:bg-red-50:hover { background: #3a1a1a !important; }
+            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
+            a { color: #60a5fa !important; }
+        }
+        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; cursor: pointer; border: none; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-danger { background: #dc2626; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; cursor: pointer; border: none; font-size: 0.875rem; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-success { background: #16a34a; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; cursor: pointer; border: none; font-size: 0.875rem; }
+        .btn-success:hover { background: #15803d; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .animate-slide-up { animation: slideUp 0.25s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-red { background: #fecaca; color: #991b1b; }
+        .badge-green { background: #bbf7d0; color: #166534; }
+        .badge-yellow { background: #fef08a; color: #854d0e; }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/admin" class="text-2xl">←</a>
+            <h1 class="text-2xl font-bold">Penalizaciones y Bloqueos</h1>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-red-600" id="totalPenalizaciones">-</p>
+                <p class="text-sm text-gray-500">Penalizaciones este mes</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-orange-600" id="totalBloqueados">-</p>
+                <p class="text-sm text-gray-500">Conductores bloqueados</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p class="text-3xl font-bold text-purple-600" id="totalDeuda">$ -</p>
+                <p class="text-sm text-gray-500">Deuda total acumulada</p>
+            </div>
+        </div>
+
+        <div class="mb-4 flex gap-2">
+            <button onclick="cargarPenalizaciones()" class="btn-primary text-sm py-2">🔄 Actualizar</button>
+            <button id="btnVerificarNoShow" onclick="verificarNoShow()" class="btn-primary text-sm py-2" style="background: #6366f1;">🔍 Verificar no-show</button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="text-left p-4">ID</th>
+                        <th class="text-left p-4">Conductor</th>
+                        <th class="text-left p-4">Motivo</th>
+                        <th class="text-left p-4">Monto</th>
+                        <th class="text-left p-4">Fecha</th>
+                        <th class="text-left p-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaPenalizaciones"></tbody>
+            </table>
+        </div>
+
+        <div class="mt-6 card">
+            <h2 class="font-semibold mb-4">🚫 Conductores bloqueados</h2>
+            <div id="listaBloqueados" class="space-y-2">
+                <p class="text-sm text-gray-400 text-center py-4">Cargando...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function cargarPenalizaciones() {
+            // Stats
+            try {
+                const sres = await fetch('/api/admin/penalizaciones/stats');
+                const s = await sres.json();
+                document.getElementById('totalPenalizaciones').textContent = s.total_penalizaciones_mes;
+                document.getElementById('totalBloqueados').textContent = s.total_bloqueados;
+                document.getElementById('totalDeuda').textContent = '$' + s.deuda_total.toFixed(0);
+            } catch {}
+
+            // Tabla penalizaciones
+            const res = await fetch('/api/admin/penalizaciones');
+            const data = await res.json();
+            const tbody = document.getElementById('tablaPenalizaciones');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">Sin penalizaciones registradas</td></tr>';
+            } else {
+                tbody.innerHTML = data.map(p => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-4 font-mono">${p.id}</td>
+                        <td class="p-4">${p.conductor_nombre || 'ID ' + p.conductor_id}</td>
+                        <td class="p-4">${p.motivo}</td>
+                        <td class="p-4 font-mono">$${p.monto.toFixed(0)}</td>
+                        <td class="p-4">${new Date(p.fecha).toLocaleDateString()}</td>
+                        <td class="p-4">
+                            <button onclick="waivar(${p.id})" class="btn-success text-xs py-1.5 px-3">Waiver</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Bloqueados
+            const bres = await fetch('/api/admin/conductores/bloqueados');
+            const bloqueados = await bres.json();
+            const container = document.getElementById('listaBloqueados');
+            if (bloqueados.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">✅ No hay conductores bloqueados</p>';
+            } else {
+                container.innerHTML = bloqueados.map(c => `
+                    <div class="flex justify-between items-center bg-red-50 rounded-xl px-4 py-3 border border-red-200">
+                        <div>
+                            <p class="font-semibold text-red-800">${c.nombre}</p>
+                            <p class="text-xs text-red-600">Deuda: $${(c.saldo_deudor || 0).toFixed(0)}</p>
+                        </div>
+                        <button onclick="desbloquear(${c.id}, '${c.nombre}')" class="btn-primary text-xs py-1.5 px-3">Desbloquear</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function waivar(id) {
+            if (!confirm('¿Anular esta penalización?')) return;
+            const res = await fetch(`/api/admin/penalizaciones/${id}/waiver`, { method: 'POST' });
+            if (res.ok) {
+                cargarPenalizaciones();
+            } else {
+                alert('Error al anular');
+            }
+        }
+
+        async function desbloquear(id, nombre) {
+            if (!confirm(`¿Desbloquear a ${nombre}?`)) return;
+            const res = await fetch(`/api/admin/conductores/${id}/desbloquear`, { method: 'POST' });
+            if (res.ok) {
+                cargarPenalizaciones();
+            } else {
+                alert('Error al desbloquear');
+            }
+        }
+
+        function verificarNoShow() {
+            const btn = document.getElementById('btnVerificarNoShow');
+            btn.disabled = true; btn.textContent = '⏳ Verificando…';
+            try {
+                const res = await fetch('/api/admin/verificar-no-show', { method: 'POST' });
+                const data = await res.json();
+                alert(`✅ Verificación completada\nPenalizaciones aplicadas: ${data.penalizadas}`);
+                cargarPenalizaciones();
+            } catch {
+                alert('Error al verificar');
+            }
+            btn.disabled = false; btn.textContent = '🔍 Verificar no-show';
+        }
+
+        cargarPenalizaciones();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

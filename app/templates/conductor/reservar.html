@@ -4,103 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Reservar</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --danger: #FF453A;
+            --nav-height: 72px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .header .back { color: var(--uber-green); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header .title { font-size: 20px; font-weight: 700; }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+        }
+        .space-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .space-row:last-child { border-bottom: none; }
+        .space-row .name { font-weight: 600; font-size: 15px; }
+        .space-row .price { font-size: 13px; color: var(--text-secondary); }
+        .space-row .badge {
+            font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px;
+        }
+        .badge-ok { background: rgba(6,193,103,0.2); color: var(--uber-green); }
+        .badge-off { background: rgba(255,69,58,0.2); color: var(--danger); }
+        .btn-block {
+            width: 100%; background: var(--uber-green); color: #000; border: none;
+            border-radius: 10px; padding: 10px; font-weight: 700; font-size: 14px;
+            cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .btn-block:active { opacity: 0.85; }
+
+        .blocked-msg {
+            background: #391C1C; border: 1px solid var(--danger); border-radius: var(--radius);
+            padding: 20px; text-align: center;
+        }
+        .blocked-msg .icon { font-size: 44px; margin-bottom: 8px; }
+        .blocked-msg .title { font-weight: 700; color: var(--danger); font-size: 17px; }
+        .blocked-msg .reason { color: #F87171; font-size: 13px; margin-top: 4px; }
+        .blocked-msg .link {
+            display: inline-block; margin-top: 12px;
+            background: var(--uber-green); color: #000; border-radius: 10px;
+            padding: 10px 24px; font-weight: 700; font-size: 14px; text-decoration: none;
+        }
+
+        .empty { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 32px 0; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000;
+            display: none; align-items: flex-end;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-sheet {
+            background: var(--bg-card); width: 100%; max-width: 420px; margin: 0 auto;
+            border-radius: 20px 20px 0 0; padding: 20px;
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-sheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+        .modal-sheet label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+        .modal-sheet input {
+            width: 100%; background: var(--bg-primary); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; color: var(--text-primary); font-size: 14px;
+            font-family: inherit; margin-bottom: 12px; -webkit-appearance: none;
+        }
+        .modal-sheet input:focus { border-color: var(--uber-green); }
+        .modal-sheet .btn-confirm {
+            width: 100%; background: var(--uber-green); color: #000; border: none;
+            border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700;
+            cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .modal-sheet .btn-cancel {
+            width: 100%; background: none; border: none; color: var(--text-secondary);
+            font-size: 14px; padding: 10px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .success-box {
+            display: none; background: rgba(6,193,103,0.15); border-radius: var(--radius);
+            padding: 14px; text-align: center; margin-bottom: 12px;
+        }
+        .success-box.show { display: block; }
+        .success-box .msg { color: var(--uber-green); font-weight: 700; font-size: 16px; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            background: var(--bg-primary); border-top: 1px solid var(--border);
+            display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; text-decoration: none; color: var(--text-secondary);
+            font-size: 11px; font-weight: 500; gap: 2px; -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--uber-green); }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/conductor" class="text-2xl">←</a>
-            <h1 class="text-xl font-bold">Reservar Espacio</h1>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/conductor" class="back">←</a>
+            <h1 class="title">Reservar</h1>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-            <p class="text-gray-600 text-sm">Seleccioná el espacio en el mapa o elegí de la lista:</p>
+        <div id="successBox" class="success-box">
+            <p class="msg">✅ Solicitud enviada</p>
+            <p style="color:var(--text-secondary);font-size:13px">Esperá la aprobación del permisionario</p>
         </div>
 
-        <div class="space-y-3 mb-6">
-            {% for e in espacios %}
-            <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-semibold">{{ e.ubicacion }}</p>
-                        <p class="text-sm text-gray-500">${{ e.precio_por_hora }}/hora</p>
-                    </div>
-                    <span class="text-xs px-2 py-1 rounded-full {{ 'bg-green-100 text-green-700' if e.disponible else 'bg-red-100 text-red-700' }}">
-                        {{ 'Disponible' if e.disponible else 'Ocupado' }}
-                    </span>
-                </div>
-                {% if e.disponible %}
-                <button onclick="reservar({{ e.id }})" class="mt-3 w-full bg-green-600 text-white py-2 rounded-xl font-medium hover:bg-green-700 transition text-sm">
-                    Reservar
-                </button>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-
-        <div id="modalReserva" class="hidden fixed inset-0 bg-black/50 flex items-end justify-center z-50">
-            <div class="bg-white rounded-t-3xl w-full max-w-sm p-6">
-                <h3 class="font-bold text-lg mb-4">Nueva Reserva</h3>
-                <input type="hidden" id="reservaEspacioId">
-                <div class="space-y-3">
-                    <div>
-                        <label class="text-sm text-gray-600">Inicio</label>
-                        <input type="datetime-local" id="reservaInicio" class="w-full border rounded-xl px-4 py-3">
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-600">Fin</label>
-                        <input type="datetime-local" id="reservaFin" class="w-full border rounded-xl px-4 py-3">
-                    </div>
-                    <button onclick="confirmarReserva()" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold">
-                        Solicitar Reserva
-                    </button>
-                    <button onclick="cerrarModal()" class="w-full text-gray-500 py-2 text-sm">Cancelar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="resultado" class="hidden bg-blue-50 rounded-2xl p-4 border border-blue-200 text-center">
-            <p class="text-blue-700 font-semibold">✅ Solicitud enviada</p>
-            <p class="text-sm text-blue-600">Esperá la aprobación del permisionario</p>
+        <div id="contenido">
+            <p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:32px">Cargando espacios…</p>
         </div>
     </div>
 
+    <!-- Modal -->
+    <div id="modalReserva" class="modal-overlay">
+        <div class="modal-sheet">
+            <h3>Nueva Reserva</h3>
+            <div>
+                <label>Inicio</label>
+                <input type="datetime-local" id="reservaInicio">
+            </div>
+            <div>
+                <label>Fin</label>
+                <input type="datetime-local" id="reservaFin">
+            </div>
+            <button class="btn-confirm" onclick="confirmarReserva()">Solicitar Reserva</button>
+            <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="/conductor">
+            <span class="nav-icon">🏠</span>
+            <span>Inicio</span>
+        </a>
+        <a href="/conductor/mapa">
+            <span class="nav-icon">🗺️</span>
+            <span>Mapa</span>
+        </a>
+        <a href="/conductor/mis-reservas">
+            <span class="nav-icon">📋</span>
+            <span>Reservas</span>
+        </a>
+        <a href="/conductor/perfil">
+            <span class="nav-icon">👤</span>
+            <span>Perfil</span>
+        </a>
+    </nav>
+
     <script>
         let reservandoId = null;
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
 
-        function reservar(id) {
+        async function cargarEspacios() {
+            const cont = document.getElementById('contenido');
+
+            // Bloqueo check
+            let bloqueado = false, motivo = '';
+            try {
+                const sr = await fetch(`/api/conductores/${CONDUCTOR_ID}/status`);
+                const st = await sr.json();
+                bloqueado = st.bloqueado;
+                motivo = st.motivo_bloqueo || '';
+            } catch {}
+
+            if (bloqueado) {
+                cont.innerHTML = `
+                    <div class="blocked-msg">
+                        <div class="icon">🚫</div>
+                        <p class="title">Cuenta bloqueada</p>
+                        <p class="reason">${motivo}</p>
+                        <a href="/conductor/perfil" class="link">Ir a perfil</a>
+                    </div>`;
+                return;
+            }
+
+            const res = await fetch('/api/espacios/disponibles');
+            const espacios = await res.json();
+
+            if (!espacios.length) {
+                cont.innerHTML = '<p class="empty">No hay espacios disponibles</p>';
+                return;
+            }
+
+            cont.innerHTML = '<div class="card">' + espacios.map(e => `
+                <div class="space-row">
+                    <div>
+                        <p class="name">${e.ubicacion}</p>
+                        <p class="price">$${e.precio_por_hora}/hora</p>
+                    </div>
+                    <span class="badge ${e.disponible ? 'badge-ok' : 'badge-off'}">${e.disponible ? 'Disponible' : 'Ocupado'}</span>
+                    ${e.disponible ? `<button class="btn-block" style="margin-top:8px" onclick="abrirReserva(${e.id})">Reservar</button>` : ''}
+                </div>
+            `).join('') + '</div>';
+        }
+
+        function abrirReserva(id) {
             reservandoId = id;
-            document.getElementById("reservaEspacioId").value = id;
-            document.getElementById("modalReserva").classList.remove("hidden");
+            document.getElementById('modalReserva').classList.add('show');
         }
 
         function cerrarModal() {
-            document.getElementById("modalReserva").classList.add("hidden");
+            document.getElementById('modalReserva').classList.remove('show');
         }
 
         async function confirmarReserva() {
-            const conductorId = parseInt(localStorage.getItem("conductorId") || "1");
-            const data = {
-                espacio_id: reservandoId,
-                conductor_id: conductorId,
-                hora_inicio: new Date(document.getElementById("reservaInicio").value).toISOString(),
-                hora_fin: new Date(document.getElementById("reservaFin").value).toISOString(),
-            };
-
-            const res = await fetch("/api/reservas", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(data),
+            const inicio = document.getElementById('reservaInicio').value;
+            const fin = document.getElementById('reservaFin').value;
+            if (!inicio || !fin) { alert('Completá fecha de inicio y fin'); return; }
+            const res = await fetch('/api/reservas', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    espacio_id: reservandoId, conductor_id: CONDUCTOR_ID,
+                    hora_inicio: new Date(inicio).toISOString(),
+                    hora_fin: new Date(fin).toISOString(),
+                }),
             });
-
             if (res.ok) {
                 cerrarModal();
-                document.getElementById("resultado").classList.remove("hidden");
+                document.getElementById('successBox').classList.add('show');
             } else {
                 const err = await res.json();
-                alert("Error: " + (err.detail || "desconocido"));
+                alert('Error: ' + (err.detail || 'desconocido'));
             }
         }
+
+        cargarEspacios();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
     </script>
 </body>
 </html>

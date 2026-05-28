@@ -7,6 +7,7 @@ class PermisionarioCreate(BaseModel):
     nombre: str
     email: str
     telefono: Optional[str] = None
+    calle: Optional[str] = None
 
 
 class PermisionarioOut(BaseModel):
@@ -14,6 +15,7 @@ class PermisionarioOut(BaseModel):
     nombre: str
     email: str
     telefono: Optional[str] = None
+    calle: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -29,20 +31,28 @@ class ConductorOut(BaseModel):
     nombre: str
     email: str
     telefono: Optional[str] = None
+    patente: Optional[str] = None
+    bloqueado: bool = False
+    saldo_deudor: float = 0.0
 
     model_config = {"from_attributes": True}
 
 
+class ConductorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    patente: Optional[str] = None
+
+
 class EspacioCreate(BaseModel):
     ubicacion: str
-    permisionario_id: int
     precio_por_hora: float = 50.0
 
 
 class EspacioOut(BaseModel):
     id: int
     ubicacion: str
-    permisionario_id: int
     precio_por_hora: float
     disponible: bool
 
@@ -51,6 +61,11 @@ class EspacioOut(BaseModel):
 
 class CheckInRequest(BaseModel):
     espacio_id: int
+    conductor_id: int
+
+
+class CheckInPorPermRequest(BaseModel):
+    permisionario_id: int
     conductor_id: int
 
 
@@ -66,9 +81,13 @@ class CheckOutRequest(BaseModel):
 
 class CheckOutResponse(BaseModel):
     sesion_id: int
-    horas: float
     costo_total: float
     link_pago: str
+
+
+class ElegirPagoRequest(BaseModel):
+    metodo: str
+    patente: Optional[str] = None
 
 
 class ReservaCreate(BaseModel):
@@ -93,3 +112,22 @@ class ReservaOut(BaseModel):
 class ReservaAprobar(BaseModel):
     reserva_id: int
     aprobar: bool
+
+
+class PenalizacionOut(BaseModel):
+    id: int
+    conductor_id: int
+    reserva_id: Optional[int] = None
+    monto: float
+    motivo: str
+    fecha: datetime
+    pagada: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ConductorStatus(BaseModel):
+    bloqueado: bool
+    saldo_deudor: float
+    penalizaciones_mes: int
+    motivo_bloqueo: Optional[str] = None

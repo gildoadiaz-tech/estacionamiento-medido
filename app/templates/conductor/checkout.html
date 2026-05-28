@@ -3,62 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Check-Out</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Estacionar</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --danger: #FF453A;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary); color: var(--text-primary);
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 420px; width: 100%; margin: 0 auto; padding: 20px; }
+        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .header a { color: var(--uber-green); text-decoration: none; font-size: 18px; font-weight: 600; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+        }
+        .info-row {
+            display: flex; justify-content: space-between; padding: 10px 0;
+            border-bottom: 1px solid var(--border); font-size: 15px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .label { color: var(--text-secondary); }
+        .info-row .value { font-weight: 600; }
+        .timer-box { font-size: 32px; font-weight: 700; font-family: 'SF Mono', monospace; color: var(--uber-green); text-align: center; }
+
+        .field-group { margin-bottom: 14px; }
+        .field-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+        .field-group input {
+            width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px; color: var(--text-primary);
+            font-size: 16px; font-family: inherit; outline: none; -webkit-appearance: none;
+            text-transform: uppercase;
+        }
+        .field-group input:focus { border-color: var(--uber-green); }
+
+        .pay-option {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+            width: 100%; text-align: left; font-family: inherit;
+            color: var(--text-primary); font-size: 15px;
+            -webkit-appearance: none;
+        }
+        .pay-option:active { background: var(--bg-elevated); }
+        .pay-option .pay-icon { font-size: 28px; }
+        .pay-option .pay-title { font-weight: 600; }
+        .pay-option .pay-desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .pay-option.selected { border-color: var(--uber-green); background: rgba(6,193,103,0.1); }
+
+        .btn-primary {
+            width: 100%; background: var(--uber-green); color: #000; border: none;
+            border-radius: var(--radius); padding: 16px; font-size: 17px;
+            font-weight: 700; cursor: pointer; font-family: inherit;
+            margin-top: 8px; -webkit-appearance: none;
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+        .message {
+            display: none; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 12px;
+        }
+        .message.show { display: block; }
+        .message .msg-icon { font-size: 40px; margin-bottom: 8px; }
+        .message .msg-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .message .msg-text { font-size: 14px; color: var(--text-secondary); }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/conductor" class="text-2xl">←</a>
-            <h1 class="text-xl font-bold">Retirar Vehículo</h1>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/conductor">←</a>
+            <h1>Estacionar</h1>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center mb-4">
-            <div class="text-6xl mb-4">🏁</div>
-            <p class="text-gray-500 mb-1">{{ espacio.ubicacion if espacio else '' }}</p>
-            <p class="text-sm text-gray-400">Sesión #{{ sesion.id }}</p>
+        <div class="card">
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:2px">{{ espacio.ubicacion if espacio else '' }}</p>
+            <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px">{{ perm.nombre if perm else '' }}</p>
+            <div class="timer-box" id="timerDisplay">00:00</div>
+            <p style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:4px">Tiempo transcurrido</p>
         </div>
 
-        <div class="bg-blue-50 rounded-2xl p-4 border border-blue-200 mb-4">
-            <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Ingreso:</span>
-                <span class="font-medium" id="horaInicio">{{ sesion.hora_inicio.strftime('%H:%M') }}</span>
+        <div class="card">
+            <div class="field-group">
+                <label>Patente</label>
+                <input id="inputPatente" type="text" placeholder="Ej: AB123CD" maxlength="7" value="{{ conductor.patente or '' }}">
+            </div>
+            {% if conductor.patente %}
+            <p style="font-size:12px;color:var(--uber-green);margin-top:-8px;margin-bottom:8px">✓ Patente de tu perfil</p>
+            {% else %}
+            <p style="font-size:12px;color:var(--text-tertiary);margin-top:-8px;margin-bottom:8px">El permisionario puede cargarla si no la tenés registrada</p>
+            {% endif %}
+            <div class="info-row">
+                <span class="label">Tarifa</span>
+                <span class="value">$600/hora</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Horario cobrable</span>
+                <span class="value">7:00 – 21:00</span>
             </div>
         </div>
 
-        <button id="btnCheckout" class="w-full bg-red-600 text-white py-4 rounded-xl font-semibold text-lg hover:bg-red-700 transition">
-            Finalizar Estacionamiento
-        </button>
+        <div id="stepPago">
+            <p style="font-size:15px;font-weight:600;margin-bottom:12px">Medio de pago para la salida</p>
+            <button class="pay-option" data-metodo="efectivo">
+                <span class="pay-icon">💵</span>
+                <div>
+                    <div class="pay-title">Efectivo</div>
+                    <div class="pay-desc">Pagale al permisionario cuando te retires</div>
+                </div>
+            </button>
+            <button class="pay-option" data-metodo="mercadopago">
+                <span class="pay-icon">📱</span>
+                <div>
+                    <div class="pay-title">Mercado Pago</div>
+                    <div class="pay-desc">Pagá con QR o tarjeta al retirarte</div>
+                </div>
+            </button>
+            <button id="btnConfirmarPago" class="btn-primary" disabled>Estacionar</button>
+        </div>
 
-        <div id="resultado" class="hidden mt-4 space-y-3">
-            <div class="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 text-center">
-                <p class="text-3xl font-bold text-gray-800" id="costoTotal"></p>
-                <p class="text-sm text-gray-500" id="detalleTiempo"></p>
-            </div>
-            <a id="linkPago" target="_blank" class="block w-full bg-green-600 text-white text-center py-4 rounded-xl font-semibold hover:bg-green-700 transition">
-                💳 Pagar con Mercado Pago
-            </a>
+        <div id="msgEfectivo" class="message">
+            <div class="msg-icon">💵</div>
+            <div class="msg-title">Estacionamiento registrado</div>
+            <div class="msg-text">Cuando te retires, pagale al permisionario en efectivo. Él te dará el QR de salida para escanear.</div>
+            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
+        </div>
+
+        <div id="msgMP" class="message">
+            <div class="msg-icon">📱</div>
+            <div class="msg-title">Estacionamiento registrado</div>
+            <div class="msg-text">Cuando te retires, pagá con Mercado Pago. El permisionario te dará el QR de salida.</div>
+            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
         </div>
     </div>
 
     <script>
-        document.getElementById("btnCheckout").addEventListener("click", async () => {
-            const res = await fetch("/api/checkout", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ sesion_id: {{ sesion.id }} }),
-            });
-            const data = await res.json();
+        const SESION_ID = {{ sesion.id }};
+        const INICIO = new Date("{{ sesion.hora_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}").getTime();
+        let metodoSeleccionado = null;
 
-            if (res.ok) {
-                document.getElementById("resultado").classList.remove("hidden");
-                document.getElementById("costoTotal").textContent = "$" + data.costo_total;
-                document.getElementById("detalleTiempo").textContent = data.horas + " horas de estacionamiento";
-                document.getElementById("linkPago").href = data.link_pago;
-                document.getElementById("btnCheckout").disabled = true;
-                document.getElementById("btnCheckout").textContent = "✅ Finalizado";
-            } else {
-                alert("Error: " + (data.detail || "desconocido"));
+        // Timer count-up
+        setInterval(() => {
+            const diff = Date.now() - INICIO;
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('timerDisplay').textContent =
+                String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        }, 1000);
+
+        document.querySelectorAll('.pay-option').forEach(el => {
+            el.addEventListener('click', () => {
+                document.querySelectorAll('.pay-option').forEach(x => x.classList.remove('selected'));
+                el.classList.add('selected');
+                metodoSeleccionado = el.dataset.metodo;
+                document.getElementById('btnConfirmarPago').disabled = false;
+            });
+        });
+
+        document.getElementById('btnConfirmarPago').addEventListener('click', async () => {
+            if (!metodoSeleccionado) return;
+            const patente = document.getElementById('inputPatente').value.trim();
+            if (!patente) { alert('Ingresá la patente'); return; }
+
+            const btn = document.getElementById('btnConfirmarPago');
+            btn.disabled = true; btn.textContent = 'Registrando…';
+
+            try {
+                const res = await fetch(`/api/sesion/${SESION_ID}/elegir-pago`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ metodo: metodoSeleccionado, patente: patente }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error');
+
+                document.getElementById('stepPago').style.display = 'none';
+                if (metodoSeleccionado === 'efectivo') {
+                    document.getElementById('msgEfectivo').classList.add('show');
+                } else {
+                    document.getElementById('msgMP').classList.add('show');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+                btn.disabled = false; btn.textContent = 'Estacionar';
             }
         });
     </script>

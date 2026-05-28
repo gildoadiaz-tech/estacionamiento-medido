@@ -4,6 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Historial</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-light: #d1fae5;
+            --primary-dark: #065f46;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #34d399;
+                --primary-light: #064e3b;
+                --primary-dark: #6ee7b7;
+                --accent: #fbbf24;
+                --bg: #0f172a;
+                --card: #1e293b;
+                --border: #334155;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+            }
+            .bg-white, .card-dark { background: var(--card) !important; }
+            .bg-gray-50 { background: var(--bg) !important; }
+            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
+            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
+            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
+            .text-gray-400 { color: #64748b !important; }
+            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+            .hover\:bg-gray-50:hover { background: var(--card) !important; }
+            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
+            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
+            a { color: #60a5fa !important; }
+        }
+        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .animate-slide-up { animation: slideUp 0.25s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -13,33 +59,35 @@
             <h1 class="text-xl font-bold">Historial</h1>
         </div>
 
-        <div class="mb-4">
-            <label class="text-sm text-gray-600">Tu ID de conductor:</label>
-            <input type="number" id="conductorId" value="1" class="w-full border rounded-xl px-4 py-2 mt-1">
-        </div>
-
         <div id="listaSesiones" class="space-y-3">
             <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
+        </div>
+
+        <div class="mt-4 text-center">
+            <p class="text-xs text-gray-400">Total gastado: <span id="totalGastado" class="font-bold">$0</span></p>
         </div>
     </div>
 
     <script>
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
+
         async function cargarHistorial() {
-            const conductorId = document.getElementById("conductorId").value;
-            const res = await fetch(`/api/sesiones/conductor/${conductorId}`);
+            const res = await fetch(`/api/sesiones/conductor/${CONDUCTOR_ID}`);
             const sesiones = await res.json();
             const container = document.getElementById("listaSesiones");
+            let total = 0;
 
             if (sesiones.length === 0) {
                 container.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">Sin estacionamientos registrados</p>';
                 return;
             }
 
-            container.innerHTML = sesiones.map(s => `
-                <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            container.innerHTML = sesiones.map(s => {
+                if (s.costo_total) total += s.costo_total;
+                return `<div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                     <div class="flex justify-between">
                         <div>
-                            <p class="font-semibold">Espacio #${s.espacio_id}</p>
+                            <p class="font-semibold">${s.ubicacion || 'Espacio #' + s.espacio_id}</p>
                             <p class="text-xs text-gray-500">${new Date(s.hora_inicio).toLocaleString()}</p>
                             ${s.hora_fin ? `<p class="text-xs text-gray-500">→ ${new Date(s.hora_fin).toLocaleString()}</p>` : '<p class="text-xs text-blue-500">● Activo</p>'}
                         </div>
@@ -48,12 +96,18 @@
                             <span class="text-xs px-2 py-1 rounded-full ${s.pagado ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${s.pagado ? 'Pagado' : 'Pendiente'}</span>
                         </div>
                     </div>
-                </div>
-            `).join("");
+                </div>`;
+            }).join("");
+
+            document.getElementById("totalGastado").textContent = '$' + total.toFixed(2);
         }
 
-        document.getElementById("conductorId").addEventListener("change", cargarHistorial);
         cargarHistorial();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
     </script>
 </body>
 </html>

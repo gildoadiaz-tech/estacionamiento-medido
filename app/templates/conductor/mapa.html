@@ -3,167 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa - Estacionamiento Salta</title>
+    <title>Mapa — Estacionamiento Salta</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
-        #mapa { height: 70vh; width: 100%; border-radius: 1rem; z-index: 0; }
-        .leaflet-popup-content { margin: 8px; font-size: 13px; }
-        .ubicarme-btn { position: absolute; bottom: 20px; right: 20px; z-index: 1000; }
+        :root {
+            --uber-green: #06C167;
+            --bg-primary: #000;
+            --bg-card: #1C1C1E;
+            --bg-elevated: #2C2C2E;
+            --text-primary: #FFF;
+            --text-secondary: #98989F;
+            --text-tertiary: #636366;
+            --border: #3A3A3C;
+            --radius: 14px;
+            --danger: #FF453A;
+            --nav-height: 72px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 500px; margin: 0 auto; padding: 8px 8px calc(var(--nav-height) + 8px); }
+        .header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 4px 8px;
+        }
+        .header .back { color: var(--uber-green); text-decoration: none; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+        .header .title { font-size: 18px; font-weight: 700; flex: 1; }
+        .header .chip {
+            font-size: 12px; font-weight: 600; padding: 6px 12px;
+            border-radius: 20px; text-decoration: none; white-space: nowrap;
+        }
+        .chip-reservar { background: rgba(6,193,103,0.2); color: var(--uber-green); }
+        .chip-count { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+
+        #mapa { height: 60vh; width: 100%; border-radius: var(--radius); z-index: 0; }
+        .loading-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex;
+            align-items: center; justify-content: center; z-index: 1000; border-radius: var(--radius);
+            color: var(--text-secondary); font-size: 14px;
+        }
+
+        .session-banner {
+            display: none;
+            background: var(--uber-green);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            margin: 6px 0;
+            align-items: center; gap: 10px;
+        }
+        .session-banner.show { display: flex; }
+        .session-banner * { color: #000 !important; }
+        .session-banner .btn-go {
+            background: rgba(0,0,0,0.15); color: #000 !important;
+            padding: 8px 14px; border-radius: 10px; font-weight: 600;
+            font-size: 12px; text-decoration: none; white-space: nowrap;
+        }
+
+        .action-bar { display: flex; gap: 6px; margin: 6px 0; }
+        .btn-primary {
+            flex: 1; background: var(--uber-green); color: #000; border: none;
+            border-radius: var(--radius); padding: 14px; font-size: 15px;
+            font-weight: 700; cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .btn-primary:active { opacity: 0.85; }
+        .btn-secondary {
+            width: 48px; height: 48px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text-primary); font-size: 18px;
+            cursor: pointer; font-family: inherit; display: flex; align-items: center;
+            justify-content: center; -webkit-appearance: none;
+        }
+        .btn-secondary:active { background: var(--bg-elevated); }
+
+        .results-panel {
+            display: none; margin: 6px 0;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px;
+        }
+        .results-panel.show { display: block; }
+        .results-title {
+            font-size: 11px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+        }
+        .result-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+        }
+        .result-item:last-child { border-bottom: none; }
+        .result-item .street { font-size: 14px; font-weight: 500; }
+        .result-item .detail { font-size: 12px; color: var(--text-secondary); }
+        .result-item .btns { display: flex; gap: 4px; flex-shrink: 0; }
+        .result-item .btn-sm {
+            font-size: 11px; padding: 5px 9px; border-radius: 14px;
+            border: none; cursor: pointer; font-weight: 600; font-family: inherit;
+            text-decoration: none; -webkit-appearance: none;
+        }
+        .btn-waze { background: rgba(59,130,246,0.2); color: #60A5FA; }
+        .btn-park { background: rgba(6,193,103,0.2); color: var(--uber-green); text-decoration: none; }
+
+        .legend { display: flex; gap: 14px; justify-content: center; margin: 8px 0; font-size: 12px; color: var(--text-secondary); }
+        .legend span { display: flex; align-items: center; gap: 4px; }
+        .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000;
+            display: none; align-items: flex-end;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-sheet {
+            background: var(--bg-card); width: 100%; max-width: 500px; margin: 0 auto;
+            border-radius: 20px 20px 0 0; padding: 20px;
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-sheet .close { font-size: 22px; color: var(--text-secondary); background: none; border: none; cursor: pointer; float: right; font-family: inherit; -webkit-appearance: none; }
+        .modal-sheet .spot-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .modal-sheet .spot-price { font-size: 14px; color: var(--text-secondary); }
+        .modal-sheet .spot-addr { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+        .modal-sheet select {
+            width: 100%; background: var(--bg-primary); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 12px; color: var(--text-primary);
+            font-size: 14px; font-family: inherit; margin: 14px 0; -webkit-appearance: none;
+        }
+        .modal-sheet .btn-confirm {
+            width: 100%; background: var(--uber-green); color: #000; border: none;
+            border-radius: var(--radius); padding: 16px; font-size: 17px; font-weight: 700;
+            cursor: pointer; font-family: inherit; margin-bottom: 8px; -webkit-appearance: none;
+        }
+        .modal-sheet .btn-cancel {
+            width: 100%; background: none; border: none; color: var(--text-secondary);
+            font-size: 14px; padding: 10px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
+        }
+        .modal-result {
+            display: none; text-align: center; padding: 12px 0;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            background: var(--bg-primary); border-top: 1px solid var(--border);
+            display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; text-decoration: none; color: var(--text-secondary);
+            font-size: 11px; font-weight: 500; gap: 2px; -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--uber-green); }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+
+        .leaflet-popup-content-wrapper { border-radius: 12px !important; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-lg mx-auto p-3">
-        <div class="flex items-center gap-2 mb-3">
-            <a href="/conductor" class="text-xl">←</a>
-            <h1 class="text-lg font-bold flex-1">Mapa de Estacionamiento</h1>
-            <span id="contador" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">0 libres</span>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="/conductor" class="back">←</a>
+            <h1 class="title">Mapa</h1>
+            <a href="/conductor/reservar" class="chip chip-reservar">📅 Reservar</a>
+            <span id="contador" class="chip chip-count">0</span>
         </div>
 
-        <div id="mapa"></div>
-
-        <div class="flex gap-2 mt-3">
-            <button id="btnBuscar" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-blue-700 transition">
-                📍 Dónde estacionar
-            </button>
-            <button id="btnRecargar" class="bg-white border border-gray-300 text-gray-700 px-4 py-3 rounded-xl text-sm hover:bg-gray-50 transition">
-                ↻
-            </button>
-        </div>
-
-        <div id="resultados" class="mt-3 hidden">
-            <div class="bg-white rounded-xl p-3 border border-gray-200 shadow-sm">
-                <p class="text-xs text-gray-500 font-semibold uppercase mb-2">MÁS CERCANOS</p>
-                <div id="listaCercanos"></div>
+        <!-- Session banner -->
+        <div id="sessionBanner" class="session-banner">
+            <span style="font-size:20px">🅿️</span>
+            <div style="flex:1;font-size:13px">
+                <p style="font-size:11px;opacity:0.7">Estacionando en</p>
+                <p id="bannerPlace" style="font-weight:700">-</p>
             </div>
+            <span id="bannerTimer" style="font-weight:700;font-family:'SF Mono',monospace">00:00</span>
+            <a href="/conductor" class="btn-go">IR</a>
         </div>
 
-        <div class="flex gap-3 mt-3 text-xs text-gray-500 justify-center">
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Estacionamiento medido</span>
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Prohibido estacionar</span>
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span> Ocupado</span>
+        <!-- Map -->
+        <div style="position:relative">
+            <div id="mapa"></div>
+            <div id="cargando" class="loading-overlay">Cargando datos oficiales…</div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="action-bar">
+            <button id="btnBuscar" class="btn-primary">📍 Buscar dónde estacionar</button>
+            <button id="btnRecargar" class="btn-secondary">↻</button>
+        </div>
+
+        <!-- Results -->
+        <div id="resultados" class="results-panel">
+            <p class="results-title">Más cercanos (3 cuadras)</p>
+            <div id="listaCercanos"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <span><span class="dot" style="background:#22c55e"></span> Medido</span>
+            <span><span class="dot" style="background:#ef4444"></span> Prohibido</span>
+            <span><span class="dot" style="background:#3b82f6"></span> Libre</span>
+            <span>⭐ Favorito</span>
+        </div>
+
+        <p style="font-size:11px;text-align:center;color:var(--text-tertiary);margin-top:4px">
+            Datos: <a href="https://idemsa.municipalidadsalta.gob.ar/" target="_blank" style="color:var(--uber-green)">IDEMSA</a>
+        </p>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalCheckin" class="modal-overlay">
+        <div class="modal-sheet">
+            <button id="btnCancelarCheckin" class="close">✕</button>
+            <div style="text-align:center;margin-bottom:12px">
+                <span style="font-size:40px">🅿️</span>
+                <h2 id="modalCalle" class="spot-name">-</h2>
+                <p id="modalPrecio" class="spot-price">$600/hora</p>
+                <p id="modalDireccion" class="spot-addr"></p>
+            </div>
+            <div style="margin:14px 0">
+                <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block">Duración estimada</label>
+                <select id="modalDuracion">
+                    <option value="30">30 min</option>
+                    <option value="60" selected>1 hora</option>
+                    <option value="90">1h 30min</option>
+                    <option value="120">2 horas</option>
+                    <option value="180">3 horas</option>
+                </select>
+            </div>
+            <button id="btnConfirmarCheckin" class="btn-confirm">✅ Estacionar aquí</button>
+            <button id="btnCancelarCheckin2" class="btn-cancel">Cancelar</button>
+            <div id="modalResultado" class="modal-result"></div>
         </div>
     </div>
 
-    <script>
-        const callesData = {{ calles_json|safe }};
-        const espaciosVirtuales = {{ espacios_json|safe }};
-        const sesionesActivas = {{ sesiones_json|safe }};
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="/conductor">
+            <span class="nav-icon">🏠</span>
+            <span>Inicio</span>
+        </a>
+        <a href="/conductor/mapa" class="active">
+            <span class="nav-icon">🗺️</span>
+            <span>Mapa</span>
+        </a>
+        <a href="/conductor/mis-reservas">
+            <span class="nav-icon">📋</span>
+            <span>Reservas</span>
+        </a>
+        <a href="/conductor/perfil">
+            <span class="nav-icon">👤</span>
+            <span>Perfil</span>
+        </a>
+    </nav>
 
-        const map = L.map('mapa').setView([-24.7883, -65.4106], 15);
+    <script>
+        const IDEMSA_SPOTS = {{ espacios_json|safe }};
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
+        let favoritos = JSON.parse(localStorage.getItem('favoritos') || '[]');
+        const SALTA_CENTER = [-24.7858, -65.4056];
+
+        const map = L.map('mapa').setView(SALTA_CENTER, 17);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 19,
+            attribution: '© OpenStreetMap', maxZoom: 19,
         }).addTo(map);
 
-        const iconoLibre = L.divIcon({ html: '🅿️', iconSize: [24, 24], className: '' });
-        const iconoOcupado = L.divIcon({ html: '🔴', iconSize: [24, 24], className: '' });
+        const medidoLayer = L.layerGroup(), prohibidoLayer = L.layerGroup(), libreLayer = L.layerGroup();
+        map.addLayer(medidoLayer); map.addLayer(prohibidoLayer); map.addLayer(libreLayer);
+        L.control.layers(null, {
+            '✅ Medido': medidoLayer, '❌ Prohibido': prohibidoLayer, '🆓 Libre': libreLayer,
+        }, { collapsed: false, position: 'bottomleft' }).addTo(map);
 
-        const coloresCalles = {
-            estacionamiento_medido: { color: '#22c55e', weight: 5, opacity: 0.7 },
-            prohibido_estacionar: { color: '#ef4444', weight: 4, opacity: 0.6 },
-            carga_descarga: { color: '#f59e0b', weight: 4, opacity: 0.6 },
-            peatonal: { color: '#8b5cf6', weight: 3, opacity: 0.5, dashArray: '5,5' },
-        };
-
-        const ocupadosSet = new Set(sesionesActivas.map(s => `${s.espacio_id}`));
-
-        callesData.forEach(c => {
-            const style = coloresCalles[c.tipo] || { color: '#6b7280', weight: 3 };
-            L.polyline(c.puntos, style).addTo(map)
-                .bindPopup(`<b>${c.nombre}</b><br>${c.tipo === 'estacionamiento_medido' ? '✅ Estacionamiento medido · $' + c.tarifa + '/h' : c.tipo === 'prohibido_estacionar' ? '❌ Prohibido estacionar' : c.tipo}`);
-        });
-
-        let marcadores = [];
-        function mostrarEspacios() {
-            marcadores.forEach(m => map.removeLayer(m));
-            marcadores = [];
-
-            espaciosVirtuales.forEach(e => {
-                const ocupado = Math.random() < 0.3 || ocupadosSet.has(`${e.id}`);
-                if (e.tipo !== 'estacionamiento_medido') return;
-
-                const color = ocupado ? '#ef4444' : '#22c55e';
-                const marker = L.circleMarker([e.lat, e.lng], {
-                    radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1,
-                }).addTo(map);
-
-                if (!ocupado) {
-                    marker.bindPopup(`
-                        <b>${e.calle}</b><br>
-                        $${e.tarifa}/hora · Libre<br>
-                        <a href="/conductor/checkin" class="text-blue-600 text-xs">🅿️ Estacionar aquí</a>
-                    `);
-                }
-                marcadores.push(marker);
-            });
-
-            const libres = espaciosVirtuales.filter(e => e.tipo === 'estacionamiento_medido').length;
-            document.getElementById('contador').textContent = libres + ' libres';
-        }
-        mostrarEspacios();
-
-        let ubicacionUsuario = null;
-        let circuloRadio = null;
-
-        document.getElementById('btnBuscar').addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                alert('Tu navegador no soporta geolocalización');
-                return;
-            }
-            navigator.geolocation.getCurrentPosition(pos => {
-                const { latitude: lat, longitude: lng } = pos.coords;
-                ubicacionUsuario = [lat, lng];
-
-                if (circuloRadio) map.removeLayer(circuloRadio);
-                circuloRadio = L.circle(ubicacionUsuario, {
-                    radius: 300, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.08, weight: 2,
-                }).addTo(map);
-
-                L.marker(ubicacionUsuario, {
-                    icon: L.divIcon({ html: '📍', iconSize: [24, 24], className: '' })
-                }).addTo(map).bindPopup('Vos');
-
-                map.setView(ubicacionUsuario, 16);
-
-                const cercanos = espaciosVirtuales
-                    .filter(e => e.tipo === 'estacionamiento_medido')
-                    .map(e => ({
-                        ...e,
-                        distancia: Math.sqrt(
-                            Math.pow(e.lat - lat, 2) + Math.pow(e.lng - lng, 2)
-                        ) * 111320
-                    }))
-                    .filter(e => e.distancia < 300)
-                    .sort((a, b) => a.distancia - b.distancia)
-                    .slice(0, 10);
-
-                const cont = document.getElementById('listaCercanos');
-                const resDiv = document.getElementById('resultados');
-
-                if (cercanos.length === 0) {
-                    cont.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">No hay espacios libres cerca</p>';
-                } else {
-                    cont.innerHTML = cercanos.map(e => `
-                        <div class="flex justify-between items-center py-2 border-b last:border-0">
-                            <div>
-                                <p class="font-medium text-sm">${e.calle}</p>
-                                <p class="text-xs text-gray-500">$${e.tarifa}/h · ${Math.round(e.distancia)}m</p>
-                            </div>
-                            <a href="/conductor/checkin" class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">🅿️ Ir</a>
+        fetch('/api/mapa/idemsa-calles')
+            .then(r => r.json())
+            .then(calles => {
+                document.getElementById('cargando').style.display = 'none';
+                const colores = {
+                    estacionamiento_medido: { color: '#22c55e', weight: 5, opacity: 0.7 },
+                    prohibido_estacionar: { color: '#ef4444', weight: 4, opacity: 0.6 },
+                    estacionamiento_libre: { color: '#3b82f6', weight: 3, opacity: 0.5, dashArray: '4,4' },
+                };
+                calles.forEach(c => {
+                    const style = colores[c.tipo] || { color: '#6b7280', weight: 3 };
+                    const layer = L.polyline(c.puntos, style);
+                    const esFav = favoritos.includes(c.nombre);
+                    const favStar = esFav ? '⭐' : '☆';
+                    layer.bindPopup(`
+                        <b>${c.nombre}</b>${c.altura ? '<br>Altura: '+c.altura : ''}<br>
+                        <span style="color:#22c55e">✅ Estacionamiento medido</span>
+                        <div style="display:flex;gap:4px;margin-top:8px">
+                            <a href="https://waze.com/ul?ll=${c.puntos[0][0]},${c.puntos[0][1]}&navigate=yes" target="_blank" style="font-size:11px;background:#e0e7ff;color:#4338ca;padding:3px 8px;border-radius:12px;text-decoration:none">🗺️ Waze</a>
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${c.puntos[0][0]},${c.puntos[0][1]}" target="_blank" style="font-size:11px;background:#fecaca;color:#991b1b;padding:3px 8px;border-radius:12px;text-decoration:none">📍 Maps</a>
+                            <span onclick="toggleFav('${c.nombre}')" style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;cursor:pointer">${favStar}</span>
                         </div>
-                    `).join("");
+                    `);
+                    if (c.tipo === 'estacionamiento_medido') medidoLayer.addLayer(layer);
+                    else if (c.tipo === 'prohibido_estacionar') prohibidoLayer.addLayer(layer);
+                    else libreLayer.addLayer(layer);
+                });
+            })
+            .catch(() => document.getElementById('cargando').innerHTML = '❌ Error al cargar datos');
+
+        document.getElementById('contador').textContent = IDEMSA_SPOTS.length + ' espacios';
+
+        function toggleFav(calle) {
+            const idx = favoritos.indexOf(calle);
+            idx > -1 ? favoritos.splice(idx,1) : favoritos.push(calle);
+            localStorage.setItem('favoritos', JSON.stringify(favoritos));
+        }
+
+        // Session banner
+        let sesionActiva = null, bannerTimer = null;
+        async function checkSession() {
+            try {
+                const res = await fetch(`/api/sesiones/activa/${CONDUCTOR_ID}`);
+                sesionActiva = await res.json();
+                if (sesionActiva && sesionActiva.id) {
+                    document.getElementById('sessionBanner').classList.add('show');
+                    document.getElementById('bannerPlace').textContent = sesionActiva.ubicacion || 'Espacio #'+sesionActiva.espacio_id;
+                    const inicio = new Date(sesionActiva.hora_inicio).getTime();
+                    function tick() {
+                        const m = Math.floor((Date.now()-inicio)/60000), s = Math.floor(((Date.now()-inicio)%60000)/1000);
+                        document.getElementById('bannerTimer').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+                    }
+                    tick();
+                    if (bannerTimer) clearInterval(bannerTimer);
+                    bannerTimer = setInterval(tick, 1000);
                 }
-                resDiv.classList.remove('hidden');
-            }, () => {
-                alert('No se pudo obtener tu ubicación. Activá el GPS.');
-            }, { enableHighAccuracy: true });
+            } catch {}
+        }
+        checkSession();
+
+        // Modal
+        let spotSel = null, espacioReal = null;
+        async function abrirModal(spot) {
+            spotSel = spot; espacioReal = null;
+            try {
+                const r = await fetch(`/api/espacio/by-location?lat=${spot.lat}&lng=${spot.lng}`);
+                if (r.ok) espacioReal = await r.json();
+            } catch {}
+            document.getElementById('modalCalle').textContent = spot.calle;
+            document.getElementById('modalPrecio').textContent = '$'+spot.tarifa+'/hora';
+            document.getElementById('modalDireccion').textContent = spot.altura ? 'Altura: '+spot.altura : '';
+            document.getElementById('modalResultado').style.display = 'none';
+            document.getElementById('btnConfirmarCheckin').style.display = 'block';
+            document.getElementById('modalCheckin').classList.add('show');
+        }
+
+        document.getElementById('btnConfirmarCheckin').addEventListener('click', async () => {
+            if (!spotSel) return;
+            if (!espacioReal) { alert('Espacio no disponible en la base de datos.'); return; }
+            const btn = document.getElementById('btnConfirmarCheckin');
+            btn.disabled = true; btn.textContent = 'Procesando…';
+            try {
+                const res = await fetch('/api/checkin', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ espacio_id: espacioReal.id, conductor_id: CONDUCTOR_ID }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const dur = parseInt(document.getElementById('modalDuracion').value);
+                    document.getElementById('modalResultado').innerHTML = `
+                        <div style="background:rgba(6,193,103,0.15);border-radius:14px;padding:14px">
+                            <p style="color:#06C167;font-weight:700;font-size:17px">✅ Estacionando</p>
+                            <p style="color:var(--text-secondary);font-size:13px">${spotSel.calle}</p>
+                            <p style="color:var(--text-tertiary);font-size:12px">Inicio: ${new Date(data.hora_inicio).toLocaleTimeString()}</p>
+                            <img src="data:image/png;base64,${data.qr_salida}" style="width:120px;height:120px;margin:8px auto;display:block">
+                            <p style="color:var(--text-tertiary);font-size:11px">Guardá este QR para el retiro</p>
+                        </div>
+                        <button onclick="location.reload()" style="margin-top:10px;width:100%;background:var(--uber-green);color:#000;border:none;border-radius:14px;padding:14px;font-weight:700;font-family:inherit;cursor:pointer;-webkit-appearance:none">✅ Listo</button>
+                    `;
+                    document.getElementById('modalResultado').style.display = 'block';
+                    btn.style.display = 'none';
+                    document.getElementById('btnCancelarCheckin2').style.display = 'none';
+                    if (Notification.permission === 'granted') {
+                        setTimeout(() => new Notification('⏰ Tu estacionamiento vence pronto', { body: spotSel.calle }), (dur-5)*60000);
+                    }
+                    checkSession();
+                } else {
+                    alert('Error: ' + (data.detail||'desconocido'));
+                    btn.disabled = false; btn.textContent = '✅ Estacionar aquí';
+                }
+            } catch { alert('Error de conexión'); btn.disabled = false; btn.textContent = '✅ Estacionar aquí'; }
         });
 
-        document.getElementById('btnRecargar').addEventListener('click', () => {
-            location.reload();
+        function cerrarModal() {
+            document.getElementById('modalCheckin').classList.remove('show');
+            spotSel = null;
+        }
+        document.getElementById('btnCancelarCheckin').addEventListener('click', cerrarModal);
+        document.getElementById('btnCancelarCheckin2').addEventListener('click', cerrarModal);
+
+        // Search
+        let marcadoresRes = [];
+        document.getElementById('btnBuscar').addEventListener('click', () => {
+            if (Notification.permission === 'default') Notification.requestPermission();
+            marcadoresRes.forEach(m => map.removeLayer(m)); marcadoresRes = [];
+            const circulo = L.circle(SALTA_CENTER, { radius:300, color:'#3b82f6', fillColor:'#3b82f6', fillOpacity:0.1, weight:2 }).addTo(map);
+            marcadoresRes.push(circulo);
+            L.marker(SALTA_CENTER, { icon: L.divIcon({ html:'📍', iconSize:[24,24], className:'' }) }).addTo(map);
+            map.setView(SALTA_CENTER, 16);
+
+            const cercanos = IDEMSA_SPOTS
+                .filter(e => e.tipo === 'estacionamiento_medido')
+                .map(e => ({ ...e, dist: Math.sqrt((e.lat-SALTA_CENTER[0])**2+(e.lng-SALTA_CENTER[1])**2)*111320 }))
+                .filter(e => e.dist < 300)
+                .sort((a,b) => a.dist - b.dist)
+                .slice(0, 15);
+
+            document.getElementById('resultados').classList.add('show');
+            const cont = document.getElementById('listaCercanos');
+            if (!cercanos.length) {
+                cont.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;padding:16px;font-size:13px">No hay espacios a 3 cuadras de Alsina 800</p>';
+            } else {
+                cont.innerHTML = cercanos.map(s => {
+                    const fav = favoritos.includes(s.calle) ? '⭐ ' : '';
+                    const spotStr = JSON.stringify(s).replace(/"/g, "'");
+                    return `<div class="result-item">
+                        <div>
+                            <p class="street">${fav}${s.calle}</p>
+                            <p class="detail">$${s.tarifa}/h · ${Math.round(s.dist)}m</p>
+                        </div>
+                        <div class="btns">
+                            <a href="https://waze.com/ul?ll=${s.lat},${s.lng}&navigate=yes" target="_blank" class="btn-sm btn-waze">🗺️</a>
+                            <button onclick="abrirModal(${spotStr})" class="btn-sm btn-park">🅿️</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         });
+
+        document.getElementById('btnRecargar').addEventListener('click', () => location.reload());
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
     </script>
 </body>
 </html>

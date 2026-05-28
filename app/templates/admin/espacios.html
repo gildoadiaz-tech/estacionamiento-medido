@@ -4,6 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Espacios</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-light: #d1fae5;
+            --primary-dark: #065f46;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #34d399;
+                --primary-light: #064e3b;
+                --primary-dark: #6ee7b7;
+                --accent: #fbbf24;
+                --bg: #0f172a;
+                --card: #1e293b;
+                --border: #334155;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+            }
+            .bg-white, .card-dark { background: var(--card) !important; }
+            .bg-gray-50 { background: var(--bg) !important; }
+            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
+            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
+            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
+            .text-gray-400 { color: #64748b !important; }
+            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+            .hover\:bg-gray-50:hover { background: var(--card) !important; }
+            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
+            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
+            a { color: #60a5fa !important; }
+        }
+        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .animate-slide-up { animation: slideUp 0.25s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -17,7 +63,6 @@
             <h2 class="font-semibold mb-4">Nuevo Espacio</h2>
             <form id="formEsp" class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <input name="ubicacion" placeholder="Dirección" required class="border rounded-xl px-4 py-2">
-                <input name="permisionario_id" type="number" placeholder="ID Permisionario" required class="border rounded-xl px-4 py-2">
                 <input name="precio_por_hora" type="number" step="0.5" placeholder="Precio/hora" value="50" class="border rounded-xl px-4 py-2">
                 <button type="submit" class="bg-green-600 text-white py-2 rounded-xl hover:bg-green-700">Crear</button>
             </form>
@@ -29,7 +74,6 @@
                     <tr>
                         <th class="text-left p-4">ID</th>
                         <th class="text-left p-4">Ubicación</th>
-                        <th class="text-left p-4">Permisionario</th>
                         <th class="text-left p-4">Precio/h</th>
                         <th class="text-left p-4">Estado</th>
                     </tr>
@@ -45,7 +89,6 @@
             const fd = new FormData(e.target);
             const data = Object.fromEntries(fd);
             data.precio_por_hora = parseFloat(data.precio_por_hora);
-            data.permisionario_id = parseInt(data.permisionario_id);
             await fetch("/api/espacios", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
@@ -62,13 +105,17 @@
                 <tr class="border-b hover:bg-gray-50">
                     <td class="p-4 font-mono">${e.id}</td>
                     <td class="p-4">${e.ubicacion}</td>
-                    <td class="p-4">#${e.permisionario_id}</td>
                     <td class="p-4">$${e.precio_por_hora}</td>
                     <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${e.disponible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${e.disponible ? 'Disponible' : 'Ocupado'}</span></td>
                 </tr>
             `).join("");
         }
         cargar();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
     </script>
 </body>
 </html>
