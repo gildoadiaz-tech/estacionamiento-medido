@@ -60,34 +60,132 @@ cloudflared tunnel --url http://localhost:8000
 
 ## Arquitectura
 
+```mermaid
+graph TB
+    subgraph Cliente
+        EXP[App Expo<br/>WebView + QR nativo]
+        NAV[Browser<br/>Jinja2 templates]
+    end
+    subgraph "Cloudflare Tunnel"
+        CF[URL pública gratuita]
+    end
+    subgraph "FastAPI Backend"
+        AUTH[auth_routes.py<br/>JWT login]
+        API[main.py<br/>55+ endpoints]
+        QR[qr_utils.py<br/>Generación QR]
+        MP[mercado_pago.py<br/>MP integration]
+        IDEMSA[idemsa_data.py<br/>Sync GIS]
+    end
+    subgraph "Base de datos"
+        DB[(SQLite<br/>estacionamiento.db)]
+    end
+    subgraph "Externo"
+        MPAPI[Mercado Pago<br/>Sandbox API]
+        IDEMSA_API[IDEMSA<br/>Visor GIS]
+    end
+    EXP --> CF
+    NAV --> CF
+    CF --> API
+    NAV --> API
+    API --> AUTH
+    API --> QR
+    API --> MP
+    API --> IDEMSA
+    API --> DB
+    MP --> MPAPI
+    IDEMSA --> IDEMSA_API
 ```
-┌──────────────────────────────────────────────────────────┐
-│  Mobile App (Expo)                                       │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────┐  │
-│  │ WebViewScreen │  │ QRScannerScreen  │  │ ConfigScr │  │
-│  │ (WebView)     │  │ (expo-camera)    │  │ (URL cfg) │  │
-│  └──────┬───────┘  └──────────────────┘  └───────────┘  │
-└─────────┼────────────────────────────────────────────────┘
-          │ HTTPS (Cloudflare Tunnel)
-          ▼
-┌──────────────────────────────────────────────────────────┐
-│  FastAPI Backend                                         │
-│  ┌──────────┐  ┌──────────┐  ┌────────┐  ┌───────────┐  │
-│  │ auth_rts │  │ main.py  │  │ models │  │ idemsa_dt │  │
-│  │ (JWT)    │  │ (routes) │  │ (ORM)  │  │ (sync)    │  │
-│  └──────────┘  └────┬─────┘  └────────┘  └───────────┘  │
-│                     │                                     │
-│  ┌──────────────────▼─────────────────────────────────┐  │
-│  │  SQLite (estacionamiento.db)                       │  │
-│  │  ├─ conductores  ├─ sesiones     ├─ penalizaciones │  │
-│  │  ├─ permisionarios ├─ reservas    ├─ espacios       │  │
-│  │  └─ admins                                          │  │
-│  └────────────────────────────────────────────────────┘  │
-│                     │                                     │
-│               ┌─────▼──────┐                              │
-│               │ MP Sandbox │                              │
-│               └────────────┘                              │
-└──────────────────────────────────────────────────────────┘
+
+### Flujo de check-in / check-out
+
+```mermaid
+sequenceDiagram
+    participant C as Conductor
+    participant S as Sistema
+    participant MP as Mercado Pago
+    participant P as Permisionario
+    C->>S: Escanea QR permisionario
+    S->>S: Asigna espacio, crea sesión
+    S-->>C: Redirige a checkout
+    C->>S: Elige método de pago
+    alt Efectivo
+        P->>S: Cobrar efectivo
+        S->>S: Calcula costo
+        S-->>P: QR de salida
+        C->>S: Escanea QR salida
+    else MP
+        S->>MP: Crea preferencia de pago
+        MP-->>C: Link de pago
+        C->>MP: Paga
+        MP->>S: Webhook confirma
+        C->>S: Escanea QR salida
+    end
+```
+
+### Modelo de datos
+
+```mermaid
+erDiagram
+    CONDUCTOR ||--o{ SESION : realiza
+    CONDUCTOR ||--o{ RESERVA : solicita
+    CONDUCTOR ||--o{ PENALIZACION : recibe
+    ESPACIO ||--o{ SESION : registra
+    ESPACIO ||--o{ RESERVA : reserva
+    CONDUCTOR {
+        int id PK
+        string nombre
+        string email
+        string username
+        string password_hash
+        string patente
+        bool bloqueado
+        float saldo_deudor
+    }
+    PERMISIONARIO {
+        int id PK
+        string nombre
+        string email
+        string username
+        string password_hash
+        string calle
+    }
+    ESPACIO {
+        int id PK
+        string ubicacion
+        float precio_por_hora
+        bool disponible
+        float lat
+        float lng
+    }
+    SESION {
+        int id PK
+        int espacio_id FK
+        int conductor_id FK
+        datetime hora_inicio
+        datetime hora_fin
+        float costo_total
+        bool pagado
+        string metodo_pago
+        bool lista_para_salir
+    }
+    RESERVA {
+        int id PK
+        int espacio_id FK
+        int conductor_id FK
+        datetime hora_inicio
+        datetime hora_fin
+        enum estado
+        bool usada
+    }
+    PENALIZACION {
+        int id PK
+        int conductor_id FK
+        int reserva_id FK
+        float monto
+        string motivo
+        datetime fecha
+        bool pagada
+    }
 ```
 
 ---
