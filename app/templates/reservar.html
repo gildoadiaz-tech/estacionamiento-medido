@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservar - {{ espacio.ubicacion }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">📅 Reservar Espacio</h1>
+        <p class="text-gray-600 mb-6">{{ espacio.ubicacion }} - ${{ espacio.precio_por_hora }}/hora</p>
+
+        <form id="reservaForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">ID Conductor</label>
+                <input type="number" name="conductor_id" placeholder="Ej: 1" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Inicio</label>
+                <input type="datetime-local" name="hora_inicio" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Fin</label>
+                <input type="datetime-local" name="hora_fin" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1">
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-semibold">
+                Solicitar Reserva
+            </button>
+        </form>
+
+        <div id="resultado" class="hidden mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <p class="text-blue-700 font-semibold">✅ Solicitud enviada</p>
+            <p class="text-sm text-blue-600">El permisionario debe aprobar la reserva.</p>
+        </div>
+
+        <a href="/" class="block text-center text-sm text-blue-600 mt-6">← Volver</a>
+    </div>
+
+    <script>
+        document.getElementById("reservaForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const data = {
+                espacio_id: {{ espacio.id }},
+                conductor_id: parseInt(fd.get("conductor_id")),
+                hora_inicio: new Date(fd.get("hora_inicio")).toISOString(),
+                hora_fin: new Date(fd.get("hora_fin")).toISOString(),
+            };
+
+            const res = await fetch("/api/reservas", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                document.getElementById("resultado").classList.remove("hidden");
+                eTarget.reset();
+            } else {
+                const err = await res.json();
+                alert("Error: " + err.detail);
+            }
+        });
+    </script>
+</body>
+</html>

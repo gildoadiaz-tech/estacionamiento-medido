@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+qrcode[pil]
+sqlalchemy
+aiosqlite
+pydantic
+httpx
+python-multipart
+jinja2
+aiofiles

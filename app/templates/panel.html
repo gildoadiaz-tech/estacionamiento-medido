@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel - {{ permisionario.nombre }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">👤 Panel de {{ permisionario.nombre }}</h1>
+        <p class="text-gray-600 mb-6">Permisionario ID: {{ permisionario.id }}</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <h2 class="text-xl font-semibold mb-4">🅿️ Mis Espacios</h2>
+                {% for e in espacios %}
+                <div class="border-b pb-3 mb-3 last:border-0">
+                    <p class="font-medium">{{ e.ubicacion }}</p>
+                    <p class="text-sm text-gray-500">${{ e.precio_por_hora }}/hora · {{ "Disponible" if e.disponible else "Ocupado" }}</p>
+                    <div class="flex gap-2 mt-2">
+                        <a href="/checkin/{{ e.id }}" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">QR Entrada</a>
+                        <a href="/reservar/{{ e.id }}" class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">Reservar</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <h2 class="text-xl font-semibold mb-4">📋 Reservas Pendientes</h2>
+                <div id="reservasPendientes">
+                    <p class="text-gray-400 text-sm">Cargando...</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="/" class="inline-block text-sm text-blue-600 mt-6">← Volver al inicio</a>
+    </div>
+
+    <script>
+        async function cargarReservas() {
+            const res = await fetch("/api/reservas/pendientes/{{ permisionario.id }}");
+            const reservas = await res.json();
+            const container = document.getElementById("reservasPendientes");
+
+            if (reservas.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">No hay reservas pendientes</p>';
+                return;
+            }
+
+            container.innerHTML = reservas.map(r => `
+                <div class="border-b pb-3 mb-3 last:border-0">
+                    <p class="font-medium">Reserva #${r.id}</p>
+                    <p class="text-sm text-gray-500">Conductor ID: ${r.conductor_id}</p>
+                    <p class="text-xs text-gray-400">${new Date(r.hora_inicio).toLocaleString()} → ${new Date(r.hora_fin).toLocaleString()}</p>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="aprobar(${r.id}, true)" class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">✅ Aprobar</button>
+                        <button onclick="aprobar(${r.id}, false)" class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full">❌ Rechazar</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        async function aprobar(id, aprobar) {
+            await fetch("/api/reservas/aprobar", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ reserva_id: id, aprobar }),
+            });
+            cargarReservas();
+        }
+
+        cargarReservas();
+    </script>
+</body>
+</html>
