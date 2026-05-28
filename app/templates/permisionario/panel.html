@@ -48,12 +48,15 @@
             {% endfor %}
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex gap-2">
             <a href="/permisionario/{{ permisionario.id }}/reservas" class="flex-1 bg-green-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-green-700 transition">
                 📋 Reservas
             </a>
             <a href="/permisionario/{{ permisionario.id }}/qr" class="flex-1 bg-blue-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-blue-700 transition">
                 📱 QR
+            </a>
+            <a href="/permisionario/{{ permisionario.id }}/mapa" class="flex-1 bg-purple-600 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-purple-700 transition">
+                🗺️ Mapa
             </a>
         </div>
     </div>

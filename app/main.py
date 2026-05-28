@@ -21,6 +21,7 @@ from app.schemas import (
 )
 from app.qr_utils import generar_qr_base64
 from app.mercado_pago import crear_preferencia_pago
+from app.mapa_data import CALLES, ESPACIOS_VIRTUALES, CENTRO_SALTA
 
 
 @asynccontextmanager
@@ -112,6 +113,38 @@ async def conductor_historial(request: Request):
     return templates.TemplateResponse(request, "conductor/historial.html", {})
 
 
+@app.get("/conductor/mapa", response_class=HTMLResponse)
+async def conductor_mapa(request: Request, db: AsyncSession = Depends(get_db)):
+    import json
+    result = await db.execute(
+        select(SesionEstacionamiento).where(SesionEstacionamiento.hora_fin == None)
+    )
+    sesiones = result.scalars().all()
+    return templates.TemplateResponse(request, "conductor/mapa.html", {
+        "calles_json": json.dumps([{
+            "nombre": c["nombre"],
+            "tipo": c["tipo"].value,
+            "tarifa": c["tarifa"],
+            "puntos": c["puntos"],
+        } for c in CALLES]),
+        "espacios_json": json.dumps(ESPACIOS_VIRTUALES),
+        "sesiones_json": json.dumps([sesion_to_dict(s) for s in sesiones]),
+    })
+
+
+@app.get("/api/mapa/cercanos")
+async def mapa_cercanos(lat: float, lng: float, radio: float = 300):
+    cercanos = []
+    for e in ESPACIOS_VIRTUALES:
+        if e["tipo"] != "estacionamiento_medido":
+            continue
+        dist = ((e["lat"] - lat) ** 2 + (e["lng"] - lng) ** 2) ** 0.5 * 111320
+        if dist <= radio:
+            cercanos.append({**e, "distancia": round(dist, 1)})
+    cercanos.sort(key=lambda x: x["distancia"])
+    return cercanos[:20]
+
+
 # ═══════════════════════════════════════════════════════
 # PANEL 2: PERMISIONARIO APP (mobile-first)
 # ═══════════════════════════════════════════════════════
@@ -163,6 +196,30 @@ async def permisionario_qr(request: Request, perm_id: int, db: AsyncSession = De
 
     return templates.TemplateResponse(request, "permisionario/qr.html", {
         "permisionario": perm, "espacios": espacios, "qrs": qrs,
+    })
+
+
+@app.get("/permisionario/{perm_id}/mapa", response_class=HTMLResponse)
+async def permisionario_mapa(request: Request, perm_id: int, db: AsyncSession = Depends(get_db)):
+    import json
+    result = await db.execute(select(Espacio).where(Espacio.permisionario_id == perm_id))
+    espacios = result.scalars().all()
+    result = await db.execute(
+        select(SesionEstacionamiento).where(SesionEstacionamiento.hora_fin == None)
+    )
+    sesiones = result.scalars().all()
+    return templates.TemplateResponse(request, "permisionario/mapa.html", {
+        "perm_id": perm_id,
+        "calles_json": json.dumps([{
+            "nombre": c["nombre"], "tipo": c["tipo"].value,
+            "tarifa": c["tarifa"], "puntos": c["puntos"],
+        } for c in CALLES]),
+        "espacios_json": json.dumps([{
+            "id": e.id, "lat": e.lat if hasattr(e, 'lat') else None,
+            "lng": e.lng if hasattr(e, 'lng') else None,
+            "ubicacion": e.ubicacion, "precio_por_hora": e.precio_por_hora,
+        } for e in espacios]),
+        "sesiones_json": json.dumps([sesion_to_dict(s) for s in sesiones]),
     })
 
 
