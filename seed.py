@@ -43,10 +43,11 @@ async def seed():
         db.add_all([pedro, ana])
         await db.flush()
 
-        # Espacios (sin permisionario_id — la pertenencia se determina por calle)
+        # Espacios (asignados a permisionarios por calle)
+        calles_map = {"Gral. Güemes": juan.id, "Caseros": maria.id}
         espacios = [
-            Espacio(ubicacion="Gral. Güemes 150", precio_por_hora=600.0, lat=-24.7885, lng=-65.4100),
-            Espacio(ubicacion="Caseros 200", precio_por_hora=600.0, lat=-24.7892, lng=-65.4090),
+            Espacio(ubicacion="Gral. Güemes 150", precio_por_hora=600.0, lat=-24.7885, lng=-65.4100, permisionario_id=calles_map.get("Gral. Güemes")),
+            Espacio(ubicacion="Caseros 200", precio_por_hora=600.0, lat=-24.7892, lng=-65.4090, permisionario_id=calles_map.get("Caseros")),
             Espacio(ubicacion="Mitre 350", precio_por_hora=600.0, lat=-24.7878, lng=-65.4115),
             Espacio(ubicacion="España 180", precio_por_hora=600.0, lat=-24.7880, lng=-65.4085),
             Espacio(ubicacion="Alberdi 220", precio_por_hora=600.0, lat=-24.7895, lng=-65.4120),

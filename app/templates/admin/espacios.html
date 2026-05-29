@@ -76,6 +76,7 @@
                         <th class="text-left p-4">Ubicación</th>
                         <th class="text-left p-4">Precio/h</th>
                         <th class="text-left p-4">Estado</th>
+                        <th class="text-left p-4">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaEspacios"></tbody>
@@ -95,7 +96,33 @@
                 body: JSON.stringify(data),
             });
             e.target.reset();
-            cargar();
+        cargar();
+
+        async function editarEspacio(id) {
+            const ubi = prompt('Nueva ubicación:');
+            if (!ubi) return;
+            const precio = prompt('Nuevo precio por hora (ej: 600):');
+            if (!precio) return;
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/admin/espacios/' + id, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json','Authorization': 'Bearer ' + token},
+                body: JSON.stringify({ ubicacion: ubi, precio_por_hora: parseFloat(precio) }),
+            });
+            if (res.ok) { cargar(); alert('✅ Espacio actualizado'); }
+            else { alert('❌ Error al actualizar'); }
+        }
+
+        async function eliminarEspacio(id) {
+            if (!confirm('¿Eliminar espacio #' + id + '?')) return;
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/admin/espacios/' + id, {
+                method: 'DELETE',
+                headers: {'Authorization': 'Bearer ' + token},
+            });
+            if (res.ok) { cargar(); alert('✅ Espacio eliminado'); }
+            else { alert('❌ Error al eliminar'); }
+        }
         });
 
         async function cargar() {
@@ -107,6 +134,10 @@
                     <td class="p-4">${e.ubicacion}</td>
                     <td class="p-4">$${e.precio_por_hora}</td>
                     <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${e.disponible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${e.disponible ? 'Disponible' : 'Ocupado'}</span></td>
+                    <td class="p-4">
+                        <button onclick="editarEspacio(${e.id})" class="text-blue-600 hover:underline text-xs mr-2">✏️ Editar</button>
+                        <button onclick="eliminarEspacio(${e.id})" class="text-red-600 hover:underline text-xs">🗑️</button>
+                    </td>
                 </tr>
             `).join("");
         }

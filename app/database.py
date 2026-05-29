@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./estacionamiento.db")
@@ -21,3 +22,7 @@ async def init_db():
     async with engine.begin() as conn:
         from app.models import Base
         await conn.run_sync(Base.metadata.create_all)
+    # Enable WAL mode for better concurrent performance
+    async with engine.connect() as conn:
+        await conn.execute(text("PRAGMA journal_mode=WAL"))
+        await conn.execute(text("PRAGMA busy_timeout=5000"))

@@ -173,6 +173,25 @@
             </div>
         </div>
 
+        <!-- Manual entry -->
+        <div class="card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center" onclick="this.nextElementSibling.classList.toggle('mostrar');this.querySelector('.toggle-icon').textContent=this.nextElementSibling.classList.contains('mostrar')?'▴':'▾'">
+                <span style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px">📝 Registro manual</span>
+                <span class="toggle-icon" style="color:var(--text-tertiary)">▾</span>
+            </div>
+            <div id="manualForm" style="display:none;margin-top:10px">
+                <input id="manualPatente" placeholder="Patente (ej: AA123BB)" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-primary);font-size:14px;font-family:inherit;outline:none;margin-bottom:8px" maxlength="10">
+                <select id="manualEspacio" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-primary);font-size:14px;font-family:inherit;outline:none;margin-bottom:8px">
+                    <option value="">Seleccionar espacio…</option>
+                    {% for e in espacios if e.disponible %}
+                    <option value="{{ e.id }}">{{ e.ubicacion }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="registroManual()" style="width:100%;background:var(--uber-green);color:#000;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Registrar</button>
+                <div id="manualMsg" style="font-size:12px;margin-top:6px"></div>
+            </div>
+        </div>
+
         <!-- Active sessions -->
         <p class="section-title">Estacionando ahora</p>
         <div id="activasContainer">
@@ -245,7 +264,10 @@
                 });
         }
 
+        let chartInstance = null;
+
         async function cargarDashboard() {
+            try {
             // Sessions detail
             const det = await fetch(`/api/sesiones/permisionario/${PERM_ID}/detalle`).then(r => r.json());
             document.getElementById('activosCount').textContent = det.activas.length;
@@ -274,6 +296,7 @@
                     } else if (pagado && lista) {
                         btnHTML = `<button class="btn-cobrar" onclick="generarQR(${s.id}, '${s.patente || ''}')">📱 Mostrar QR salida</button>`;
                     }
+                    btnHTML += `<button class="btn-cobrar" onclick="finalizarSesion(${s.id})" style="margin-left:6px">✅ Finalizar</button>`;
                     return `
                     <div class="active-session">
                         <div class="top">
@@ -346,7 +369,8 @@
                     .reduce((sum, s) => sum + (s.costo_total || 0), 0);
                 ingresos.push(total);
             }
-            new Chart(document.getElementById('chartGanancias'), {
+            if (window._chartInstance) window._chartInstance.destroy();
+            window._chartInstance = new Chart(document.getElementById('chartGanancias'), {
                 type: 'bar',
                 data: {
                     labels: dias,
@@ -366,6 +390,7 @@
                     }
                 }
             });
+            } catch(e) { console.error('Dashboard error:', e); }
         }
         async function cobrarEfectivo(sesionId, patente) {
             if (!confirm(`Confirmar pago en efectivo de ${patente}?`)) return;
@@ -401,6 +426,39 @@
 
         function cerrarQR() {
             document.getElementById('qrModal').classList.remove('show');
+        }
+
+        async function registroManual() {
+            const patente = document.getElementById('manualPatente').value.trim().toUpperCase();
+            const espacioId = document.getElementById('manualEspacio').value;
+            const msg = document.getElementById('manualMsg');
+            if (!patente || !espacioId) { msg.textContent = '❌ Completa todos los campos'; return; }
+            msg.textContent = '⏳ Registrando…';
+            try {
+                const res = await fetch(`/api/permisionario/${PERM_ID}/registro-manual`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({patente, espacio_id: parseInt(espacioId)})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error');
+                msg.textContent = `✅ Registrado! Sesión #${data.sesion_id}`;
+                document.getElementById('manualPatente').value = '';
+                document.getElementById('manualEspacio').value = '';
+                setTimeout(() => msg.textContent = '', 3000);
+                cargarDashboard();
+            } catch(e) { msg.textContent = '❌ ' + e.message; }
+        }
+
+        async function finalizarSesion(sesionId) {
+            if (!confirm('¿Finalizar esta sesión?')) return;
+            try {
+                const res = await fetch(`/api/permisionario/${PERM_ID}/finalizar/${sesionId}`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error');
+                alert(`✅ Sesión finalizada. Total: $${data.costo_total}`);
+                cargarDashboard();
+            } catch(e) { alert('Error: ' + e.message); }
         }
 
         cargarDashboard();

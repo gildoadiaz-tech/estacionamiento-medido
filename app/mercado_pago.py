@@ -1,10 +1,39 @@
 import os
+import hmac
+import hashlib
 import httpx
 
 MP_ACCESS_TOKEN = os.getenv(
     "MP_ACCESS_TOKEN",
     "TEST-1234567890-123456-abc123def456",
 )
+MP_CLIENT_SECRET = os.getenv("MP_CLIENT_SECRET", "")
+
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+
+
+def verificar_firma_webhook(body: bytes, x_signature: str) -> bool:
+    """Validate Mercado Pago webhook signature using HMAC-SHA256."""
+    if not MP_CLIENT_SECRET or not x_signature:
+        return False
+    try:
+        parts = {k: v for k, v in (p.split("=") for p in x_signature.split(","))}
+        ts = parts.get("ts", "")
+        v1 = parts.get("v1", "")
+        if not ts or not v1:
+            return False
+        data_id = ""
+        import json
+        try:
+            parsed = json.loads(body)
+            data_id = parsed.get("data", {}).get("id", "")
+        except Exception:
+            pass
+        manifest = f"id:{data_id};request-id:;ts:{ts};"
+        expected = hmac.new(MP_CLIENT_SECRET.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, v1)
+    except Exception:
+        return False
 
 
 async def crear_preferencia_pago(
@@ -29,9 +58,9 @@ async def crear_preferencia_pago(
         ],
         "payer": {"email": conductor_email},
         "back_urls": {
-            "success": "http://localhost:8000/pago/success",
-            "failure": "http://localhost:8000/pago/failure",
-            "pending": "http://localhost:8000/pago/pending",
+            "success": f"{BASE_URL}/pago/success",
+            "failure": f"{BASE_URL}/pago/failure",
+            "pending": f"{BASE_URL}/pago/pending",
         },
         "auto_return": "approved",
         "binary_mode": True,

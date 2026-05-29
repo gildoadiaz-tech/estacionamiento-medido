@@ -17,7 +17,7 @@ export default function WebViewScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const baseUrl = serverUrl.replace(/\/+$/, '');
-  const [currentPath, setCurrentPath] = useState('/conductor/login');
+  const [currentPath, setCurrentPath] = useState('/login');
 
   const uri = `${baseUrl}${currentPath}`;
 

@@ -232,6 +232,34 @@
             </div>
         </div>
 
+        <!-- Patentes secundarias -->
+        <div class="card">
+            <p class="section-title">Patentes adicionales</p>
+            <div id="listaPatentes"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+                <input type="text" id="inputNuevaPatente" placeholder="Agregar patente" maxlength="10" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text-primary);font-family:inherit;text-transform:uppercase;outline:none">
+                <button onclick="agregarPatente()" style="background:var(--uber-green);color:#000;border:none;border-radius:var(--radius-sm);padding:10px 16px;font-weight:600;cursor:pointer;font-family:inherit">+</button>
+            </div>
+        </div>
+
+        <!-- Password change -->
+        <div class="card">
+            <p class="section-title">Seguridad</p>
+            <button class="edit-btn" onclick="toggleCambiarPass()" style="font-size:15px;display:block;width:100%;text-align:left;padding:6px 0">
+                🔑 Cambiar contraseña →
+            </button>
+        </div>
+
+        <div id="editPassword" class="edit-section" style="display:none">
+            <p style="font-size:14px;font-weight:600;margin-bottom:10px">Cambiar contraseña</p>
+            <input type="password" id="inputPassCurrent" placeholder="Contraseña actual" style="margin-bottom:8px">
+            <input type="password" id="inputPassNew" placeholder="Nueva contraseña">
+            <div class="actions">
+                <button class="btn-save" onclick="guardarPassword()">Guardar</button>
+                <button class="btn-cancel" onclick="document.getElementById('editPassword').style.display='none'">Cancelar</button>
+            </div>
+        </div>
+
         <!-- Financial card -->
         <p class="section-title">Finanzas</p>
         <div class="fin-status">
@@ -380,6 +408,77 @@
                 toast('Error al pagar', 'error');
             }
         }
+
+        function toggleCambiarPass() {
+            const el = document.getElementById('editPassword');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function guardarPassword() {
+            const current = document.getElementById('inputPassCurrent').value;
+            const pw = document.getElementById('inputPassNew').value;
+            if (!current || !pw) { toast('Completá ambos campos', 'error'); return; }
+            if (pw.length < 4) { toast('Mínimo 4 caracteres', 'error'); return; }
+            const token = localStorage.getItem('token');
+            if (!token || isTokenExpired(token)) { toast('Sesión expirada, iniciá sesión de nuevo', 'error'); return; }
+            const res = await fetch('/api/auth/cambiar-password', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+                body: JSON.stringify({ current_password: current, new_password: pw }),
+            });
+            if (res.ok) {
+                toast('✅ Contraseña actualizada');
+                document.getElementById('editPassword').style.display = 'none';
+                document.getElementById('inputPassCurrent').value = '';
+                document.getElementById('inputPassNew').value = '';
+            } else {
+                const err = await res.json();
+                toast(err.detail || 'Error', 'error');
+            }
+        }
+
+        function isTokenExpired(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.exp * 1000 < Date.now();
+            } catch { return true; }
+        }
+
+        // ─── Patentes secundarias ──────────────────────────
+        async function cargarPatentes() {
+            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/patentes`);
+            const list = await res.json();
+            const el = document.getElementById('listaPatentes');
+            if (!list.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text-tertiary);padding:4px 0">Sin patentes adicionales</p>'; return; }
+            el.innerHTML = list.map(p => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-family:'SF Mono',monospace;font-weight:600;text-transform:uppercase">${p.patente}</span>
+                    <button onclick="eliminarPatente(${p.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-family:inherit">Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        async function agregarPatente() {
+            const inp = document.getElementById('inputNuevaPatente');
+            const pat = inp.value.trim().toUpperCase();
+            if (!pat || pat.length < 4) { toast('Patente inválida', 'error'); return; }
+            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/patentes`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ conductor_id: CONDUCTOR_ID, patente: pat }),
+            });
+            if (res.ok) { inp.value = ''; cargarPatentes(); toast('✅ Patente agregada'); }
+            else { toast('Error al agregar', 'error'); }
+        }
+
+        async function eliminarPatente(id) {
+            if (!confirm('¿Eliminar esta patente?')) return;
+            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/patentes/${id}`, { method: 'DELETE' });
+            if (res.ok) { cargarPatentes(); toast('✅ Patente eliminada'); }
+            else { toast('Error', 'error'); }
+        }
+
+        cargarPatentes();
 
         cargarPerfil();
     </script>

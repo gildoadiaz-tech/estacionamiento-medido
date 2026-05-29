@@ -1,7 +1,10 @@
 import asyncio
+import csv
+import io
+import httpx
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
@@ -13,19 +16,23 @@ from app.database import init_db, get_db, async_session
 from app.models import (
     Permisionario, Conductor, Espacio, Admin,
     SesionEstacionamiento, Reserva, EstadoReserva,
+    PatenteSecundaria, Favorito,
 )
 from app.schemas import (
     CheckInRequest, CheckInPorPermRequest, CheckInResponse, CheckOutRequest, CheckOutResponse,
-    ReservaCreate, ReservaOut, ReservaAprobar, ElegirPagoRequest,
-    PermisionarioCreate, PermisionarioOut,
+    ReservaCreate, ReservaOut, ReservaAprobar, ElegirPagoRequest, PasswordChangeRequest,
+    PermisionarioCreate, PermisionarioUpdate, PermisionarioOut,
     ConductorCreate, ConductorOut, ConductorUpdate, ConductorStatus,
-    EspacioCreate, EspacioOut, PenalizacionOut,
+    EspacioCreate, EspacioUpdate, EspacioOut, PenalizacionOut,
+    PatenteSecundariaOut, FavoritoOut, FavoritoCreate,
 )
 from app.qr_utils import generar_qr_base64
 from app.mercado_pago import crear_preferencia_pago
 from app.mapa_data import CALLES, CENTRO_SALTA
 from app.idemsa_data import get_all_calles_cached, get_espacios_cached, sync_espacios_db
 from app.auth_routes import router as auth_router
+from app.deps import get_current_user, require_role
+from app.auth import hash_password, verify_password
 
 _espacios_cache = None
 
@@ -284,15 +291,10 @@ async def conductor_checkout(request: Request, sesion_id: int, db: AsyncSession 
     espacio = result.scalar_one()
     result = await db.execute(select(Conductor).where(Conductor.id == sesion.conductor_id))
     conductor = result.scalar_one_or_none()
-    # Find permisionario for this space's calle
+    # Find permisionario for this space
     perm = None
-    if espacio:
-        calle = espacio.ubicacion.split(" ")[0] if espacio.ubicacion else ""
-        if calle:
-            result = await db.execute(
-                select(Permisionario).where(Permisionario.calle.ilike(calle))
-            )
-            perm = result.scalar_one_or_none()
+    if espacio and espacio.permisionario_id:
+        perm = await db.get(Permisionario, espacio.permisionario_id)
     return templates.TemplateResponse(request, "conductor/checkout.html", {
         "sesion": sesion, "espacio": espacio, "conductor": conductor, "perm": perm,
     })
@@ -359,6 +361,143 @@ async def idemsa_calles():
 
 
 # ═══════════════════════════════════════════════════════
+# BUSQUEDA DE ESTACIONAMIENTO (GEOCODING + NEAREST)
+# ═══════════════════════════════════════════════════════
+
+async def geocodificar(direccion: str) -> tuple[float, float] | None:
+    """Convierte dirección a coordenadas usando Nominatim (OSM)."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": f"{direccion}, Salta, Argentina", "format": "json", "limit": 1},
+                headers={"User-Agent": "EstacionamientoMedido/1.0"},
+                timeout=10,
+            )
+            data = resp.json()
+            if data:
+                return (float(data[0]["lat"]), float(data[0]["lon"]))
+    except Exception:
+        pass
+    return None
+
+
+def _normalizar(s: str) -> str:
+    """Normaliza texto: lowercase, sin acentos, reemplaza abreviaciones."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s.lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.replace(",", "").replace(".", "").replace("  ", " ").strip()
+    replacements = {
+        "gral ": "general ", "gral.": "general", "av ": "av. ", "av.": "av. ",
+        "san ": "san ", "sta ": "santa ", "dr ": "doctor ", "dr.": "doctor",
+    }
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return s
+
+
+def buscar_calle_en_idemsa(q: str) -> tuple[float, float] | None:
+    """Busca la calle directamente en los datos de IDEMSA (fallback offline)."""
+    q_norm = _normalizar(q)
+    for c in get_all_calles_cached():
+        nombre = _normalizar(c.get("nombre", "") or "")
+        if q_norm in nombre or nombre in q_norm:
+            pts = c.get("puntos", [])
+            if pts:
+                mid = len(pts) // 2
+                return (pts[mid][0], pts[mid][1])
+    return None
+
+
+@app.get("/api/buscar-estacionamiento")
+async def buscar_estacionamiento(q: str = "", db: AsyncSession = Depends(get_db)):
+    if not q:
+        return {"error": "Dirección requerida"}
+
+    coords = await geocodificar(q)
+
+    # Si Nominatim devolvió coordenadas lejos del área IDEMSA, ignorarlas
+    if coords:
+        lat_c, lng_c = coords
+        espacios = _get_espacios()
+        if espacios:
+            centro_lat = (min(e["lat"] for e in espacios) + max(e["lat"] for e in espacios)) / 2
+            centro_lng = (min(e["lng"] for e in espacios) + max(e["lng"] for e in espacios)) / 2
+            dist_al_centro = ((lat_c - centro_lat) ** 2 + (lng_c - centro_lng) ** 2) ** 0.5 * 111320
+            if dist_al_centro > 5000:
+                coords = None
+
+    if not coords:
+        coords = buscar_calle_en_idemsa(q)
+    if not coords:
+        return {"error": "No se pudo encontrar la dirección. Probá con el nombre de una calle (ej: Mitre)"}
+
+    lat, lng = coords
+
+    # Buscar espacios disponibles cercanos (usando IDEMSA in-memory)
+    cercanos = []
+    for e in _get_espacios():
+        if e["tipo"] != "estacionamiento_medido":
+            continue
+        dist = ((e["lat"] - lat) ** 2 + (e["lng"] - lng) ** 2) ** 0.5 * 111320
+        if dist <= 500:
+            cercanos.append({**e, "distancia": round(dist, 1)})
+    cercanos.sort(key=lambda x: x["distancia"])
+    top = cercanos[:10]
+
+    # Cruzar con DB para ver disponibilidad real y precio (match aproximado)
+    TOL = 0.00005
+    result = []
+    for s in top:
+        db_esp = await db.execute(
+            select(Espacio).where(
+                func.abs(Espacio.lat - s["lat"]) < TOL,
+                func.abs(Espacio.lng - s["lng"]) < TOL,
+            ).limit(1)
+        )
+        e = db_esp.scalar_one_or_none()
+        result.append({
+            "calle": s.get("calle", s.get("nombre", "")),
+            "lat": s["lat"],
+            "lng": s["lng"],
+            "distancia": s["distancia"],
+            "disponible": e.disponible if e else True,
+            "espacio_id": e.id if e else None,
+            "precio_por_hora": e.precio_por_hora if e else 600.0,
+            "altura": s.get("altura", ""),
+        })
+
+    # Agrupar por calle+altura (bloques)
+    from collections import defaultdict
+    bloques = defaultdict(lambda: {"calle": "", "altura": "", "total": 0, "disponibles": 0, "distancia_min": 9999})
+    for r in result:
+        key = f"{r['calle']}|{r['altura']}"
+        b = bloques[key]
+        b["calle"] = r["calle"]
+        b["altura"] = r["altura"]
+        b["total"] += 1
+        if r["disponible"]:
+            b["disponibles"] += 1
+        if r["distancia"] < b["distancia_min"]:
+            b["distancia_min"] = r["distancia"]
+            b["lat"] = r["lat"]
+            b["lng"] = r["lng"]
+
+    return {
+        "consulta": q,
+        "destino": {"lat": lat, "lng": lng},
+        "resultados": result,
+        "bloques": list(bloques.values()),
+    }
+
+
+@app.get("/conductor/buscar", response_class=HTMLResponse)
+async def conductor_buscar(request: Request):
+    return templates.TemplateResponse(request, "conductor/buscar.html", {})
+
+
+# ═══════════════════════════════════════════════════════
 # PANEL 2: PERMISIONARIO APP (mobile-first)
 # ═══════════════════════════════════════════════════════
 
@@ -374,7 +513,7 @@ async def permisionario_panel(request: Request, perm_id: int, db: AsyncSession =
     if not perm:
         raise HTTPException(404, "Permisionario no encontrado")
 
-    result = await db.execute(select(Espacio).where(Espacio.ubicacion.startswith(perm.calle)))
+    result = await db.execute(select(Espacio).where(Espacio.permisionario_id == perm_id))
     espacios = result.scalars().all()
 
     return templates.TemplateResponse(request, "permisionario/panel.html", {
@@ -414,7 +553,7 @@ async def permisionario_mapa(request: Request, perm_id: int, db: AsyncSession = 
     if not perm:
         raise HTTPException(404, "Permisionario no encontrado")
     result = await db.execute(
-        select(Espacio).where(Espacio.ubicacion.startswith(perm.calle))
+        select(Espacio).where(Espacio.permisionario_id == perm_id)
     )
     espacios = result.scalars().all()
     result = await db.execute(
@@ -472,6 +611,11 @@ async def admin_reservas(request: Request):
 @app.get("/admin/reportes", response_class=HTMLResponse)
 async def admin_reportes(request: Request):
     return templates.TemplateResponse(request, "admin/reportes.html", {})
+
+
+@app.get("/admin/sesiones-vivo", response_class=HTMLResponse)
+async def admin_sesiones_vivo_page(request: Request):
+    return templates.TemplateResponse(request, "admin/sesiones_vivo.html", {})
 
 
 @app.get("/admin/penalizaciones", response_class=HTMLResponse)
@@ -571,7 +715,7 @@ async def pagar_multa(conductor_id: int, db: AsyncSession = Depends(get_db)):
 # ═══════════════════════════════════════════════════════
 
 @app.get("/api/admin/penalizaciones")
-async def admin_listar_penalizaciones(db: AsyncSession = Depends(get_db)):
+async def admin_listar_penalizaciones(db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     from app.models import Penalizacion, Conductor
     result = await db.execute(
         select(Penalizacion).order_by(Penalizacion.fecha.desc()).limit(200)
@@ -598,7 +742,7 @@ async def admin_listar_penalizaciones(db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/api/admin/penalizaciones/stats")
-async def admin_penalizaciones_stats(db: AsyncSession = Depends(get_db)):
+async def admin_penalizaciones_stats(db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     from app.models import Penalizacion, Conductor
     from sqlalchemy import func
     now = now_naive()
@@ -630,7 +774,7 @@ async def admin_penalizaciones_stats(db: AsyncSession = Depends(get_db)):
 
 
 @app.post("/api/admin/penalizaciones/{penalizacion_id}/waiver")
-async def admin_waiver_penalizacion(penalizacion_id: int, db: AsyncSession = Depends(get_db)):
+async def admin_waiver_penalizacion(penalizacion_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     from app.models import Penalizacion
     pen = await db.get(Penalizacion, penalizacion_id)
     if not pen:
@@ -641,7 +785,7 @@ async def admin_waiver_penalizacion(penalizacion_id: int, db: AsyncSession = Dep
 
 
 @app.get("/api/admin/conductores/bloqueados")
-async def admin_conductores_bloqueados(db: AsyncSession = Depends(get_db)):
+async def admin_conductores_bloqueados(db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     from app.models import Conductor
     result = await db.execute(
         select(Conductor).where(Conductor.bloqueado == True)
@@ -650,7 +794,7 @@ async def admin_conductores_bloqueados(db: AsyncSession = Depends(get_db)):
 
 
 @app.post("/api/admin/conductores/{conductor_id}/desbloquear")
-async def admin_desbloquear_conductor(conductor_id: int, db: AsyncSession = Depends(get_db)):
+async def admin_desbloquear_conductor(conductor_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     cond = await db.get(Conductor, conductor_id)
     if not cond:
         raise HTTPException(404)
@@ -835,10 +979,10 @@ async def checkin_por_perm(data: CheckInPorPermRequest, db: AsyncSession = Depen
     if not perm:
         raise HTTPException(404, "Permisionario no encontrado")
 
-    # Buscar primer espacio disponible en la calle del permisionario
+    # Buscar primer espacio disponible del permisionario
     result = await db.execute(
         select(Espacio)
-        .where(Espacio.ubicacion.startswith(perm.calle))
+        .where(Espacio.permisionario_id == data.permisionario_id)
         .where(Espacio.disponible == True)
         .limit(1)
     )
@@ -884,7 +1028,22 @@ async def elegir_pago(sesion_id: int, body: ElegirPagoRequest, db: AsyncSession 
 
     await db.commit()
 
-    return {"ok": True, "metodo": body.metodo}
+    resp = {"ok": True, "metodo": body.metodo}
+
+    if body.metodo == "mercadopago":
+        cond = await db.get(Conductor, sesion.conductor_id)
+        monto_est = calcular_costo_estacionamiento(sesion.hora_inicio, now_naive()) or 2000.0
+        mp_result = await crear_preferencia_pago(
+            monto=monto_est,
+            concepto=f"Estacionamiento #{sesion.id}",
+            conductor_email=cond.email if cond else "conductor@email.com",
+            notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mercadopago/webhook",
+            external_reference=str(sesion.id),
+        )
+        resp["init_point"] = mp_result.get("init_point", "")
+        resp["preference_id"] = mp_result.get("preference_id", "")
+
+    return resp
 
 
 @app.post("/api/sesion/{sesion_id}/confirmar-pago-efectivo")
@@ -899,6 +1058,12 @@ async def confirmar_pago_efectivo(sesion_id: int, db: AsyncSession = Depends(get
     sesion.costo_total = calcular_costo_estacionamiento(sesion.hora_inicio, ahora)
     sesion.pagado = True
     sesion.lista_para_salir = True
+    sesion.hora_fin = ahora
+
+    espacio = await db.get(Espacio, sesion.espacio_id)
+    if espacio:
+        espacio.disponible = True
+
     await db.commit()
 
     qr_data = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/conductor/checkout/{sesion.id}"
@@ -937,6 +1102,75 @@ async def finalizar_por_scan(sesion_id: int, db: AsyncSession = Depends(get_db))
 
     if espacio:
         espacio.disponible = True
+
+    await db.commit()
+    return {"ok": True, "sesion_id": sesion.id, "costo_total": sesion.costo_total}
+
+
+@app.post("/api/permisionario/{perm_id}/registro-manual")
+async def registro_manual(perm_id: int, body: dict, db: AsyncSession = Depends(get_db)):
+    patente = body.get("patente", "").upper().strip()
+    espacio_id = body.get("espacio_id")
+    if not patente or not espacio_id:
+        raise HTTPException(400, "patente y espacio_id requeridos")
+
+    espacio = await db.get(Espacio, espacio_id)
+    if not espacio:
+        raise HTTPException(404, "Espacio no encontrado")
+    if not espacio.disponible:
+        raise HTTPException(400, "Espacio no disponible")
+    if espacio.permisionario_id != perm_id:
+        raise HTTPException(403, "Este espacio no te pertenece")
+
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404, "Permisionario no encontrado")
+
+    # Find or create conductor by patente
+    result = await db.execute(select(Conductor).where(Conductor.patente == patente).limit(1))
+    conductor = result.scalar_one_or_none()
+    if not conductor:
+        # Create a guest conductor
+        conductor = Conductor(
+            nombre=f"Manual - {patente}",
+            email=f"manual_{patente.lower()}@guest.app",
+            username=f"guest_{patente.lower()}",
+            password_hash="",
+            patente=patente,
+        )
+        db.add(conductor)
+        await db.flush()
+
+    sesion = SesionEstacionamiento(
+        espacio_id=espacio_id,
+        conductor_id=conductor.id,
+        hora_inicio=now_naive(),
+    )
+    db.add(sesion)
+    espacio.disponible = False
+    await db.commit()
+    await db.refresh(sesion)
+
+    return {"ok": True, "sesion_id": sesion.id, "conductor_id": conductor.id, "conductor_nombre": conductor.nombre}
+
+
+@app.post("/api/permisionario/{perm_id}/finalizar/{sesion_id}")
+async def perm_finalizar(perm_id: int, sesion_id: int, db: AsyncSession = Depends(get_db)):
+    sesion = await db.get(SesionEstacionamiento, sesion_id)
+    if not sesion:
+        raise HTTPException(404, "Sesion no encontrada")
+    if sesion.hora_fin:
+        raise HTTPException(400, "Sesion ya finalizada")
+
+    espacio = await db.get(Espacio, sesion.espacio_id)
+    if not espacio or espacio.permisionario_id != perm_id:
+        raise HTTPException(403, "Esta sesion no pertenece a un espacio tuyo")
+
+    ahora = now_naive()
+    sesion.costo_total = calcular_costo_estacionamiento(sesion.hora_inicio, ahora)
+    sesion.hora_fin = ahora
+    sesion.pagado = True
+    espacio.disponible = True
 
     await db.commit()
     return {"ok": True, "sesion_id": sesion.id, "costo_total": sesion.costo_total}
@@ -1117,11 +1351,8 @@ async def sesiones_por_conductor(conductor_id: int, db: AsyncSession = Depends(g
 
 
 async def get_espacio_ids_por_perm(perm_id: int, db: AsyncSession) -> list[int]:
-    perm = await db.get(Permisionario, perm_id)
-    if not perm:
-        return []
     result = await db.execute(
-        select(Espacio.id).where(Espacio.ubicacion.startswith(perm.calle))
+        select(Espacio.id).where(Espacio.permisionario_id == perm_id)
     )
     return result.scalars().all()
 
@@ -1296,6 +1527,525 @@ async def aprobar_reserva(data: ReservaAprobar, db: AsyncSession = Depends(get_d
 
 
 @app.post("/api/admin/verificar-no-show")
-async def admin_verificar_no_show(db: AsyncSession = Depends(get_db)):
+async def admin_verificar_no_show(db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
     n = await verificar_no_show_periodico(db)
     return {"ok": True, "penalizadas": n}
+
+
+# ═══════════════════════════════════════════════════════
+# PASSWORD CHANGE (ALL ROLES)
+# ═══════════════════════════════════════════════════════
+
+@app.post("/api/auth/cambiar-password")
+async def cambiar_password(body: PasswordChangeRequest, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from app.auth import hash_password, verify_password
+    models = {"conductor": Conductor, "permisionario": Permisionario, "admin": Admin}
+    model = models.get(current_user["role"])
+    if not model:
+        raise HTTPException(400, "Rol no soportado")
+    user = await db.get(model, current_user["id"])
+    if not user or not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(400, "Contraseña actual incorrecta")
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
+    return {"ok": True, "mensaje": "Contraseña actualizada"}
+
+
+# ═══════════════════════════════════════════════════════
+# PERMISIONARIO UPDATE
+# ═══════════════════════════════════════════════════════
+
+@app.put("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
+async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, db: AsyncSession = Depends(get_db), current_user=Depends(require_role("permisionario", "admin"))):
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    if current_user["role"] != "admin" and current_user["id"] != perm.id:
+        raise HTTPException(403, "No podés editar otro perfil")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(perm, field, value)
+    await db.commit()
+    await db.refresh(perm)
+    return perm
+
+
+@app.get("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
+async def obtener_permisionario(perm_id: int, db: AsyncSession = Depends(get_db)):
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    return perm
+
+
+# ═══════════════════════════════════════════════════════
+# ADMIN: EDIT/DELETE CRUD
+# ═══════════════════════════════════════════════════════
+
+@app.put("/api/admin/conductores/{conductor_id}")
+async def admin_editar_conductor(conductor_id: int, data: ConductorUpdate, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    cond = await db.get(Conductor, conductor_id)
+    if not cond:
+        raise HTTPException(404)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(cond, field, value)
+    await db.commit()
+    await db.refresh(cond)
+    return cond
+
+
+@app.delete("/api/admin/conductores/{conductor_id}")
+async def admin_eliminar_conductor(conductor_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    cond = await db.get(Conductor, conductor_id)
+    if not cond:
+        raise HTTPException(404)
+    await db.delete(cond)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.put("/api/admin/permisionarios/{perm_id}")
+async def admin_editar_permisionario(perm_id: int, data: PermisionarioUpdate, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(perm, field, value)
+    await db.commit()
+    await db.refresh(perm)
+    return perm
+
+
+@app.delete("/api/admin/permisionarios/{perm_id}")
+async def admin_eliminar_permisionario(perm_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    await db.delete(perm)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.put("/api/admin/espacios/{espacio_id}", response_model=EspacioOut)
+async def admin_editar_espacio(espacio_id: int, data: EspacioUpdate, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    esp = await db.get(Espacio, espacio_id)
+    if not esp:
+        raise HTTPException(404)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(esp, field, value)
+    await db.commit()
+    await db.refresh(esp)
+    return esp
+
+
+@app.delete("/api/admin/espacios/{espacio_id}")
+async def admin_eliminar_espacio(espacio_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    esp = await db.get(Espacio, espacio_id)
+    if not esp:
+        raise HTTPException(404)
+    await db.delete(esp)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/admin/conductores/{conductor_id}/detalle")
+async def admin_conductor_detalle(conductor_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    from app.models import Penalizacion
+    cond = await db.get(Conductor, conductor_id)
+    if not cond:
+        raise HTTPException(404)
+    sr = await db.execute(select(SesionEstacionamiento).where(SesionEstacionamiento.conductor_id == conductor_id).order_by(SesionEstacionamiento.hora_inicio.desc()).limit(50))
+    sesiones = [sesion_to_dict(s) for s in sr.scalars().all()]
+    pr = await db.execute(select(Penalizacion).where(Penalizacion.conductor_id == conductor_id).order_by(Penalizacion.fecha.desc()).limit(50))
+    pens = [{"id": p.id, "monto": p.monto, "motivo": p.motivo, "fecha": p.fecha.isoformat(), "pagada": p.pagada} for p in pr.scalars().all()]
+    rr = await db.execute(select(Reserva).where(Reserva.conductor_id == conductor_id).order_by(Reserva.creada_en.desc()).limit(50))
+    reservas = [reserva_to_dict(r) for r in rr.scalars().all()]
+    return {
+        "conductor": {"id": cond.id, "nombre": cond.nombre, "email": cond.email, "patente": cond.patente,
+                      "bloqueado": cond.bloqueado, "saldo_deudor": cond.saldo_deudor,
+                      "telefono": cond.telefono, "username": cond.username},
+        "sesiones": sesiones, "penalizaciones": pens, "reservas": reservas,
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# LOGOUT
+# ═══════════════════════════════════════════════════════
+
+@app.post("/api/auth/logout")
+async def logout(current_user=Depends(get_current_user)):
+    return {"ok": True, "mensaje": "Sesión cerrada"}
+
+
+# ═══════════════════════════════════════════════════════
+# CASH REGISTER / DAILY CLOSE (PERMISIONARIO)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/permisionario/{perm_id}/cierre-diario")
+async def cierre_diario(perm_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(require_role("permisionario", "admin"))):
+    if current_user["role"] != "admin" and current_user["id"] != perm_id:
+        raise HTTPException(403, "No podés ver otro cierre")
+    espacio_ids = await get_espacio_ids_por_perm(perm_id, db)
+    if not espacio_ids:
+        return {"total": 0, "cantidad": 0, "por_dia": []}
+    today = now_naive().strftime("%Y-%m-%d")
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.espacio_id.in_(espacio_ids))
+        .where(SesionEstacionamiento.pagado == True)
+        .where(func.date(SesionEstacionamiento.hora_fin) == today)
+        .order_by(SesionEstacionamiento.hora_inicio.asc())
+    )
+    sesiones = result.scalars().all()
+    total = sum(s.costo_total or 0 for s in sesiones)
+    return {
+        "fecha": today,
+        "total": round(total, 2),
+        "cantidad": len(sesiones),
+        "sesiones": [sesion_to_dict(s) for s in sesiones],
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# AUDIT LOG (ADMIN — in-memory)
+# ═══════════════════════════════════════════════════════
+
+AUDIT_LOG = []
+
+@app.get("/api/admin/audit")
+async def listar_audit(limit: int = 100, admin=Depends(require_role("admin"))):
+    return list(reversed(AUDIT_LOG))[:limit]
+
+
+# ═══════════════════════════════════════════════════════
+# SYSTEM CONFIG (ADMIN)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/admin/config")
+async def get_config(admin=Depends(require_role("admin"))):
+    return {
+        "PRECIO_POR_HORA": PRECIO_POR_HORA,
+        "HORARIO_CIERRE": HORARIO_CIERRE,
+        "HORARIO_CIERRE_SAB": HORARIO_CIERRE_SAB,
+        "TOLERANCIA_MINUTOS": TOLERANCIA_MINUTOS,
+        "MAX_PENALIZACIONES_MES": MAX_PENALIZACIONES_MES,
+        "DEUDA_MAXIMA": DEUDA_MAXIMA,
+        "MULTA_BLOQUEO": MULTA_BLOQUEO,
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# MULTIPLE PATENTES (CONDUCTOR)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores/{conductor_id}/patentes", response_model=list[PatenteSecundariaOut])
+async def listar_patentes_secundarias(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PatenteSecundaria).where(PatenteSecundaria.conductor_id == conductor_id)
+    )
+    return result.scalars().all()
+
+
+@app.post("/api/conductores/{conductor_id}/patentes")
+async def crear_patente_secundaria(conductor_id: int, body: PatenteSecundariaOut, db: AsyncSession = Depends(get_db)):
+    pat = PatenteSecundaria(conductor_id=conductor_id, patente=body.patente.upper())
+    db.add(pat)
+    await db.commit()
+    await db.refresh(pat)
+    return pat
+
+
+@app.delete("/api/conductores/{conductor_id}/patentes/{patente_id}")
+async def eliminar_patente_secundaria(conductor_id: int, patente_id: int, db: AsyncSession = Depends(get_db)):
+    pat = await db.get(PatenteSecundaria, patente_id)
+    if not pat or pat.conductor_id != conductor_id:
+        raise HTTPException(404)
+    await db.delete(pat)
+    await db.commit()
+    return {"ok": True}
+
+
+# ═══════════════════════════════════════════════════════
+# FAVORITOS (CONDUCTOR)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores/{conductor_id}/favoritos", response_model=list[FavoritoOut])
+async def listar_favoritos(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Favorito).where(Favorito.conductor_id == conductor_id)
+    )
+    return result.scalars().all()
+
+
+@app.post("/api/conductores/{conductor_id}/favoritos")
+async def crear_favorito(conductor_id: int, body: FavoritoCreate, db: AsyncSession = Depends(get_db)):
+    fav = Favorito(conductor_id=conductor_id, espacio_id=body.espacio_id, nombre=body.nombre)
+    db.add(fav)
+    await db.commit()
+    await db.refresh(fav)
+    return fav
+
+
+@app.delete("/api/conductores/{conductor_id}/favoritos/{favorito_id}")
+async def eliminar_favorito(conductor_id: int, favorito_id: int, db: AsyncSession = Depends(get_db)):
+    fav = await db.get(Favorito, favorito_id)
+    if not fav or fav.conductor_id != conductor_id:
+        raise HTTPException(404)
+    await db.delete(fav)
+    await db.commit()
+    return {"ok": True}
+
+
+# ═══════════════════════════════════════════════════════
+# EXTENDER SESION
+# ═══════════════════════════════════════════════════════
+
+@app.post("/api/sesion/{sesion_id}/extender")
+async def extender_sesion(sesion_id: int, db: AsyncSession = Depends(get_db)):
+    sesion = await db.get(SesionEstacionamiento, sesion_id)
+    if not sesion:
+        raise HTTPException(404, "Sesion no encontrada")
+    if sesion.hora_fin:
+        raise HTTPException(400, "Sesion ya finalizada")
+
+    ahora = now_naive()
+    if not sesion.pagado:
+        sesion.costo_total = calcular_costo_estacionamiento(sesion.hora_inicio, ahora)
+    elif sesion.lista_para_salir:
+        sesion.lista_para_salir = False
+
+    await db.commit()
+    return {"ok": True, "mensaje": "Sesion extendida", "hora_inicio": sesion.hora_inicio.isoformat()}
+
+
+# ═══════════════════════════════════════════════════════
+# COMPROBANTE DIGITAL
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/sesion/{sesion_id}/comprobante")
+async def obtener_comprobante(sesion_id: int, db: AsyncSession = Depends(get_db)):
+    sesion = await db.get(SesionEstacionamiento, sesion_id)
+    if not sesion:
+        raise HTTPException(404)
+    if not sesion.hora_fin:
+        raise HTTPException(400, "Sesion no finalizada aun")
+
+    espacio = await db.get(Espacio, sesion.espacio_id)
+    conductor = await db.get(Conductor, sesion.conductor_id)
+    return {
+        "sesion_id": sesion.id,
+        "conductor": conductor.nombre if conductor else "",
+        "patente": conductor.patente if conductor else "",
+        "ubicacion": espacio.ubicacion if espacio else "",
+        "hora_inicio": sesion.hora_inicio.isoformat(),
+        "hora_fin": sesion.hora_fin.isoformat(),
+        "costo_total": sesion.costo_total or 0,
+        "metodo_pago": sesion.metodo_pago or "",
+        "pagado": sesion.pagado,
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# DONDE DEJE EL AUTO (ULTIMA SESION ACTIVA)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores/{conductor_id}/ultimo-estacionamiento")
+async def ultimo_estacionamiento(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.conductor_id == conductor_id)
+        .order_by(SesionEstacionamiento.hora_inicio.desc())
+        .limit(1)
+    )
+    sesion = result.scalar_one_or_none()
+    if not sesion:
+        return None
+    espacio = await db.get(Espacio, sesion.espacio_id)
+    return {
+        "sesion_id": sesion.id,
+        "activa": sesion.hora_fin is None,
+        "ubicacion": espacio.ubicacion if espacio else "",
+        "lat": espacio.lat if espacio else None,
+        "lng": espacio.lng if espacio else None,
+        "hora_inicio": sesion.hora_inicio.isoformat(),
+        "hora_fin": sesion.hora_fin.isoformat() if sesion.hora_fin else None,
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# HISTORIAL DE PAGOS
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores/{conductor_id}/pagos")
+async def historial_pagos(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.conductor_id == conductor_id)
+        .where(SesionEstacionamiento.pagado == True)
+        .order_by(SesionEstacionamiento.hora_inicio.desc())
+        .limit(100)
+    )
+    sesiones = result.scalars().all()
+    data = []
+    for s in sesiones:
+        esp = await db.get(Espacio, s.espacio_id)
+        data.append({
+            "id": s.id,
+            "ubicacion": esp.ubicacion if esp else "",
+            "hora_inicio": s.hora_inicio.isoformat(),
+            "hora_fin": s.hora_fin.isoformat() if s.hora_fin else None,
+            "costo_total": s.costo_total or 0,
+            "metodo_pago": s.metodo_pago or "",
+            "fecha": s.hora_inicio.strftime("%Y-%m-%d"),
+        })
+    return data
+
+
+# ═══════════════════════════════════════════════════════
+# NOTIFICACIONES (POLLING)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/conductores/{conductor_id}/notificaciones")
+async def notificaciones_conductor(conductor_id: int, db: AsyncSession = Depends(get_db)):
+    notifs = []
+
+    # Sesion activa por vencer (proximo al cierre)
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.conductor_id == conductor_id)
+        .where(SesionEstacionamiento.hora_fin == None)
+        .limit(1)
+    )
+    sesion = result.scalar_one_or_none()
+    if sesion:
+        ahora = now_naive()
+        hora_cierre = ahora.replace(hour=HORARIO_CIERRE, minute=0, second=0)
+        if ahora.hour >= HORARIO_CIERRE - 1 and ahora.hour < HORARIO_CIERRE:
+            notifs.append({
+                "tipo": "cierre",
+                "mensaje": f"El estacionamiento cierra a las {HORARIO_CIERRE}:00. Retirá tu auto.",
+                "leida": False,
+            })
+
+    # Penalizaciones recientes no pagas
+    from app.models import Penalizacion
+    result2 = await db.execute(
+        select(Penalizacion)
+        .where(Penalizacion.conductor_id == conductor_id)
+        .where(Penalizacion.pagada == False)
+        .order_by(Penalizacion.fecha.desc())
+        .limit(3)
+    )
+    pens = result2.scalars().all()
+    for p in pens:
+        dias = (now_naive() - p.fecha.replace(tzinfo=None)).days
+        if dias <= 7:
+            notifs.append({
+                "tipo": "penalizacion",
+                "mensaje": f"Penalización de ${p.monto:.0f} por: {p.motivo}",
+                "leida": False,
+            })
+
+    return notifs
+
+
+# ═══════════════════════════════════════════════════════
+# ADMIN: BUSCAR CONDUCTORES
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/admin/conductores/buscar")
+async def admin_buscar_conductores(q: str = "", db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    if not q:
+        result = await db.execute(select(Conductor).order_by(Conductor.id.desc()).limit(100))
+        return result.scalars().all()
+    result = await db.execute(
+        select(Conductor).where(
+            (Conductor.nombre.ilike(f"%{q}%")) |
+            (Conductor.email.ilike(f"%{q}%")) |
+            (Conductor.patente.ilike(f"%{q}%"))
+        ).order_by(Conductor.id.desc()).limit(100)
+    )
+    return result.scalars().all()
+
+
+# ═══════════════════════════════════════════════════════
+# ADMIN: EXPORTAR HISTORIAL CONDUCTOR CSV
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/admin/conductores/{conductor_id}/exportar-csv")
+async def admin_exportar_conductor_csv(conductor_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    cond = await db.get(Conductor, conductor_id)
+    if not cond:
+        raise HTTPException(404)
+
+    result = await db.execute(
+        select(SesionEstacionamiento)
+        .where(SesionEstacionamiento.conductor_id == conductor_id)
+        .order_by(SesionEstacionamiento.hora_inicio.desc())
+    )
+    sesiones = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Espacio", "Inicio", "Fin", "Costo", "Pagado", "Metodo"])
+    for s in sesiones:
+        esp = await db.get(Espacio, s.espacio_id)
+        writer.writerow([
+            s.id, esp.ubicacion if esp else "",
+            s.hora_inicio.strftime("%Y-%m-%d %H:%M"),
+            s.hora_fin.strftime("%Y-%m-%d %H:%M") if s.hora_fin else "",
+            s.costo_total or 0, "Si" if s.pagado else "No", s.metodo_pago or "",
+        ])
+
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=conductor_{conductor_id}_historial.csv"},
+    )
+
+
+# ═══════════════════════════════════════════════════════
+# ADMIN: SUSPENDER CONDUCTOR TEMPORALMENTE
+# ═══════════════════════════════════════════════════════
+
+@app.post("/api/admin/conductores/{conductor_id}/suspender")
+async def admin_suspender_conductor(conductor_id: int, dias: int = 0, db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    cond = await db.get(Conductor, conductor_id)
+    if not cond:
+        raise HTTPException(404)
+    if dias <= 0:
+        cond.bloqueado = False
+        cond.bloqueado_hasta = None
+    else:
+        cond.bloqueado = True
+        cond.bloqueado_hasta = now_naive() + timedelta(days=dias)
+    await db.commit()
+    return {"ok": True, "bloqueado": cond.bloqueado, "bloqueado_hasta": cond.bloqueado_hasta.isoformat() if cond.bloqueado_hasta else None}
+
+
+# ═══════════════════════════════════════════════════════
+# ADMIN: SESIONES ACTIVAS EN VIVO (MAP DATA)
+# ═══════════════════════════════════════════════════════
+
+@app.get("/api/admin/sesiones-vivo")
+async def admin_sesiones_vivo(db: AsyncSession = Depends(get_db), admin=Depends(require_role("admin"))):
+    result = await db.execute(
+        select(SesionEstacionamiento).where(SesionEstacionamiento.hora_fin == None)
+    )
+    sesiones = result.scalars().all()
+    data = []
+    for s in sesiones:
+        esp = await db.get(Espacio, s.espacio_id)
+        cond = await db.get(Conductor, s.conductor_id)
+        data.append({
+            "id": s.id,
+            "lat": esp.lat if esp else None,
+            "lng": esp.lng if esp else None,
+            "ubicacion": esp.ubicacion if esp else "",
+            "conductor": cond.nombre if cond else "",
+            "patente": cond.patente if cond else "",
+            "hora_inicio": s.hora_inicio.isoformat(),
+            "metodo_pago": s.metodo_pago or "",
+            "pagado": s.pagado,
+        })
+    return data

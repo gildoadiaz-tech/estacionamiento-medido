@@ -267,7 +267,34 @@
     <script>
         const IDEMSA_SPOTS = {{ espacios_json|safe }};
         const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
-        let favoritos = JSON.parse(localStorage.getItem('favoritos') || '[]');
+        let favoritos = [];
+
+        async function cargarFavoritos() {
+            try {
+                const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/favoritos`);
+                const list = await res.json();
+                favoritos = list.map(f => f.nombre || f.espacio_id.toString());
+            } catch {}
+        }
+
+        async function cargarUltimoEstacionamiento() {
+            try {
+                const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/ultimo-estacionamiento`);
+                const data = await res.json();
+                if (data && data.lat && data.lng) {
+                    const color = data.activa ? '#06C167' : '#636366';
+                    const icon = L.divIcon({ html: `<div style="background:${color};width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px">🚗</div>`, className: '', iconSize: [24,24], iconAnchor: [12,12] });
+                    const mk = L.marker([data.lat, data.lng], { icon }).addTo(map);
+                    mk.bindPopup(`
+                        <b>${data.activa ? '🟢 Estacionado aquí' : '🅿️ Último estacionamiento'}</b><br>
+                        ${data.ubicacion}<br>
+                        <span style="font-size:12px;color:gray">${data.hora_inicio}</span>
+                    `);
+                }
+            } catch {}
+        }
+
+        cargarFavoritos().then(() => cargarUltimoEstacionamiento());
         const SALTA_CENTER = [-24.7858, -65.4056];
 
         const map = L.map('mapa').setView(SALTA_CENTER, 17);
@@ -315,8 +342,16 @@
 
         function toggleFav(calle) {
             const idx = favoritos.indexOf(calle);
-            idx > -1 ? favoritos.splice(idx,1) : favoritos.push(calle);
-            localStorage.setItem('favoritos', JSON.stringify(favoritos));
+            if (idx > -1) {
+                fetch(`/api/conductores/${CONDUCTOR_ID}/favoritos/${idx}`, { method: 'DELETE' });
+                favoritos.splice(idx,1);
+            } else {
+                fetch(`/api/conductores/${CONDUCTOR_ID}/favoritos`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ espacio_id: 0, nombre: calle }),
+                }).then(r => r.json()).then(f => { if (f.id) favoritos.push(calle); });
+            }
         }
 
         // Session banner

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
@@ -6,6 +6,13 @@ from typing import Optional
 class PermisionarioCreate(BaseModel):
     nombre: str
     email: str
+    telefono: Optional[str] = None
+    calle: Optional[str] = None
+
+
+class PermisionarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
     telefono: Optional[str] = None
     calle: Optional[str] = None
 
@@ -33,6 +40,7 @@ class ConductorOut(BaseModel):
     telefono: Optional[str] = None
     patente: Optional[str] = None
     bloqueado: bool = False
+    bloqueado_hasta: Optional[datetime] = None
     saldo_deudor: float = 0.0
 
     model_config = {"from_attributes": True}
@@ -47,7 +55,15 @@ class ConductorUpdate(BaseModel):
 
 class EspacioCreate(BaseModel):
     ubicacion: str
-    precio_por_hora: float = 50.0
+    precio_por_hora: float = 600.0
+    permisionario_id: Optional[int] = None
+
+
+class EspacioUpdate(BaseModel):
+    ubicacion: Optional[str] = None
+    precio_por_hora: Optional[float] = None
+    disponible: Optional[bool] = None
+    permisionario_id: Optional[int] = None
 
 
 class EspacioOut(BaseModel):
@@ -55,6 +71,10 @@ class EspacioOut(BaseModel):
     ubicacion: str
     precio_por_hora: float
     disponible: bool
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    permisionario_id: Optional[int] = None
+    tipo: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -90,6 +110,11 @@ class ElegirPagoRequest(BaseModel):
     patente: Optional[str] = None
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class ReservaCreate(BaseModel):
     espacio_id: int
     conductor_id: int
@@ -105,6 +130,9 @@ class ReservaOut(BaseModel):
     hora_fin: datetime
     estado: str
     creada_en: datetime
+    ubicacion: Optional[str] = None
+    usada: bool = False
+    checkin_time: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -130,4 +158,29 @@ class ConductorStatus(BaseModel):
     bloqueado: bool
     saldo_deudor: float
     penalizaciones_mes: int
+    max_penalizaciones: int = 5
+    deuda_maxima: float = 10000.0
+    multa_bloqueo: float = 5000.0
     motivo_bloqueo: Optional[str] = None
+
+
+class PatenteSecundariaOut(BaseModel):
+    id: int
+    conductor_id: int
+    patente: str
+
+    model_config = {"from_attributes": True}
+
+
+class FavoritoOut(BaseModel):
+    id: int
+    conductor_id: int
+    espacio_id: int
+    nombre: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class FavoritoCreate(BaseModel):
+    espacio_id: int
+    nombre: Optional[str] = None

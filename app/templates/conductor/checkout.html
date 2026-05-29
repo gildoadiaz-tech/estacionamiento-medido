@@ -137,14 +137,15 @@
                     <div class="pay-desc">Pagá con QR o tarjeta al retirarte</div>
                 </div>
             </button>
-            <button id="btnConfirmarPago" class="btn-primary" disabled>Estacionar</button>
+            <button id="btnConfirmarPago" class="btn-primary" disabled>Confirmar estacionamiento</button>
         </div>
 
         <div id="msgEfectivo" class="message">
-            <div class="msg-icon">💵</div>
-            <div class="msg-title">Estacionamiento registrado</div>
-            <div class="msg-text">Cuando te retires, pagale al permisionario en efectivo. Él te dará el QR de salida para escanear.</div>
-            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
+            <div class="msg-icon">✅</div>
+            <div class="msg-title">¡Estacionamiento finalizado!</div>
+            <div class="msg-text" id="efectivoInfo"></div>
+            <div id="exitQRContainer" style="margin:12px 0;text-align:center"></div>
+            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:8px;text-align:center">Ir al inicio</a>
         </div>
 
         <div id="msgMP" class="message">
@@ -153,15 +154,23 @@
             <div class="msg-text">Cuando te retires, pagá con Mercado Pago. El permisionario te dará el QR de salida.</div>
             <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
         </div>
+
+        <div id="msgFinalizado" class="message">
+            <div class="msg-icon">✅</div>
+            <div class="msg-title">¡Estacionamiento finalizado!</div>
+            <div class="msg-text" id="finalizadoInfo"></div>
+            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
+        </div>
     </div>
 
     <script>
         const SESION_ID = {{ sesion.id }};
-        const INICIO = new Date("{{ sesion.hora_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}").getTime();
+        const INICIO = new Date("{{ sesion.hora_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z").getTime();
         let metodoSeleccionado = null;
+        let timerInterval = null;
 
         // Timer count-up
-        setInterval(() => {
+        timerInterval = setInterval(() => {
             const diff = Date.now() - INICIO;
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
@@ -196,16 +205,29 @@
                 if (!res.ok) throw new Error(data.detail || 'Error');
 
                 document.getElementById('stepPago').style.display = 'none';
+                clearInterval(timerInterval);
                 if (metodoSeleccionado === 'efectivo') {
                     document.getElementById('msgEfectivo').classList.add('show');
+                    const fin = await fetch(`/api/sesion/${SESION_ID}/confirmar-pago-efectivo`, { method: 'POST' });
+                    const finData = await fin.json();
+                    if (fin.ok) {
+                        document.getElementById('efectivoInfo').textContent = `Pagado: $${finData.costo_total} · Gracias por usar el servicio`;
+                        if (finData.qr_salida) {
+                            document.getElementById('exitQRContainer').innerHTML =
+                                `<img src="data:image/png;base64,${finData.qr_salida}" style="width:160px;height:160px;margin:0 auto;display:block">`;
+                        }
+                    }
+                } else if (data.init_point) {
+                    window.location.href = data.init_point;
                 } else {
                     document.getElementById('msgMP').classList.add('show');
                 }
             } catch (e) {
                 alert('Error: ' + e.message);
-                btn.disabled = false; btn.textContent = 'Estacionar';
+                btn.disabled = false; btn.textContent = 'Confirmar estacionamiento';
             }
         });
+
     </script>
 </body>
 </html>

@@ -221,26 +221,16 @@
             <div>
                 <p class="greeting" id="greeting">¡Hola!</p>
             </div>
-            <a href="/conductor/perfil" class="avatar">👤</a>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div id="notifBell" style="position:relative;cursor:pointer;font-size:22px" onclick="toggleNotif()">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-6px;background:var(--danger);color:#fff;font-size:10px;border-radius:50%;width:16px;height:16px;display:none;align-items:center;justify-content:center;font-weight:700"></span></div>
+                <a href="/conductor/perfil" class="avatar">👤</a>
+            </div>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <span class="dot" style="background:#06C167"></span>
-                <p class="value" style="color:#06C167" id="countLibres">-</p>
-                <p class="label">Libres</p>
-            </div>
-            <div class="stat-card">
-                <span class="dot" style="background:#FF453A"></span>
-                <p class="value" style="color:#FF453A" id="countOcupados">-</p>
-                <p class="label">Ocupados</p>
-            </div>
-            <div class="stat-card">
-                <span class="dot" style="background:#5E5CE6"></span>
-                <p class="value" style="color:#5E5CE6" id="countTotal">-</p>
-                <p class="label">Total</p>
-            </div>
+        <!-- Notifications panel -->
+        <div id="notifPanel" class="card" style="display:none;margin-bottom:12px">
+            <p style="font-size:14px;font-weight:600;margin-bottom:8px">Notificaciones</p>
+            <div id="notifList"><p style="font-size:13px;color:var(--text-tertiary)">Cargando...</p></div>
         </div>
 
         <!-- Active Session -->
@@ -264,15 +254,16 @@
             </div>
             <div class="actions">
                 <button id="btnCheckout" class="btn-outline">Finalizar</button>
+                <button id="btnExtender" class="btn-outline" style="display:none">⏱ Extender</button>
                 <button id="btnVerQR" class="btn-outline">QR</button>
             </div>
             <div id="qrSalida" class="qr-container"></div>
         </div>
 
         <!-- Actions -->
-        <a href="/conductor/mapa" class="highlight-link" style="margin-bottom:8px">
-            <span class="icon">🗺️</span>
-            <span class="title">Buscar dónde estacionar</span>
+        <a href="/conductor/buscar" class="highlight-link" style="margin-bottom:8px">
+            <span class="icon">🔍</span>
+            <span class="title">Buscar estacionamiento</span>
             <span style="flex:1"></span>
             <span class="arrow" style="color:rgba(0,0,0,0.6)">→</span>
         </a>
@@ -365,7 +356,9 @@
                 document.getElementById('patenteDisplay').style.display = 'block';
                 document.getElementById('patenteTexto').textContent = s.patente;
             }
-            const inicio = new Date(s.hora_inicio).getTime();
+            const btnExt = document.getElementById('btnExtender');
+            btnExt.style.display = s.pagado ? 'block' : 'none';
+            const inicio = new Date(s.hora_inicio + (s.hora_inicio.endsWith('Z') ? '' : 'Z')).getTime();
             function tick() {
                 const diff = Date.now() - inicio;
                 const m = Math.floor(diff / 60000), s2 = Math.floor((diff % 60000) / 1000);
@@ -393,6 +386,13 @@
         document.getElementById('btnCheckout').addEventListener('click', async () => {
             if (!sesionActual) return;
             window.location.href = '/conductor/checkout/' + sesionActual.id;
+        });
+
+        document.getElementById('btnExtender').addEventListener('click', async () => {
+            if (!sesionActual) return;
+            const res = await fetch(`/api/sesion/${sesionActual.id}/extender`, { method: 'POST' });
+            if (res.ok) { alert('✅ Sesión extendida'); cargarSesionActiva(); }
+            else { alert('Error'); }
         });
 
         document.getElementById('btnVerQR').addEventListener('click', async () => {
@@ -503,18 +503,51 @@
         if (Notification.permission === 'default') Notification.requestPermission();
         cargarSesionActiva();
 
-        fetch('/api/espacios/con-estado').then(r=>r.json()).then(d => {
-            document.getElementById('countLibres').textContent = d.libres;
-            document.getElementById('countOcupados').textContent = d.ocupados;
-            document.getElementById('countTotal').textContent = (d.libres||0)+(d.ocupados||0);
-        }).catch(()=>{});
-
         fetch(`/api/conductores/${CONDUCTOR_ID}/status`).then(r=>r.json()).then(s => {
             if (s.bloqueado) {
                 document.getElementById('bloqueoBanner').classList.add('show');
                 document.getElementById('motivoBloqueo').textContent = s.motivo_bloqueo || 'Violación de términos';
             }
         }).catch(()=>{});
+
+        // ─── Notificaciones ─────────────────────────────────
+        let notifsActuales = [];
+
+        async function checkNotificaciones() {
+            try {
+                const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/notificaciones`);
+                const list = await res.json();
+                notifsActuales = list;
+                const badge = document.getElementById('notifBadge');
+                const noLeidas = list.filter(n => !n.leida).length;
+                if (noLeidas > 0) {
+                    badge.style.display = 'flex';
+                    badge.textContent = noLeidas > 9 ? '9+' : noLeidas;
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch {}
+        }
+
+        function toggleNotif() {
+            const panel = document.getElementById('notifPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if (panel.style.display === 'block') {
+                const list = document.getElementById('notifList');
+                if (!notifsActuales.length) {
+                    list.innerHTML = '<p style="font-size:13px;color:var(--text-tertiary)">Sin notificaciones</p>';
+                } else {
+                    list.innerHTML = notifsActuales.map(n => `
+                        <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">
+                            <span>${n.tipo === 'cierre' ? '⏰' : '⚠️'} ${n.mensaje}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        setInterval(checkNotificaciones, 30000);
+        checkNotificaciones();
     </script>
     <script>
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});

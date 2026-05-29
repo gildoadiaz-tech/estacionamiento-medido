@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sesiones en Vivo</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#f8fafc; color:#1e293b; font-family:system-ui,sans-serif; }
+        .header { display:flex; align-items:center; gap:12px; padding:16px 24px; max-width:1200px; margin:0 auto; }
+        #mapa { width:100%; height:calc(100vh - 80px); }
+        .popup-conductor { font-size:14px; }
+        .popup-conductor b { display:block; font-size:16px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/admin" style="font-size:24px;text-decoration:none">←</a>
+        <h1 style="font-size:22px;font-weight:700">Sesiones en Vivo</h1>
+        <span id="contador" style="font-size:14px;color:#64748b;margin-left:auto">0 activas</span>
+    </div>
+    <div id="mapa"></div>
+
+    <script>
+        const map = L.map('mapa').setView([-24.7858, -65.4056], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap', maxZoom: 19,
+        }).addTo(map);
+
+        const iconActive = L.divIcon({
+            html: '<div style="background:#06C167;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff">🅿</div>',
+            className: '', iconSize: [20,20], iconAnchor: [10,10],
+        });
+
+        async function cargar() {
+            const res = await fetch('/api/admin/sesiones-vivo', {
+                headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')},
+            });
+            const data = await res.json();
+            document.getElementById('contador').textContent = data.length + ' activas';
+            data.forEach(s => {
+                if (!s.lat || !s.lng) return;
+                L.marker([s.lat, s.lng], { icon: iconActive }).addTo(map).bindPopup(`
+                    <div class="popup-conductor">
+                        <b>${s.conductor}</b>
+                        ${s.patente ? `<span>🚗 ${s.patente}</span><br>` : ''}
+                        <span>📍 ${s.ubicacion}</span><br>
+                        <span style="font-size:12px;color:gray">🕐 ${s.hora_inicio}</span><br>
+                        <span style="font-size:12px;color:${s.pagado ? 'green' : 'orange'}">${s.pagado ? '✅ Pagado' : '⏳ Pendiente'} · ${s.metodo_pago || '-'}</span>
+                    </div>
+                `);
+            });
+        }
+        cargar();
+        setInterval(cargar, 15000);
+    </script>
+</body>
+</html>

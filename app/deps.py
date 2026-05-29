@@ -26,3 +26,11 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     if not user:
         raise HTTPException(401, "Usuario no encontrado")
     return {"id": user.id, "role": role, "nombre": user.nombre, "username": user.username}
+
+
+def require_role(*roles: str):
+    async def _check(current_user=Depends(get_current_user)):
+        if current_user["role"] not in roles:
+            raise HTTPException(403, "No tenés permisos para esta acción")
+        return current_user
+    return _check
