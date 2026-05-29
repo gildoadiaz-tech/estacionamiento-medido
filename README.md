@@ -166,6 +166,139 @@ cloudflared tunnel --url http://localhost:8000
 
 ---
 
+## Diagramas de flujo
+
+### Flujo general del sistema
+
+```mermaid
+graph TB
+    subgraph Registro
+        A[Conductor se registra] --> B[Verifica email por link]
+        B --> C[Login por DNI + password]
+    end
+    subgraph Busqueda
+        C --> D[Buscar estacionamiento]
+        D --> E[Texto: calle + altura]
+        D --> F[GPS: Buscar ahora]
+        E --> G[Resultados IDEMSA]
+        F --> G
+    end
+    subgraph Estacionamiento
+        G --> H[Escanea QR permisionario]
+        H --> I[Check-in automatico]
+        I --> J[Sesion activa + timer]
+    end
+    subgraph Pago
+        J --> K{Elige metodo de pago}
+        K --> L[Efectivo]
+        K --> M[Mercado Pago]
+        L --> N[Permisionario procesa salida]
+        N --> O[Sesion finalizada]
+        M --> P[Permisionario bloquea costo]
+        P --> Q[Conductor paga en MP simulado]
+        Q --> O
+    end
+    O --> R[Espacio liberado]
+```
+
+### Flujo del conductor
+
+```mermaid
+flowchart TD
+    A[Llega a /login] --> B{Email verificado?}
+    B -->|No| C[Ir a /registro]
+    C --> D[Completa formulario<br/>DNI, nombre, email, patente, tipo]
+    D --> E[Link de verificacion en terminal]
+    E --> F[Abre link]
+    F --> G[Email verificado]
+    G --> B
+    B -->|Si| H[Login con DNI + password]
+    H --> I[Home: sesion activa?]
+    I -->|Si| J[Ver timer + costo en vivo]
+    I -->|No| K[Ir a Buscar]
+    K --> L{Texto o GPS?}
+    L -->|Texto| M[Escribe calle + altura]
+    L -->|GPS| N[Buscar ahora]
+    M --> O[Ve resultados IDEMSA]
+    N --> O
+    O --> P[Toca un resultado]
+    P --> Q[Check-in en ese espacio]
+    Q --> R[Checkout: ver info + timer]
+    R --> S{Elige metodo de pago}
+    S -->|Efectivo| T[Espera que permisionario procese]
+    S -->|Mercado Pago| U[Va a MP simulado]
+    U --> V[Paga y confirma]
+    V --> W[Sesion finalizada]
+    T --> W
+    W --> X[Espacio liberado]
+```
+
+### Flujo del permisionario
+
+```mermaid
+flowchart TD
+    A[Login por codigo] --> B[Panel principal]
+    B --> C{Sesiones activas?}
+    C -->|Si| D[Ver timers + costos + exenciones]
+    C -->|No| E[Esperar conductores]
+    D --> F[Ir a Salida]
+    F --> G[Selecciona sesion]
+    G --> H{Metodo de pago}
+    H -->|Efectivo| I[Procesar salida]
+    I --> J[Sesion finalizada<br/>espacio liberado]
+    H -->|Mercado Pago| K[Bloquear costo]
+    K --> L[Conductor debe confirmar pago]
+    L --> J
+    B --> M[Ir a Ingreso]
+    M --> N[Ingresa patente manual]
+    N --> O[Busca o crea conductor]
+    O --> P[Crea sesion manual]
+    B --> Q[Ir a Cuadra]
+    Q --> R[Ver detalles de cuadras]
+    R --> S[Calle + rango alturas + lado]
+    B --> T[Ir a QR]
+    T --> U[Muestra QR para conductores]
+```
+
+### Flujo de cálculo de costo
+
+```mermaid
+flowchart TD
+    A[Inicia calculo] --> B{Tipo vehiculo?}
+    B -->|Bicicleta| C[$0 - Gratis]
+    B -->|Auto / Camioneta| D{Tiene exencion?}
+    B -->|Moto| D
+    D -->|Discapacidad| C
+    D -->|Frentista| C
+    D -->|Veterano Malvinas| C
+    D -->|Ninguna| E{Que dia es?}
+    E -->|Domingo| C
+    E -->|Sabado| F{Antes de 14hs?}
+    F -->|Si| G[Cobrar segun tarifa]
+    F -->|No| H[Gratis hasta el lunes]
+    E -->|Lun a Vie| I{Entre 7 y 21hs?}
+    I -->|Si| G
+    I -->|No| J{Entre 22 y 5hs?}
+    J -->|Si| G
+    J -->|No| K[Gratis hasta proximo horario]
+    G --> L{Auto/Camioneta: $600/h<br/>Moto: $100/h}
+```
+
+### Flujo de bloqueo por deuda
+
+```mermaid
+flowchart LR
+    A[Conductor usa sistema] --> B{Acumula deuda<br/>>= $10,000?}
+    B -->|No| C[Sigue normal]
+    B -->|Si| D[Bloqueado automaticamente]
+    D --> E{Puede pagar<br/>o admin desbloquea}
+    E -->|Paga deuda| F[Saldo = 0<br/>Desbloqueado]
+    E -->|Admin desbloquea| F
+    F --> A
+```
+
+---
+
 ## API — Endpoints principales
 
 ### Autenticación
