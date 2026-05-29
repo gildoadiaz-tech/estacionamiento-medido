@@ -5,155 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Estacionamiento Medido</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
             --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
             --radius: 16px;
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
         @media (prefers-color-scheme: dark) {
             :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
             }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            .hover\:bg-gray-50:hover { background: var(--card) !important; }
-            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
-            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
-            a { color: #60a5fa !important; }
+            .bg-white { background:var(--card)!important; }
+            .bg-gray-50,.bg-gray-100 { background:var(--bg)!important; }
+            .border-gray-100,.border-gray-200 { border-color:var(--border)!important; }
+            .text-gray-800,.text-gray-700 { color:var(--text)!important; }
+            .text-gray-500,.text-gray-600 { color:var(--text-muted)!important; }
+            .text-gray-400 { color:#64748b!important; }
+            .shadow-sm { box-shadow:0 1px 3px rgba(0,0,0,.4)!important; }
         }
-        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .animate-slide-up { animation: slideUp 0.25s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; margin:0; }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; color:var(--text-muted); text-decoration:none; font-size:.9rem; font-weight:500; transition:all .15s; }
+        .sidebar-link:hover,.sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+        .stat-card .stat-number { font-family:'Montserrat',sans-serif; font-size:1.8rem; font-weight:800; }
+        .stat-card .stat-label { color:var(--text-muted); font-size:.85rem; margin-top:4px; }
+        .quick-link { display:flex; align-items:center; gap:12px; padding:16px; border-radius:12px; text-decoration:none; transition:all .15s; border:1px solid var(--border); }
+        .quick-link:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.08); }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
-        <div class="flex items-center gap-4 mb-8">
-            <div class="text-4xl">⚙️</div>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Panel de Administración</h1>
-                <p class="text-gray-500">Gestión integral del sistema de estacionamiento</p>
+<body>
+    <div style="display:flex;min-height:100vh;background:var(--bg);">
+        <aside style="width:260px;background:var(--card);border-right:1px solid var(--border);padding:20px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.1rem;">P</div>
+                <div>
+                    <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.95rem;">Estacionamiento</div>
+                    <div style="font-size:.7rem;color:var(--text-muted);">Admin v2.0</div>
+                </div>
             </div>
-        </div>
+            <nav style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin" class="sidebar-link active">&#128202; Dashboard</a>
+                <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
+                <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
+                <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
+                <a href="/admin/deudas" class="sidebar-link">&#128176; Deudas</a>
+                <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+            </nav>
+        </aside>
+        <main style="flex:1;padding:24px;margin-left:260px;">
+            <div style="margin-bottom:24px;">
+                <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Panel de Administraci&oacute;n</h1>
+                <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Gesti&oacute;n integral del sistema de estacionamiento medido</p>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <p class="text-3xl font-bold text-blue-600" id="totalPermisionarios">-</p>
-                <p class="text-sm text-gray-500">Permisionarios</p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <p class="text-3xl font-bold text-green-600" id="totalConductores">-</p>
-                <p class="text-sm text-gray-500">Conductores</p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <p class="text-3xl font-bold text-purple-600" id="totalEspacios">-</p>
-                <p class="text-sm text-gray-500">Espacios</p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <p class="text-3xl font-bold text-yellow-600" id="totalSesiones">-</p>
-                <p class="text-sm text-gray-500">Sesiones hoy</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h2 class="text-xl font-bold mb-4">Gestión</h2>
-                <div class="space-y-3">
-                    <a href="/admin/permisionarios" class="block p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition">
-                        <p class="font-semibold text-purple-800">👤 Permisionarios</p>
-                        <p class="text-sm text-purple-600">Altas, bajas y modificación de permisionarios</p>
-                    </a>
-                    <a href="/admin/conductores" class="block p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition">
-                        <p class="font-semibold text-blue-800">🚗 Conductores</p>
-                        <p class="text-sm text-blue-600">Gestión de usuarios conductores</p>
-                    </a>
-                    <a href="/admin/espacios" class="block p-4 bg-green-50 rounded-xl hover:bg-green-100 transition">
-                        <p class="font-semibold text-green-800">🅿️ Espacios</p>
-                        <p class="text-sm text-green-600">Configurar espacios y tarifas por cuadra</p>
-                    </a>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--primary);" id="totalPermisionarios">-</div>
+                    <div class="stat-label">Permisionarios</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#16a34a;" id="totalConductores">-</div>
+                    <div class="stat-label">Conductores</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#9333ea;" id="totalGestores">-</div>
+                    <div class="stat-label">Gestores</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#eab308;" id="totalSesiones">-</div>
+                    <div class="stat-label">Sesiones hoy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--accent);" id="totalEspacios">-</div>
+                    <div class="stat-label">Espacios</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#f97316;" id="recaudacionHoy">$0</div>
+                    <div class="stat-label">Recaudaci&oacute;n hoy</div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h2 class="text-xl font-bold mb-4">Monitoreo</h2>
-                <div class="space-y-3">
-                    <a href="/admin/sesiones" class="block p-4 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition">
-                        <p class="font-semibold text-yellow-800">📊 Sesiones Activas</p>
-                        <p class="text-sm text-yellow-600">Ver estacionamientos en curso</p>
-                    </a>
-                    <a href="/admin/reservas" class="block p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition">
-                        <p class="font-semibold text-orange-800">📋 Todas las Reservas</p>
-                        <p class="text-sm text-orange-600">Historial completo de reservas</p>
-                    </a>
-                    <a href="/admin/reportes" class="block p-4 bg-red-50 rounded-xl hover:bg-red-100 transition">
-                        <p class="font-semibold text-red-800">📈 Reportes</p>
-                        <p class="text-sm text-red-600">Recaudación, ocupación y estadísticas</p>
-                    </a>
-                    <a href="/admin/penalizaciones" class="block p-4 bg-red-50 rounded-xl hover:bg-red-100 transition">
-                        <p class="font-semibold text-red-800">⚠️ Penalizaciones</p>
-                        <p class="text-sm text-red-600">Multas, bloqueos y waivers</p>
-                    </a>
-                    <a href="/admin/sesiones-vivo" class="block p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition">
-                        <p class="font-semibold text-indigo-800">📍 Sesiones en Vivo</p>
-                        <p class="text-sm text-indigo-600">Mapa con estacionamientos activos</p>
-                    </a>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
+                    <h2 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:700;margin:0 0 16px;">Gesti&oacute;n</h2>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <a href="/admin/conductores" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128663;</span>
+                            <div><div style="font-weight:600;">Conductores</div><div style="font-size:.8rem;color:var(--text-muted);">Gesti&oacute;n de usuarios conductores</div></div>
+                        </a>
+                        <a href="/admin/permisionarios" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128100;</span>
+                            <div><div style="font-weight:600;">Permisionarios</div><div style="font-size:.8rem;color:var(--text-muted);">Altas, bajas y modificaciones</div></div>
+                        </a>
+                        <a href="/admin/gestores" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128101;</span>
+                            <div><div style="font-weight:600;">Gestores</div><div style="font-size:.8rem;color:var(--text-muted);">Administraci&oacute;n de gestores</div></div>
+                        </a>
+                        <a href="/admin/espacios" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128205;</span>
+                            <div><div style="font-weight:600;">Espacios</div><div style="font-size:.8rem;color:var(--text-muted);">Configurar tarifas y ubicaciones</div></div>
+                        </a>
+                    </div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
+                    <h2 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:700;margin:0 0 16px;">Monitoreo</h2>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <a href="/admin/sesiones-vivo" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#127759;</span>
+                            <div><div style="font-weight:600;">Sesiones en Vivo</div><div style="font-size:.8rem;color:var(--text-muted);">Mapa con estacionamientos activos</div></div>
+                        </a>
+                        <a href="/admin/reportes" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128200;</span>
+                            <div><div style="font-weight:600;">Reportes</div><div style="font-size:.8rem;color:var(--text-muted);">Recaudaci&oacute;n y estad&iacute;sticas</div></div>
+                        </a>
+                        <a href="/admin/deudas" class="quick-link" style="color:var(--text);">
+                            <span style="font-size:1.3rem;">&#128176;</span>
+                            <div><div style="font-weight:600;">Deudas</div><div style="font-size:.8rem;color:var(--text-muted);">Gesti&oacute;n de deudas y pagos</div></div>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="text-center">
-            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
-        </div>
+        </main>
     </div>
 
     <script>
+        const token = localStorage.getItem('token');
         async function cargarStats() {
             const endpoints = [
-                ["/api/permisionarios", "totalPermisionarios"],
-                ["/api/conductores", "totalConductores"],
-                ["/api/espacios", "totalEspacios"],
-                ["/api/sesiones/activas", "totalSesiones"],
+                ['/api/permisionarios', 'totalPermisionarios'],
+                ['/api/conductores', 'totalConductores'],
+                ['/api/gestores', 'totalGestores'],
+                ['/api/sesiones/activas', 'totalSesiones'],
+                ['/api/espacios', 'totalEspacios'],
             ];
             for (const [url, id] of endpoints) {
                 try {
-                    const res = await fetch(url);
+                    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                     const data = await res.json();
-                    document.getElementById(id).textContent = Array.isArray(data) ? data.length : data.total || data.count || "-";
-                } catch { document.getElementById(id).textContent = "-"; }
+                    document.getElementById(id).textContent = Array.isArray(data) ? data.length : data.total || data.count || '-';
+                } catch { document.getElementById(id).textContent = '-'; }
             }
+            try {
+                const res = await fetch('/api/admin/reportes/recaudacion-hoy', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                document.getElementById('recaudacionHoy').textContent = '$' + (data.total || 0).toLocaleString('es-AR');
+            } catch { document.getElementById('recaudacionHoy').textContent = '$0'; }
         }
         cargarStats();
     </script>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     </script>
 </body>
 </html>

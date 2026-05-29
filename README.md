@@ -1,6 +1,6 @@
-# 🅿️ Estacionamiento Medido — Salta
+# Estacionamiento Medido v2.0 — Salta
 
-Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, permisionario, admin), geolocalización con datos oficiales de IDEMSA, pagos con Mercado Pago, reservas, penalizaciones por no-show, y app mobile wrapper en Expo.
+Sistema completo de estacionamiento medido inteligente con 4 roles (conductor, permisionario, gestor, admin), búsqueda GPS con datos oficiales IDEMSA, pagos con Mercado Pago (simulado), sesiones en vivo con timer+costo, verificación por email, y PWA offline.
 
 > **Demo sin presupuesto:** sin hosting, sin dominios, sin servicios pagos.
 > Usa Cloudflare Tunnel gratuito para exponer localhost.
@@ -12,12 +12,13 @@ Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, p
 | Capa | Tecnología |
 |------|-----------|
 | Backend | Python 3.12 + FastAPI + SQLAlchemy (async) |
-| Base de datos | SQLite (aiosqlite) |
+| Base de datos | SQLite (aiosqlite) — 12 tablas |
 | Autenticación | JWT (python-jose) + bcrypt |
-| Frontend | Jinja2 templates + CSS vanilla |
-| Mapas | Leaflet + OSM tiles + MarkerCluster |
-| QR | jsQR (web) + expo-camera (nativo) |
-| Pagos | Mercado Pago API (sandbox) |
+| Frontend | Jinja2 templates + CSS vanilla (mobile-first / desktop sidebar) |
+| Mapas | IDEMSA GIS embed + Leaflet + OSM |
+| QR | qrcode (PIL) server-side |
+| Pagos | Mercado Pago Sandbox (con fallback simulado) |
+| PWA | Service Worker (network-first API, cache-first static) |
 | Mobile | Expo (React Native) + WebView |
 | Túneles | Cloudflare Tunnel |
 
@@ -32,7 +33,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python seed.py
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Abrir **http://localhost:8000**
@@ -48,211 +49,120 @@ cloudflared tunnel --url http://localhost:8000
 
 ## Usuarios de prueba
 
-| Usuario | Contraseña | Rol | Datos |
-|---------|-----------|-----|-------|
-| `pedro` | `1234` | Conductor | Patente AB123CD |
-| `ana` | `1234` | Conductor | Patente BC456EF |
-| `juan` | `1234` | Permisionario | Calle: Gral. Güemes |
-| `maria` | `1234` | Permisionario | Calle: Caseros |
-| `admin` | `admin123` | Admin | — |
+### Conductores (login por DNI)
 
----
+| DNI | Contraseña | Datos |
+|-----|-----------|-------|
+| `35123456` | `1234` | Pedro López — Auto (Toyota Corolla) + Moto (Honda CG 150), sin exención |
+| `36234567` | `1234` | Ana Martínez — Camioneta (Ford Ranger), sin exención |
+| `30111222` | `1234` | Carlos Ruiz — Auto (Chevrolet Corsa), **Oblea Discapacidad** |
+| `29444555` | `1234` | Lucía Fernández — Auto (VW Gol), **Frentista** |
+| `20999888` | `1234` | Roberto Gómez — Auto (Fiat Cronos), **Veterano Malvinas** |
+| `37555666` | `1234` | Eva Torres — **Bicicleta** (Venzo Urban), sin exención |
 
-## Arquitectura
+### Permisionarios (login por código)
 
-```mermaid
-graph TB
-    subgraph Cliente
-        EXP[App Expo<br/>WebView + QR nativo]
-        NAV[Browser<br/>Jinja2 templates]
-    end
-    subgraph "Cloudflare Tunnel"
-        CF[URL pública gratuita]
-    end
-    subgraph "FastAPI Backend"
-        AUTH[auth_routes.py<br/>JWT login]
-        API[main.py<br/>55+ endpoints]
-        QR[qr_utils.py<br/>Generación QR]
-        MP[mercado_pago.py<br/>MP integration]
-        IDEMSA[idemsa_data.py<br/>Sync GIS]
-    end
-    subgraph "Base de datos"
-        DB[(SQLite<br/>estacionamiento.db)]
-    end
-    subgraph "Externo"
-        MPAPI[Mercado Pago<br/>Sandbox API]
-        IDEMSA_API[IDEMSA<br/>Visor GIS]
-    end
-    EXP --> CF
-    NAV --> CF
-    CF --> API
-    NAV --> API
-    API --> AUTH
-    API --> QR
-    API --> MP
-    API --> IDEMSA
-    API --> DB
-    MP --> MPAPI
-    IDEMSA --> IDEMSA_API
-```
+| Código | Contraseña | Cuadra |
+|--------|-----------|--------|
+| `PER30456789` | `1234` | Juan Pérez — GENERAL GUEMES 100-200 (par+impar, ~46 espacios) |
+| `PER28345678` | `1234` | María García — CASEROS 1100-1200 (par, ~37 espacios) |
 
-### Flujo de check-in / check-out
+### Gestor
 
-```mermaid
-sequenceDiagram
-    participant C as Conductor
-    participant S as Sistema
-    participant MP as Mercado Pago
-    participant P as Permisionario
-    C->>S: Escanea QR permisionario
-    S->>S: Asigna espacio, crea sesión
-    S-->>C: Redirige a checkout
-    C->>S: Elige método de pago
-    alt Efectivo
-        P->>S: Cobrar efectivo
-        S->>S: Calcula costo
-        S-->>P: QR de salida
-        C->>S: Escanea QR salida
-    else MP
-        S->>MP: Crea preferencia de pago
-        MP-->>C: Link de pago
-        C->>MP: Paga
-        MP->>S: Webhook confirma
-        C->>S: Escanea QR salida
-    end
-```
+| Usuario | Contraseña |
+|---------|-----------|
+| `gestor1` | `gestor123` |
 
-### Modelo de datos
+### Admin
 
-```mermaid
-erDiagram
-    CONDUCTOR ||--o{ SESION : realiza
-    CONDUCTOR ||--o{ RESERVA : solicita
-    CONDUCTOR ||--o{ PENALIZACION : recibe
-    ESPACIO ||--o{ SESION : registra
-    ESPACIO ||--o{ RESERVA : reserva
-    CONDUCTOR {
-        int id PK
-        string nombre
-        string email
-        string username
-        string password_hash
-        string patente
-        bool bloqueado
-        float saldo_deudor
-    }
-    PERMISIONARIO {
-        int id PK
-        string nombre
-        string email
-        string username
-        string password_hash
-        string calle
-    }
-    ESPACIO {
-        int id PK
-        string ubicacion
-        float precio_por_hora
-        bool disponible
-        float lat
-        float lng
-    }
-    SESION {
-        int id PK
-        int espacio_id FK
-        int conductor_id FK
-        datetime hora_inicio
-        datetime hora_fin
-        float costo_total
-        bool pagado
-        string metodo_pago
-        bool lista_para_salir
-    }
-    RESERVA {
-        int id PK
-        int espacio_id FK
-        int conductor_id FK
-        datetime hora_inicio
-        datetime hora_fin
-        enum estado
-        bool usada
-    }
-    PENALIZACION {
-        int id PK
-        int conductor_id FK
-        int reserva_id FK
-        float monto
-        string motivo
-        datetime fecha
-        bool pagada
-    }
-```
+| Usuario | Contraseña |
+|---------|-----------|
+| `admin` | `admin123` |
 
 ---
 
 ## Roles y flujos
 
-### 👤 Conductor (Uber-style, fondo negro forzado)
+### 👤 Conductor (mobile-first, fondo negro)
 
-1. **Login** → JWT guardado en localStorage
-2. **Home** → sesión activa con timer (cuenta hacia arriba), checkout inmediato
-3. **Escanear QR** → cámara nativa o web (jsQR) detecta:
-   - QR de permisionario (`/conductor/checkin/perm/{id}`) → check-in automático
-   - QR de salida (`/conductor/checkout/{sesion_id}`) → finaliza sesión
-4. **Checkout** → elige método de pago (efectivo / Mercado Pago), confirma
-5. **Mapa** → Leaflet con capas: medido (verde), prohibido (rojo), libre (azul)
-6. **Perfil** → editar patente, ver historial
-7. **Reservas** → solicitar, ver estado, historial
+1. **Registro** → formulario único → link de verificación por email (impreso en terminal)
+2. **Login** → por DNI + contraseña (verifica email)
+3. **Home** → sesión activa con timer (cuenta hacia arriba), costo estimado en tiempo real
+4. **Buscar** → texto (calle + altura) o GPS "Buscar ahora" con mapa IDEMSA embebido
+5. **Estacionar** → escanea QR de permisionario → check-in automático
+6. **Checkout** → ve timer + costo + info del vehículo, elige método de pago
+7. **Mercado Pago** → página de pago simulado con confirmación
+8. **Perfil** → editar datos, ver historial
+9. **Vehículos** → agregar/eliminar vehículos (compartidos)
 
-### 🅿️ Permisionario (dueño de una cuadra)
+### 🅿️ Permisionario (mobile-first + desktop sidebar)
 
-1. **Login** → ve su panel con estadísticas
-2. **Sesiones activas** → tarjetas con patente + timer en tiempo real + botón "Cobrar"
-3. **Cobrar efectivo** → calcula costo, genera QR de salida (modal)
-4. **Reservas pendientes** → aprobar / rechazar
-5. **QR propio** → muestra QR de su cuadra para que conductores escaneen
-6. **Ganancias** → gráfico Chart.js semanal (solo pagadas), CSV exportable
-7. **Mapa** → espacios de su cuadra
+1. **Login** → por código (ej: PER30456789)
+2. **Panel** → sesiones activas con timer + costo en tiempo real + exenciones
+3. **Espacios** → mapa de espacios asignados
+4. **Cuadra** → detalle de cuadras asignadas (calle, rango alturas, lado)
+5. **Ingreso** → registro manual por patente
+6. **Salida** → procesar salida (efectivo finaliza, MP bloquea costo)
+7. **QR** → código QR de la cuadra para conductores
+8. **Historial** → sesiones del día
+9. **Mapa** → espacios en mapa
+10. **Reservas** → gestionar solicitudes
 
-### 🔧 Admin
+### 🔧 Gestor (desktop sidebar)
 
 1. **Dashboard** → stats generales
-2. **CRUD** → permisionarios, conductores, espacios
-3. **Sesiones** → todas las sesiones activas e históricas
-4. **Reservas** → listado completo
+2. **Permisionarios** → CRUD (crear con calles)
+3. **Conductores** → listado completo
+4. **Sesiones en vivo** → mapa + lista
 5. **Reportes** → ingresos, ocupación
-6. **Penalizaciones** → listado, stats, condonar, desbloquear conductores
-7. **Verificar no-show** → botón manual para ejecutar penalizaciones
+6. **Deudas** → listado
+
+### ⚙️ Admin (desktop sidebar)
+
+1. **Dashboard** → stats generales + config
+2. **Conductores** → CRUD + detalle + exportar CSV + desbloquear/suspender
+3. **Permisionarios** → CRUD
+4. **Gestores** → CRUD
+5. **Espacios** → CRUD
+6. **Sesiones** → en vivo
+7. **Reportes** → ingresos, ocupación
+8. **Deudas** → listado completo
 
 ---
 
 ## Reglas de negocio
 
-### Precio
-- **$600/h fijo** — tarifa plana única para todos los espacios
-- Solo se cobra en **horario operativo**:
-  - Lun–Vie: 7:00 a 21:00
-  - Sáb: 7:00 a 14:00
-  - Domingos y feriados: **gratis**
-- Si el auto pasa la noche, el costo **se reinicia a las 7:00** del día siguiente
-- El costo se calcula **al salir**, no al entrar
+### Precios
+- **$600/h** auto y camioneta
+- **$100/h** moto
+- **$0/h** bicicleta
+- **Exenciones**: discapacidad (oblea), frentista, veterano Malvinas → todos gratis
 
-### Penalizaciones
-- **No-show**: reserva aprobada no usada → penalización del 10% de $600 = **$60**
-- **Check-in tardío**: >5 min de tolerancia → penalización del 10%
-- Máximo **5 penalizaciones por mes** → bloqueo automático
-- **Deuda > $10,000** → bloqueo automático
-- Desbloqueo: pagar **$5,000** (POST `/api/conductores/{id}/pagar-multa`)
-- Tarea background cada 60s penaliza reservas vencidas no usadas
+### Horarios
+- Lun–Vie: 7:00 a 21:00 (diurno), 22:00 a 5:00 (nocturno)
+- Sáb: 7:00 a 14:00 (diurno), 22:00 a 5:00 (nocturno)
+- Domingos: gratis todo el día
+- Fuera de horario: gratis hasta el próximo inicio de horario cobrable
 
-### Reservas
-- Conductor solicita → permisionario aprueba/rechaza
-- Check-in dentro de la ventana de reserva (con 5 min de tolerancia)
-- Si no se usa antes de `hora_fin`, se penaliza como no-show
+### Sesiones
+- Conductor **no puede finalizar** su propia sesión — solo el permisionario procesa salida
+- Pago en efectivo: permisionario procesa → sesión finaliza inmediatamente
+- Pago por MP: permisionario bloquea costo + hora_fin → conductor confirma pago → sesión finaliza
 
-### Pagos
-- **Efectivo**: permisionario presiona "Cobrar" → calcula costo → muestra QR de salida → conductor escanea → finaliza
-- **Mercado Pago**: checkout → redirige a MP → webhook confirma → `lista_para_salir=True` → conductor escanea QR de salida
+### Vehículos
+- Compartidos entre conductores — cualquier conductor puede usar cualquier vehículo (sin validación de propietario)
+- Checkin usa JWT `current_user["id"]`, nunca del body
+
+### Bloqueo
+- Deuda >= $10,000 → bloqueo automático
+- Admin desbloquea manualmente o conductor paga deuda
+
+### Búsqueda de estacionamiento
+- Por texto: calle + altura (ej: "GENERAL GUEMES 150")
+- Por GPS: "Buscar ahora" usa geolocalización del browser
+- Radio: 500m (texto) / 400m (GPS)
+- Resultados agrupados por bloque (calle + altura)
+- Mapa IDEMSA embebido como iframe
 
 ---
 
@@ -261,95 +171,104 @@ erDiagram
 ### Autenticación
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| POST | `/api/auth/login` | Login, devuelve JWT + rol + user_id |
+| POST | `/api/auth/login` | Login (DNI/código/username + password), devuelve JWT + role |
+| POST | `/api/auth/register/conductor` | Registro con verificación por email |
+| GET | `/api/auth/verify-email?token=` | Verificar email por link UUID |
 | GET | `/api/auth/me` | Verificar token actual |
+| POST | `/api/auth/cambiar-password` | Cambiar contraseña |
 
-### Conductores
+### Conductor (protegido, role=conductor)
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/api/conductores/{id}` | Obtener conductor |
-| PUT | `/api/conductores/{id}` | Actualizar (patente, nombre, etc.) |
-| POST | `/api/conductores` | Crear conductor |
-| GET | `/api/conductores/{id}/status` | Estado (bloqueado, deuda, penalizaciones) |
-| GET | `/api/conductores/{id}/penalizaciones` | Historial de penalizaciones |
-| POST | `/api/conductores/{id}/pagar-multa` | Pagar multa de desbloqueo ($5,000) |
+| GET | `/api/conductor/me` | Perfil + vehículos |
+| PUT | `/api/conductor/me` | Actualizar perfil |
+| GET | `/api/conductor/sesion-activa` | Sesión activa con timer + costo |
+| POST | `/api/conductor/checkin` | Check-in (por espacio o permisionario) |
+| POST | `/api/conductor/elegir-pago/{id}` | Elegir método de pago |
+| POST | `/api/conductor/confirmar-pago-efectivo/{id}` | Confirmar efectivo |
+| POST | `/api/conductor/pago-mercadopago/{id}/confirmar` | Confirmar MP simulado |
+| GET | `/api/conductor/pago-mercadopago/{id}/estado` | Estado del pago |
+| GET | `/api/conductor/historial` | Historial paginado |
+| GET | `/api/conductor/comprobante/{id}` | Comprobante detallado |
+| POST | `/api/conductor/password` | Cambiar contraseña |
+| POST | `/api/conductor/pagar-multa` | Pagar deuda |
+| POST | `/api/conductor/vehiculo` | Agregar vehículo |
+| DELETE | `/api/conductor/vehiculo/{id}` | Eliminar vehículo |
+| PUT | `/api/conductor/vehiculo/{id}/predeterminado` | Marcar predeterminado |
 
-### Sesiones (check-in / check-out)
+### Permisionario (protegido, role=permisionario)
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| POST | `/api/checkin` | Check-in por espacio_id |
-| POST | `/api/checkin-por-perm` | Check-in escaneando QR de permisionario |
-| POST | `/api/sesion/{id}/elegir-pago` | Elegir método de pago y patente |
-| POST | `/api/sesion/{id}/confirmar-pago-efectivo` | Confirmar pago en efectivo (calcula costo) |
-| GET | `/api/sesion/{id}/exit-qr` | Obtener QR de salida |
-| POST | `/api/sesion/{id}/finalizar-por-scan` | Finalizar sesión escaneando QR de salida |
-| GET | `/api/checkin-qr/{sesion_id}` | QR de check-in |
-| POST | `/api/checkout` | Check-out tradicional |
-| GET | `/api/sesiones` | Todas las sesiones |
-| GET | `/api/sesiones/activas` | Sesiones activas |
-| GET | `/api/sesiones/conductor/{id}` | Sesiones de un conductor |
-| GET | `/api/sesiones/activas/{perm_id}` | Sesiones activas de un permisionario |
-| GET | `/api/sesiones/activa/{conductor_id}` | Sesión activa actual de un conductor |
-| GET | `/api/sesiones/ingresos/{perm_id}` | Ingresos (solo pagadas) |
-| GET | `/api/sesiones/permisionario/{id}/detalle` | Detalle con ubicación |
+| GET | `/api/permisionario/me` | Perfil + manos + espacios |
+| GET | `/api/permisionario/espacios` | Espacios con sesión activa |
+| GET | `/api/permisionario/sesiones-activas` | Sesiones activas con timer |
+| POST | `/api/permisionario/registro-manual` | Registro manual por patente |
+| POST | `/api/permisionario/salida` | Procesar salida |
+| POST | `/api/permisionario/reportar-deuda` | Reportar deuda |
+| GET | `/api/permisionario/historial` | Historial del día |
+| GET | `/api/permisionario/qr-data` | Datos del QR |
+| POST | `/api/permisionario/confirmar-ingreso/{id}` | Confirmar ingreso |
 
-### Mercado Pago
+### Búsqueda
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| POST | `/api/mercadopago/webhook` | Webhook de confirmación de pago |
+| POST | `/api/buscar-estacionamiento` | Buscar por texto o GPS (datos IDEMSA) |
 
 ### Espacios
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/api/espacios` | Todos los espacios |
-| GET | `/api/espacios/disponibles` | Espacios disponibles |
-| GET | `/api/espacios/con-estado` | Espacios con estado (libre/ocupado) |
-| GET | `/api/espacio/by-location` | Buscar por ubicación |
-| POST | `/api/espacios` | Crear espacio |
-
-### Reservas
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/reservas` | Todas las reservas |
-| GET | `/api/reservas/conductor/{id}` | Reservas de un conductor |
-| GET | `/api/reservas/permisionario/{id}` | Reservas de un permisionario |
-| GET | `/api/reservas/pendientes/{perm_id}` | Pendientes de aprobación |
-| POST | `/api/reservas` | Crear solicitud |
-| POST | `/api/reservas/aprobar` | Aprobar/rechazar |
-
-### Permisionarios
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/permisionarios` | Listar todos |
-| POST | `/api/permisionarios` | Crear |
-
-### Admin
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/admin/penalizaciones` | Todas las penalizaciones |
-| GET | `/api/admin/penalizaciones/stats` | Estadísticas |
-| POST | `/api/admin/penalizaciones/{id}/waiver` | Condonar penalización |
-| GET | `/api/admin/conductores/bloqueados` | Conductores bloqueados |
-| POST | `/api/admin/conductores/{id}/desbloquear` | Desbloquear |
-| POST | `/api/admin/verificar-no-show` | Ejecutar verificación manual |
+| GET | `/api/espacios` | Listar (con filtros) |
+| GET | `/api/espacios/disponibles` | Solo disponibles |
+| GET | `/api/espacio/by-location` | Más cercano por coordenadas |
 
 ### Mapas
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/api/mapa/cercanos` | Espacios cercanos (radio 300m) |
-| GET | `/api/mapa/idemsa-calles` | Calles desde IDEMSA (para mostrar en mapa) |
+| GET | `/api/mapa-data` | Calles IDEMSA + centro + espacios |
+| GET | `/api/mapa/cercanos` | Espacios cercanos (radio) |
+
+### Mercado Pago
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/mp/webhook` | Webhook de MP |
+
+### Admin/Gestor
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| POST | `/api/gestor/permisionario` | gestor, admin | Crear permisionario |
+| GET | `/api/gestor/permisionarios` | gestor, admin | Listar |
+| PUT | `/api/gestor/permisionario/{id}` | gestor, admin | Editar |
+| GET | `/api/gestor/conductores` | gestor, admin | Listar conductores |
+| GET | `/api/gestor/sesiones-vivo` | gestor, admin | Sesiones activas |
+| GET | `/api/gestor/reportes` | gestor, admin | Reportes |
+| GET | `/api/gestor/deudas` | gestor, admin | Deudas |
+| POST | `/api/admin/gestor` | admin | Crear gestor |
+| GET | `/api/admin/gestores` | admin | Listar gestores |
+| DELETE | `/api/admin/gestor/{id}` | admin | Desactivar gestor |
+| GET | `/api/admin/conductores` | admin | Listar conductores |
+| PUT | `/api/admin/conductores/{id}` | admin | Editar conductor |
+| DELETE | `/api/admin/conductores/{id}` | admin | Eliminar conductor |
+| POST | `/api/admin/conductores/{id}/desbloquear` | admin | Desbloquear |
+| POST | `/api/admin/conductores/{id}/suspender` | admin | Suspender |
+| GET | `/api/admin/conductores/{id}/detalle` | admin | Detalle completo |
+| GET | `/api/admin/conductores/buscar` | admin | Buscar |
+| GET | `/api/admin/conductores/{id}/exportar-csv` | admin | Exportar CSV |
+| GET | `/api/admin/config` | admin | Constantes |
+| GET | `/api/admin/reportes` | admin | Reportes |
+| GET | `/api/admin/deudas` | admin | Deudas |
 
 ---
 
 ## Datos geoespaciales (IDEMSA)
 
-El sistema sincroniza **6,974 espacios** generados a partir de **604 segmentos viales oficiales** extraídos del visor GIS de IDEMSA Municipalidad de Salta:
+El sistema sincroniza **~6,974 espacios** generados a partir de **604 segmentos viales oficiales** extraídos del visor GIS de IDEMSA Municipalidad de Salta:
 
 - `idemsa_data.py` → descarga/parsea archivos JS públicos de IDEMSA
 - `sync_espacios_db()` → genera puntos grid cada ~7m, los persiste en SQLite
-- 3 categorías en el mapa: estacionamiento_medido (verde), prohibido (rojo), libre (azul)
-- Permisionarios son dueños de **calles enteras** (no espacios individuales): se matchean por `ubicacion.startswith(perm.calle)`
-- Mapa offline: Calles del centro definidas manualmente en `mapa_data.py` (18 calles)
+- Categorías: `estacionamiento_medido` (única usada para asignación)
+- Permisionarios tienen manos (cuadras) con calle + rango de altura + lado
+- Filtrado por `ubicacion.startswith(mano.calle)` + rango de `numero`
+- Sin distinción par/impar (IDEMSA usa block-level, no house-level)
 
 ---
 
@@ -387,23 +306,24 @@ Configurá la URL del servidor (localhost o Cloudflare Tunnel) desde el ícono d
 ```
 estacionamiento/
 ├── app/
-│   ├── main.py              # 1297 líneas — rutas API + HTML
-│   ├── models.py            # SQLAlchemy models (7 tablas)
+│   ├── main.py              # 2368 líneas — rutas API + HTML + lógica
+│   ├── models.py            # 10 modelos SQLAlchemy (12 tablas)
 │   ├── schemas.py           # Pydantic schemas
 │   ├── database.py          # Conexión async SQLite
 │   ├── auth.py              # JWT + bcrypt
-│   ├── auth_routes.py       # Login endpoint
-│   ├── deps.py              # Dependencias (get_current_user)
-│   ├── qr_utils.py          # Generación de QR (PIL)
-│   ├── mercado_pago.py      # Integración MP sandbox
+│   ├── auth_routes.py       # Login + register + verify email
+│   ├── deps.py              # Dependencias (get_current_user, require_role)
+│   ├── qr_utils.py          # Generación QR (PIL)
+│   ├── mercado_pago.py      # Integración MP sandbox + simulado
 │   ├── mapa_data.py         # Calles del centro (Leaflet)
 │   ├── idemsa_data.py       # Sincronización IDEMSA (604 segmentos)
-│   ├── static/              # Archivos estáticos (JS, CSS, imágenes)
+│   ├── static/              # Archivos estáticos (JS, CSS, imágenes, manifest, sw.js)
 │   └── templates/           # Jinja2 templates
-│       ├── conductor/       # 9 vistas (checkin, checkout, mapa, perfil...)
-│       ├── permisionario/   # 5 vistas (panel, reservas, qr, mapa)
-│       ├── admin/           # 8 vistas (dashboard, penalizaciones, reportes)
-│       └── auth/            # Login
+│       ├── auth/            # Login, registro, verify_result
+│       ├── conductor/       # 8 vistas (index, buscar, estacionar, checkout, historial, perfil, vehiculos, pago_mp)
+│       ├── permisionario/   # 10 vistas (panel, espacios, cuadra, ingreso, salida, QR, historial, mapa, reservas)
+│       ├── gestor/          # 1 dashboard
+│       └── admin/           # 8 vistas (dashboard, CRUDs, sesiones, reportes, deudas)
 ├── mobile-app/              # Expo React Native wrapper
 ├── docs/                    # Documentación adicional
 ├── seed.py                  # Datos de prueba
@@ -421,18 +341,17 @@ estacionamiento/
 |----------|---------|-------------|
 | `JWT_SECRET` | `estacionamiento-salta-secret-key-2024` | Secreto para firmar tokens JWT |
 | `MP_ACCESS_TOKEN` | `TEST-...` | Token de acceso de Mercado Pago Sandbox |
+| `BASE_URL` | `http://localhost:8000` | URL base para QR y links |
 
 ### Constantes del sistema (en `main.py`)
 
 | Constante | Valor | Descripción |
 |-----------|-------|-------------|
-| `PRECIO_POR_HORA` | 600.0 | Tarifa por hora |
+| `PRECIO_AUTO` | 600.0 | Tarifa por hora autos/camionetas |
+| `PRECIO_MOTO` | 100.0 | Tarifa por hora motos |
 | `HORARIO_CIERRE` | 21 | Hora de cierre lun-vie |
 | `HORARIO_CIERRE_SAB` | 14 | Hora de cierre sábado |
-| `TOLERANCIA_MINUTOS` | 5 | Tolerancia para check-in tardío |
-| `MAX_PENALIZACIONES_MES` | 5 | Máx penalizaciones antes de bloqueo |
 | `DEUDA_MAXIMA` | 10000.0 | Deuda máxima antes de bloqueo |
-| `MULTA_BLOQUEO` | 5000.0 | Monto para desbloquear |
 
 ---
 

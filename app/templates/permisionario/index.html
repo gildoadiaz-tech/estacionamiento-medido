@@ -3,110 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Permisionario</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <title>Permisionario — Iniciar sesión</title>
+    <meta name="theme-color" content="#015cb4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --radius: 16px;
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
-            }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            .hover\:bg-gray-50:hover { background: var(--card) !important; }
-            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
-            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
-            a { color: #60a5fa !important; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100dvh;
+            background: var(--bg-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
-        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .animate-slide-up { animation: slideUp 0.25s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .login-wrap {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px 20px;
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .brand-icon {
+            width: 64px; height: 64px;
+            background: var(--primary);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .brand-icon svg { width: 32px; height: 32px; }
+        .brand h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .brand p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px 20px;
+            box-shadow: var(--shadow);
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+        }
+        .form-group input::placeholder {
+            color: var(--text-tertiary);
+        }
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-appearance: none;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .error-msg {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: var(--danger);
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            display: none;
+        }
+        .error-msg.show { display: block; }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            font-size: 13px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .helper-text {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-align: center;
+            margin-top: 12px;
+        }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="text-center mb-8">
-            <div class="text-5xl mb-2">👤</div>
-            <h1 class="text-2xl font-bold text-gray-800">App Permisionario</h1>
-            <p class="text-gray-500 text-sm">Gestión de tu cuadra</p>
+<body>
+    <div class="login-wrap">
+        <div class="brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+                </svg>
+            </div>
+            <h1>Permisionario</h1>
+            <p>Estacionamiento Medido — Municipalidad de Salta</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-            <label class="text-sm text-gray-600">Tu ID de permisionario:</label>
-            <input type="number" id="permId" value="1" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg mt-1">
-        </div>
-
-        <div class="space-y-3">
-            <a href="#" onclick="irPanel()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-purple-50 transition">
-                <span class="text-3xl">📊</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Mi Panel</p>
-                    <p class="text-sm text-gray-500">Espacios, sesiones activas y ganancias</p>
+        <div class="card">
+            <div id="errorMsg" class="error-msg"></div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="codigo">Código</label>
+                    <input type="text" id="codigo" name="username" placeholder="PER12345678" autocomplete="username" required>
                 </div>
-            </a>
-
-            <a href="#" onclick="irReservas()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-green-50 transition">
-                <span class="text-3xl">📋</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Reservas Pendientes</p>
-                    <p class="text-sm text-gray-500">Aprobá o rechazá solicitudes</p>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="Tu contraseña" autocomplete="current-password" required>
                 </div>
-            </a>
-
-            <a href="#" onclick="irQR()" class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-blue-50 transition">
-                <span class="text-3xl">📱</span>
-                <div>
-                    <p class="font-semibold text-gray-800">Generar QR</p>
-                    <p class="text-sm text-gray-500">Códigos para imprimir en tu cuadra</p>
-                </div>
-            </a>
+                <button type="submit" class="btn-primary" id="loginBtn">Iniciar sesión</button>
+            </form>
         </div>
 
-        <div class="mt-8 text-center">
-            <a href="/" class="text-sm text-blue-600">← Volver al inicio</a>
+        <div class="back-link">
+            <a href="/">← Volver al inicio</a>
         </div>
+        <p class="helper-text">Ingresá tu código PER + DNI y tu contraseña</p>
     </div>
 
     <script>
-        function getPermId() {
-            return document.getElementById("permId").value || 1;
+        function handleLogin(e) {
+            e.preventDefault();
+            const codigo = document.getElementById('codigo').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const errMsg = document.getElementById('errorMsg');
+
+            if (!codigo || !password) {
+                errMsg.textContent = 'Completá todos los campos';
+                errMsg.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Ingresando…';
+            errMsg.classList.remove('show');
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: codigo, password: password })
+            })
+            .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+            .then(({ ok, status, data }) => {
+                if (!ok) {
+                    throw new Error(data.detail || 'Credenciales incorrectas');
+                }
+                if (data.role !== 'permisionario') {
+                    throw new Error('Esta cuenta no es de permisionario');
+                }
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('role', data.role);
+                localStorage.setItem('user_id', data.user_id);
+                localStorage.setItem('user_nombre', data.nombre || '');
+                window.location.href = '/permisionario/panel';
+            })
+            .catch(err => {
+                errMsg.textContent = err.message;
+                errMsg.classList.add('show');
+                btn.disabled = false;
+                btn.textContent = 'Iniciar sesión';
+            });
         }
-        function irPanel() { window.location.href = "/permisionario/" + getPermId() + "/panel"; }
-        function irReservas() { window.location.href = "/permisionario/" + getPermId() + "/reservas"; }
-        function irQR() { window.location.href = "/permisionario/" + getPermId() + "/qr"; }
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
+        if (token && role === 'permisionario') {
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(r => { if (r.ok) window.location.href = '/permisionario/panel'; })
+            .catch(() => {});
         }
     </script>
 </body>

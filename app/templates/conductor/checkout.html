@@ -3,114 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Estacionar</title>
+    <title>Sesión activa — Estacionamiento Salta</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --uber-green: #06C167;
-            --bg-primary: #000;
-            --bg-card: #1C1C1E;
-            --bg-elevated: #2C2C2E;
-            --text-primary: #FFF;
-            --text-secondary: #98989F;
-            --text-tertiary: #636366;
-            --border: #3A3A3C;
-            --radius: 14px;
-            --danger: #FF453A;
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 72px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: var(--bg-primary); color: var(--text-primary);
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
             min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
             -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
         }
-        .container { max-width: 420px; width: 100%; margin: 0 auto; padding: 20px; }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
         .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .header a { color: var(--uber-green); text-decoration: none; font-size: 18px; font-weight: 600; }
+        .header a { color: var(--primary); text-decoration: none; font-size: 18px; font-weight: 600; }
         .header h1 { font-size: 20px; font-weight: 700; }
-
         .card {
             background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+            border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+            box-shadow: var(--shadow);
         }
-        .info-row {
-            display: flex; justify-content: space-between; padding: 10px 0;
-            border-bottom: 1px solid var(--border); font-size: 15px;
-        }
+        .timer-box { font-size: 40px; font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--primary); text-align: center; }
+        .timer-label { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 2px; }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
         .info-row:last-child { border-bottom: none; }
         .info-row .label { color: var(--text-secondary); }
         .info-row .value { font-weight: 600; }
-        .timer-box { font-size: 32px; font-weight: 700; font-family: 'SF Mono', monospace; color: var(--uber-green); text-align: center; }
-
-        .field-group { margin-bottom: 14px; }
-        .field-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
-        .field-group input {
-            width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px; color: var(--text-primary);
-            font-size: 16px; font-family: inherit; outline: none; -webkit-appearance: none;
-            text-transform: uppercase;
+        .waiting-badge {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #fff3cd; border: 1px solid #ffc107;
+            color: #856404; border-radius: var(--radius); padding: 14px;
+            font-size: 14px; font-weight: 600; margin-bottom: 12px;
         }
-        .field-group input:focus { border-color: var(--uber-green); }
-
-        .pay-option {
-            display: flex; align-items: center; gap: 12px;
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 16px;
-            margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
-            width: 100%; text-align: left; font-family: inherit;
-            color: var(--text-primary); font-size: 15px;
-            -webkit-appearance: none;
-        }
-        .pay-option:active { background: var(--bg-elevated); }
-        .pay-option .pay-icon { font-size: 28px; }
-        .pay-option .pay-title { font-weight: 600; }
-        .pay-option .pay-desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
-        .pay-option.selected { border-color: var(--uber-green); background: rgba(6,193,103,0.1); }
-
-        .btn-primary {
-            width: 100%; background: var(--uber-green); color: #000; border: none;
-            border-radius: var(--radius); padding: 16px; font-size: 17px;
-            font-weight: 700; cursor: pointer; font-family: inherit;
-            margin-top: 8px; -webkit-appearance: none;
-        }
-        .btn-primary:disabled { opacity: 0.5; cursor: default; }
-
-        .message {
-            display: none; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 12px;
-        }
-        .message.show { display: block; }
-        .message .msg-icon { font-size: 40px; margin-bottom: 8px; }
-        .message .msg-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-        .message .msg-text { font-size: 14px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <a href="/conductor">←</a>
-            <h1>Estacionar</h1>
+            <h1>Sesión activa</h1>
         </div>
 
         <div class="card">
-            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:2px">{{ espacio.ubicacion if espacio else '' }}</p>
-            <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px">{{ perm.nombre if perm else '' }}</p>
+            <div style="color:var(--text-secondary);font-size:14px;margin-bottom:4px" id="ubicacionLabel">Cargando...</div>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px" id="permLabel"></div>
             <div class="timer-box" id="timerDisplay">00:00</div>
-            <p style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:4px">Tiempo transcurrido</p>
+            <p class="timer-label">Tiempo transcurrido</p>
         </div>
 
         <div class="card">
-            <div class="field-group">
-                <label>Patente</label>
-                <input id="inputPatente" type="text" placeholder="Ej: AB123CD" maxlength="7" value="{{ conductor.patente or '' }}">
+            <div class="info-row">
+                <span class="label">Vehículo</span>
+                <span class="value" id="patenteLabel">—</span>
             </div>
-            {% if conductor.patente %}
-            <p style="font-size:12px;color:var(--uber-green);margin-top:-8px;margin-bottom:8px">✓ Patente de tu perfil</p>
-            {% else %}
-            <p style="font-size:12px;color:var(--text-tertiary);margin-top:-8px;margin-bottom:8px">El permisionario puede cargarla si no la tenés registrada</p>
-            {% endif %}
             <div class="info-row">
                 <span class="label">Tarifa</span>
                 <span class="value">$600/hora</span>
@@ -119,115 +91,101 @@
                 <span class="label">Horario cobrable</span>
                 <span class="value">7:00 – 21:00</span>
             </div>
+            <div class="info-row">
+                <span class="label">Costo estimado</span>
+                <span class="value" id="costoEstimado">$0</span>
+            </div>
         </div>
 
-        <div id="stepPago">
-            <p style="font-size:15px;font-weight:600;margin-bottom:12px">Medio de pago para la salida</p>
-            <button class="pay-option" data-metodo="efectivo">
-                <span class="pay-icon">💵</span>
-                <div>
-                    <div class="pay-title">Efectivo</div>
-                    <div class="pay-desc">Pagale al permisionario cuando te retires</div>
-                </div>
-            </button>
-            <button class="pay-option" data-metodo="mercadopago">
-                <span class="pay-icon">📱</span>
-                <div>
-                    <div class="pay-title">Mercado Pago</div>
-                    <div class="pay-desc">Pagá con QR o tarjeta al retirarte</div>
-                </div>
-            </button>
-            <button id="btnConfirmarPago" class="btn-primary" disabled>Confirmar estacionamiento</button>
+        <div id="waitingBadge" class="waiting-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Esperá al permisionario para finalizar el estacionamiento
         </div>
 
-        <div id="msgEfectivo" class="message">
-            <div class="msg-icon">✅</div>
-            <div class="msg-title">¡Estacionamiento finalizado!</div>
-            <div class="msg-text" id="efectivoInfo"></div>
-            <div id="exitQRContainer" style="margin:12px 0;text-align:center"></div>
-            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:8px;text-align:center">Ir al inicio</a>
+        <div id="pendingPaymentBox" style="display:none">
+            <div class="waiting-badge" style="background:#e7f1ff;border-color:var(--primary);color:var(--primary)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Pago pendiente — finalizá con Mercado Pago
+            </div>
+            <a id="btnPagarMP" href="#" target="_blank" style="display:block;background:var(--primary);color:#fff;border-radius:var(--radius);padding:16px;text-align:center;font-weight:700;font-size:16px;text-decoration:none;margin-bottom:12px">
+                Pagar con Mercado Pago
+            </a>
         </div>
 
-        <div id="msgMP" class="message">
-            <div class="msg-icon">📱</div>
-            <div class="msg-title">Estacionamiento registrado</div>
-            <div class="msg-text">Cuando te retires, pagá con Mercado Pago. El permisionario te dará el QR de salida.</div>
-            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
-        </div>
-
-        <div id="msgFinalizado" class="message">
-            <div class="msg-icon">✅</div>
-            <div class="msg-title">¡Estacionamiento finalizado!</div>
-            <div class="msg-text" id="finalizadoInfo"></div>
-            <a href="/conductor" class="btn-primary" style="display:block;text-decoration:none;margin-top:14px;text-align:center">Ir al inicio</a>
-        </div>
+        <div class="card">
     </div>
 
+    <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
+        <a href="/conductor" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio</a>
+        <a href="/conductor/buscar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar</a>
+        <a href="/conductor/estacionar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px"><div style="width:48px;height:48px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 4px 12px rgba(1,92,180,0.3);color:#fff;font-size:20px;font-weight:700">P</div><span style="font-size:11px;color:var(--primary);font-weight:600">Estacionar</span></a>
+        <a href="/conductor/historial" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial</a>
+        <a href="/conductor/perfil" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+
     <script>
-        const SESION_ID = {{ sesion.id }};
-        const INICIO = new Date("{{ sesion.hora_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z").getTime();
-        let metodoSeleccionado = null;
+        const token = localStorage.getItem('token');
+        if (!token || localStorage.getItem('role') !== 'conductor') { window.location.href = '/login'; }
         let timerInterval = null;
+        let pollInterval = null;
+        const EXENCION_LABELS = { discapacidad: 'Oblea discapacidad - GRATUITO', frentista: 'Frentista - GRATUITO', veterano_malvinas: 'Veterano Malvinas - GRATUITO' };
 
-        // Timer count-up
-        timerInterval = setInterval(() => {
-            const diff = Date.now() - INICIO;
-            const m = Math.floor(diff / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            document.getElementById('timerDisplay').textContent =
-                String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-        }, 1000);
+        async function api(url, opts = {}) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = 'Bearer ' + token;
+            return fetch(url, opts);
+        }
 
-        document.querySelectorAll('.pay-option').forEach(el => {
-            el.addEventListener('click', () => {
-                document.querySelectorAll('.pay-option').forEach(x => x.classList.remove('selected'));
-                el.classList.add('selected');
-                metodoSeleccionado = el.dataset.metodo;
-                document.getElementById('btnConfirmarPago').disabled = false;
-            });
-        });
-
-        document.getElementById('btnConfirmarPago').addEventListener('click', async () => {
-            if (!metodoSeleccionado) return;
-            const patente = document.getElementById('inputPatente').value.trim();
-            if (!patente) { alert('Ingresá la patente'); return; }
-
-            const btn = document.getElementById('btnConfirmarPago');
-            btn.disabled = true; btn.textContent = 'Registrando…';
-
-            try {
-                const res = await fetch(`/api/sesion/${SESION_ID}/elegir-pago`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ metodo: metodoSeleccionado, patente: patente }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Error');
-
-                document.getElementById('stepPago').style.display = 'none';
-                clearInterval(timerInterval);
-                if (metodoSeleccionado === 'efectivo') {
-                    document.getElementById('msgEfectivo').classList.add('show');
-                    const fin = await fetch(`/api/sesion/${SESION_ID}/confirmar-pago-efectivo`, { method: 'POST' });
-                    const finData = await fin.json();
-                    if (fin.ok) {
-                        document.getElementById('efectivoInfo').textContent = `Pagado: $${finData.costo_total} · Gracias por usar el servicio`;
-                        if (finData.qr_salida) {
-                            document.getElementById('exitQRContainer').innerHTML =
-                                `<img src="data:image/png;base64,${finData.qr_salida}" style="width:160px;height:160px;margin:0 auto;display:block">`;
-                        }
-                    }
-                } else if (data.init_point) {
-                    window.location.href = data.init_point;
-                } else {
-                    document.getElementById('msgMP').classList.add('show');
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-                btn.disabled = false; btn.textContent = 'Confirmar estacionamiento';
+        async function cargarSesion() {
+            const res = await api('/api/conductor/sesion-activa');
+            const s = await res.json();
+            if (!res.ok || !s || !s.id) {
+                document.querySelector('.container').innerHTML = '<div style="text-align:center;padding:40px"><h2>Sesión no encontrada</h2><a href="/conductor" style="color:var(--primary)">Volver al inicio</a></div>';
+                return;
             }
-        });
+            updateUI(s);
+            const inicio = new Date(s.hora_inicio + (s.hora_inicio.endsWith('Z') ? '' : 'Z')).getTime();
+            function tick() {
+                const diff = Date.now() - inicio;
+                const m = Math.floor(diff / 60000), sec = Math.floor((diff % 60000) / 1000);
+                document.getElementById('timerDisplay').textContent = String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+            }
+            tick();
+            timerInterval = setInterval(tick, 1000);
+            pollInterval = setInterval(async () => {
+                try {
+                    const pr = await api('/api/conductor/sesion-activa');
+                    const ps = await pr.json();
+                    if (pr.ok && ps && ps.id) { updateUI(ps); }
+                } catch(e) {}
+            }, 30000);
+        }
 
+        function updateUI(s) {
+            document.getElementById('ubicacionLabel').textContent = s.ubicacion || 'Espacio #' + s.espacio_id;
+            if (s.vehiculo && s.vehiculo.patente) document.getElementById('patenteLabel').textContent = s.vehiculo.patente + ' (' + (s.vehiculo.tipo || 'auto') + ')';
+            const esGratis = s.es_gratuito || (s.exencion && s.exencion !== 'ninguna') || ((s.vehiculo && s.vehiculo.tipo) === 'bicicleta');
+            const tarifa = s.tarifa_por_hora || 600;
+            const exencion = s.exencion || 'ninguna';
+            document.querySelector('.info-row:nth-child(2) .value').textContent = esGratis ? 'GRATUITO' : ('$' + tarifa + '/hora');
+            document.querySelector('.info-row:nth-child(3) .value').textContent = exencion !== 'ninguna' ? EXENCION_LABELS[exencion] || exencion : '7:00 – 21:00 / 22:00 – 5:00';
+            if (esGratis) {
+                document.getElementById('costoEstimado').textContent = 'GRATUITO';
+            } else if (s.costo_estimado != null) {
+                document.getElementById('costoEstimado').textContent = '$' + Math.ceil(s.costo_estimado);
+            }
+            if (s.pago_pendiente) {
+                document.getElementById('waitingBadge').style.display = 'none';
+                document.getElementById('pendingPaymentBox').style.display = 'block';
+                document.getElementById('btnPagarMP').href = '/conductor/pago-mercadopago/' + s.id;
+            } else {
+                document.getElementById('waitingBadge').style.display = 'flex';
+                document.getElementById('pendingPaymentBox').style.display = 'none';
+            }
+        }
+
+        cargarSesion();
     </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
 </body>
 </html>

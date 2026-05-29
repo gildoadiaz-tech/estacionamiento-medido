@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Salida — Permisionario</title>
+    <meta name="theme-color" content="#015cb4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 64px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 24px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+
+        .header { margin-bottom: 16px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            outline: none;
+        }
+        .search-bar input:focus { border-color: var(--primary); }
+        .search-bar input::placeholder { color: var(--text-tertiary); }
+        .search-bar button {
+            padding: 12px 16px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .vehicle-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+        }
+        .vehicle-card .vc-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .vehicle-card .vc-plate {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .vehicle-card .vc-location {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .vehicle-card .vc-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 12px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .vehicle-card .vc-info {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        .vehicle-card .vc-info-item label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .vehicle-card .vc-info-item span {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .vehicle-card .vc-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-salida {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+            text-align: center;
+        }
+        .btn-salida-primary { background: var(--primary); color: #fff; }
+        .btn-salida-primary:hover { background: var(--primary-dark); }
+        .btn-salida-danger { background: #FEF2F2; color: var(--danger); border: 1px solid #FECACA; }
+        .btn-salida-danger:hover { background: #fee2e2; }
+
+        .empty {
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 14px;
+            padding: 40px 20px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 360px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-content h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .modal-content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        .modal-content .cost {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 8px 0 16px;
+        }
+        .modal-content .method-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .modal-content .method-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+            transition: all 0.15s;
+        }
+        .method-btn:hover, .method-btn.selected { border-color: var(--primary); background: var(--primary-light); }
+        .modal-content .btn-confirm-final {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--success);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: 8px;
+        }
+        .modal-content .btn-cancel {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: none;
+            color: var(--text-tertiary);
+            border: none;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Procesar salida</h1>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar patente…" oninput="filterVehicles()">
+            <button onclick="loadActivas()">Buscar</button>
+        </div>
+
+        <div id="vehicleList">
+            <p class="empty">Cargando vehículos…</p>
+        </div>
+    </div>
+
+    <div id="exitModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="mpPaymentBox" style="display:none">
+                <h2>Mercado Pago</h2>
+                <div style="background:#fff;border:2px solid var(--border);border-radius:12px;padding:12px;width:160px;height:160px;margin:12px auto;display:flex;align-items:center;justify-content:center">
+                    <div id="mpQRGrid" style="display:grid;grid-template-columns:repeat(17,1fr);grid-template-rows:repeat(17,1fr);gap:2px;width:130px;height:130px"></div>
+                </div>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Escaneá con la app de Mercado Pago</p>
+                <a id="mpPagarLink" href="#" target="_blank" style="display:block;background:var(--primary);color:#fff;padding:12px;border-radius:var(--radius-sm);font-weight:700;text-decoration:none;margin-bottom:8px">Abrir pago</a>
+                <button class="btn-cancel" onclick="closeModal()">Cerrar</button>
+            </div>
+            <div id="mpStep1">
+                <h2>Procesar salida</h2>
+                <p id="modalInfo"></p>
+                <div class="cost" id="modalCost">$0</div>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">Seleccioná método de pago</p>
+                <div class="method-buttons">
+                    <button class="method-btn" onclick="selectMethod('efectivo')" id="btnEfectivo">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        Efectivo
+                    </button>
+                    <button class="method-btn" onclick="selectMethod('mercadopago')" id="btnMP">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        Mercado Pago
+                    </button>
+                </div>
+                <input type="hidden" id="selectedMethod" value="">
+                <input type="hidden" id="selectedSesion" value="">
+                <button class="btn-confirm-final" id="btnConfirmExit" onclick="confirmarSalida()">Confirmar salida</button>
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="debtModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color:var(--danger)">Reportar deuda</h2>
+            <p id="debtInfo"></p>
+            <div class="cost" id="debtCost">$0</div>
+            <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">Se registrará una deuda al conductor</p>
+            <div style="margin-bottom:10px">
+                <label style="font-size:13px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">Motivo (opcional)</label>
+                <input type="text" id="debtMotivo" placeholder="Ej: Se fue sin pagar" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;outline:none">
+            </div>
+            <button class="btn-confirm-final" style="background:var(--danger)" onclick="reportarDeuda()">Reportar deuda</button>
+            <button class="btn-cancel" onclick="closeDebtModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="/permisionario/panel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Panel
+        </a>
+        <a href="/permisionario/qr">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><polyline points="14 14 17 14 17 17 21 17 21 21 14 21"/></svg>
+            Mis QR
+        </a>
+        <a href="/permisionario/cuadra">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Cuadra
+        </a>
+        <a href="/permisionario/ingreso">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ingreso
+        </a>
+        <a href="/permisionario/salida" class="active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Salida
+        </a>
+    </nav>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token || localStorage.getItem('role') !== 'permisionario') {
+            window.location.href = '/permisionario';
+        }
+
+        const headers = () => ({ 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' });
+        let allActivas = [];
+
+        async function loadActivas() {
+            try {
+                const res = await fetch('/api/permisionario/sesiones-activas', { headers: headers() });
+                if (!res.ok) { window.location.href = '/permisionario'; return; }
+                allActivas = await res.json();
+                renderVehicles();
+            } catch (e) {
+                document.getElementById('vehicleList').innerHTML = '<p class="empty">Error al cargar</p>';
+            }
+        }
+
+        function filterVehicles() {
+            renderVehicles();
+        }
+
+        function renderVehicles() {
+            const query = document.getElementById('searchInput').value.trim().toUpperCase();
+            let filtered = allActivas;
+            if (query) {
+                filtered = allActivas.filter(s => (s.patente || '').toUpperCase().includes(query));
+            }
+
+            const container = document.getElementById('vehicleList');
+            if (!filtered.length) {
+                container.innerHTML = '<p class="empty">No hay vehículos estacionados</p>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(s => {
+                const inicio = new Date(s.hora_inicio);
+                const now = new Date();
+                const diffMs = now - inicio;
+                const hours = Math.floor(diffMs / 3600000);
+                const mins = Math.floor((diffMs % 3600000) / 60000);
+                const duration = String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
+
+                return `
+                    <div class="vehicle-card">
+                        <div class="vc-top">
+                            <div>
+                                <p class="vc-plate">${s.patente || 'Sin patente'}</p>
+                                <p class="vc-location">${s.ubicacion || 'Espacio #' + s.espacio_id}</p>
+                            </div>
+                            <span class="vc-badge" style="${s.pago_pendiente ? 'background:#fff3cd;color:#856404' : ''}">${s.pago_pendiente ? '● Pago pendiente' : '● En curso'}</span>
+                        </div>
+                        <div class="vc-info">
+                            <div class="vc-info-item">
+                                <label>Inicio</label>
+                                <span>${inicio.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div class="vc-info-item">
+                                <label>Duración</label>
+                                <span>${duration}</span>
+                            </div>
+                            <div class="vc-info-item">
+                                <label>Conductor</label>
+                                <span>${s.conductor_nombre || '—'}</span>
+                            </div>
+                        </div>
+                        <div class="vc-actions">
+                            ${s.pago_pendiente
+                                ? `<a href="/conductor/pago-mercadopago/${s.id}" target="_blank" class="btn-salida btn-salida-primary">Abrir pago</a>`
+                                : `<button class="btn-salida btn-salida-primary" onclick="openExitModal(${s.id}, '${s.patente || ''}', '${s.ubicacion || ''}')">Procesar salida</button>
+                                   <button class="btn-salida btn-salida-danger" onclick="openDebtModal(${s.id}, '${s.patente || ''}')">Deuda</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openExitModal(sesionId, patente, ubicacion) {
+            document.getElementById('selectedSesion').value = sesionId;
+            document.getElementById('selectedMethod').value = '';
+            document.getElementById('modalInfo').textContent = patente + ' — ' + ubicacion;
+            document.getElementById('modalCost').textContent = 'Calculando…';
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
+
+            fetch(`/api/permisionario/sesiones-activas`, { headers: headers() })
+                .then(r => r.json())
+                .then(sessions => {
+                    const s = sessions.find(x => x.id === sesionId);
+                    if (s) {
+                        if (s.es_gratuito) {
+                            document.getElementById('modalCost').textContent = 'GRATUITO';
+                        } else {
+                            document.getElementById('modalCost').textContent = '$' + Math.ceil(s.costo_estimado || 0);
+                        }
+                    }
+                });
+
+            document.getElementById('exitModal').classList.add('show');
+        }
+
+        function selectMethod(method) {
+            document.getElementById('selectedMethod').value = method;
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
+            if (method === 'efectivo') document.getElementById('btnEfectivo').classList.add('selected');
+            else document.getElementById('btnMP').classList.add('selected');
+        }
+
+        async function confirmarSalida() {
+            const sesionId = parseInt(document.getElementById('selectedSesion').value);
+            const metodo = document.getElementById('selectedMethod').value;
+            if (!metodo) { alert('Seleccioná un método de pago'); return; }
+
+            try {
+                const res = await fetch('/api/permisionario/salida', {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify({ sesion_id: sesionId, metodo_pago: metodo })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error al procesar');
+
+                if (metodo === 'mercadopago') {
+                    document.getElementById('mpStep1').style.display = 'none';
+                    document.getElementById('mpPaymentBox').style.display = 'block';
+                    const mpUrl = data.init_point || ('/conductor/pago-mercadopago/' + sesionId);
+                    document.getElementById('mpPagarLink').href = window.location.origin + mpUrl;
+                    generateMPQR(sesionId);
+                } else {
+                    alert('Salida procesada. Total: $' + (data.costo_total || 0));
+                    closeModal();
+                    loadActivas();
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function generateMPQR(sesionId) {
+            const grid = document.getElementById('mpQRGrid');
+            const cells = [];
+            const seed = sesionId * 2654435761;
+            for (let i = 0; i < 289; i++) {
+                const hash = (seed * (i + 1)) ^ ((i * 2654435761) >>> 0);
+                cells.push(hash % 3 !== 0);
+            }
+            grid.innerHTML = cells.map((f, i) =>
+                `<div style="border-radius:1px;background:${f ? '#111' : '#fff'}"></div>`
+            ).join('');
+        }
+
+        function closeModal() {
+            document.getElementById('exitModal').classList.remove('show');
+            document.getElementById('mpStep1').style.display = 'block';
+            document.getElementById('mpPaymentBox').style.display = 'none';
+            document.getElementById('selectedMethod').value = '';
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
+        }
+
+        function openDebtModal(sesionId, patente) {
+            document.getElementById('selectedSesion').value = sesionId;
+            document.getElementById('debtInfo').textContent = patente ? 'Vehículo: ' + patente : 'Sesión #' + sesionId;
+            document.getElementById('debtCost').textContent = 'Calculando…';
+            document.getElementById('debtMotivo').value = '';
+
+            fetch(`/api/permisionario/sesiones-activas`, { headers: headers() })
+                .then(r => r.json())
+                .then(sessions => {
+                    const s = sessions.find(x => x.id === sesionId);
+                    if (s) {
+                        if (s.es_gratuito) {
+                            document.getElementById('debtCost').textContent = 'GRATUITO';
+                        } else {
+                            document.getElementById('debtCost').textContent = '$' + Math.ceil(s.costo_estimado || 0);
+                        }
+                    }
+                });
+
+            document.getElementById('debtModal').classList.add('show');
+        }
+
+        async function reportarDeuda() {
+            const sesionId = parseInt(document.getElementById('selectedSesion').value);
+            const motivo = document.getElementById('debtMotivo').value.trim();
+
+            try {
+                const res = await fetch('/api/permisionario/reportar-deuda', {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify({ sesion_id: sesionId, permisionario_id: parseInt(localStorage.getItem('user_id')), motivo: motivo || 'Salida sin pago' })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error');
+                alert('Deuda reportada: $' + (data.monto || 0));
+                closeDebtModal();
+                loadActivas();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function closeDebtModal() {
+            document.getElementById('debtModal').classList.remove('show');
+        }
+
+        loadActivas();
+        setInterval(loadActivas, 30000);
+    </script>
+</body>
+</html>

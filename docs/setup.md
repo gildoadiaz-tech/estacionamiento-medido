@@ -22,7 +22,6 @@ cd estacionamiento-medido
 ```bash
 python3 -m venv venv
 source venv/bin/activate   # Linux/Mac
-# venv\Scripts\activate    # Windows
 
 pip install -r requirements.txt
 ```
@@ -40,15 +39,37 @@ python seed.py
 
 Esto crea:
 
-| Usuario | Pass | Rol | Datos |
-|---------|------|-----|-------|
-| admin | admin123 | Admin | — |
-| juan | 1234 | Permisionario | Calle: Gral. Güemes |
-| maria | 1234 | Permisionario | Calle: Caseros |
-| pedro | 1234 | Conductor | Patente: AB123CD |
-| ana | 1234 | Conductor | Patente: BC456EF |
+### Conductores (login por DNI)
 
-Además crea 6 espacios de prueba + sincroniza **6,974 espacios** desde IDEMSA.
+| DNI | Pass | Nombre | Datos |
+|-----|------|--------|-------|
+| 35123456 | 1234 | Pedro López | Auto (Toyota Corolla) + Moto (Honda CG 150), sin exención |
+| 36234567 | 1234 | Ana Martínez | Camioneta (Ford Ranger), sin exención |
+| 30111222 | 1234 | Carlos Ruiz | Auto (Chevrolet Corsa), OBLEA DISCAPACIDAD |
+| 29444555 | 1234 | Lucía Fernández | Auto (VW Gol), FRENTISTA |
+| 20999888 | 1234 | Roberto Gómez | Auto (Fiat Cronos), VETERANO MALVINAS |
+| 37555666 | 1234 | Eva Torres | BICICLETA (Venzo Urban), sin exención |
+
+### Permisionarios (login por código)
+
+| Código | Pass | Nombre | Cuadra |
+|--------|------|--------|--------|
+| PER30456789 | 1234 | Juan Pérez | GENERAL GUEMES 100-200 (par+impar) |
+| PER28345678 | 1234 | María García | CASEROS 1100-1200 (par) |
+
+### Gestores
+
+| Usuario | Pass | Nombre |
+|---------|------|--------|
+| gestor1 | gestor123 | Carlos Méndez |
+
+### Admin
+
+| Usuario | Pass | Nombre |
+|---------|------|--------|
+| admin | admin123 | Administrador |
+
+Además sincroniza **~6,974 espacios** desde datos oficiales IDEMSA y asigna ~46 a Juan (GENERAL GUEMES) y ~37 a María (CASEROS 1100-1200).
 
 ## 4. Iniciar el servidor
 
@@ -61,7 +82,6 @@ Abrir **http://localhost:8000**
 ## 5. Probar con Cloudflare Tunnel (para celular)
 
 ```bash
-# Instalar cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
 cloudflared tunnel --url http://localhost:8000
 ```
 
@@ -77,22 +97,11 @@ npx expo start
 
 Escaneá el QR con Expo Go o presioná `a` para Android emulator. Configurá la URL del servidor desde el ícono ⚙️ en la app.
 
-## 7. Credenciales de Mercado Pago (sandbox)
+## 7. Credenciales de Mercado Pago (sandbox simulado)
 
-Para pagos de prueba usar:
+El sistema incluye una simulación de Mercado Pago. No requiere API key real. La página `/conductor/pago-mercadopago/{id}` simula el flujo de pago con confirmación.
 
-| Campo | Valor |
-|-------|-------|
-| Tarjeta | `5031 7557 3453 0604` |
-| CVV | `123` |
-| Vencimiento | `11/25` |
-| Nombre | `APRUEBA` (éxito) / `RECHAZA` (rechazo) |
-
-Más info: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/test/cards
-
-### Configurar token de MP
-
-El token por defecto es un dummy. Para probar pagos reales en sandbox:
+Para pagos reales en sandbox, configurar:
 
 ```bash
 export MP_ACCESS_TOKEN="TEST-<tu-token-real>"
@@ -100,47 +109,65 @@ export MP_ACCESS_TOKEN="TEST-<tu-token-real>"
 
 ## 8. Flujo completo de prueba
 
-### Conductor
+### Registro de conductor
 
-1. Abrir `http://localhost:8000/login`
-2. Login como `pedro / 1234`
-3. Ver home con sesión activa (si la hay)
-4. Ir a "Escanear QR" → escanear QR del permisionario Juan
-5. Elegir método de pago (efectivo o MP)
-6. Presionar "Estacionar"
-7. Esperar a que el permisionario cobre (si es efectivo)
-8. Escanear QR de salida para finalizar
+1. Ir a `/registro`
+2. Completar formulario (DNI, nombre, email, patente, tipo vehículo)
+3. Enviar → ver pantalla "Revisá tu email"
+4. En la terminal del servidor, copiar el link de verificación
+5. Abrir el link → email verificado
+6. Ir a `/login` con DNI + contraseña
+
+### Conductor existente
+
+1. Login como `35123456 / 1234` (Pedro, auto)
+2. Ir a "Buscar" → texto "GENERAL GUEMES 150" o GPS "Buscar ahora"
+3. Ver resultados con mapa IDEMSA embed
+4. Seleccionar espacio → check-in automático
+5. Ir a checkout → ver timer + costo estimado
+6. Elegir "Pagar con Mercado Pago" → página MP simulada → Pagar
+7. O esperar que permisionario procese salida en efectivo
 
 ### Permisionario
 
-1. Login como `juan / 1234`
-2. Ver panel con sesiones activas
-3. Presionar "Cobrar efectivo" en una sesión
-4. Mostrar QR de salida al conductor
+1. Login como `PER30456789 / 1234` (Juan Pérez)
+2. Ver panel con sesiones activas + timers
+3. Ir a "Espacios" → ver mapa de espacios
+4. Ir a "Cuadra" → ver detalles de cuadra asignada
+5. Ir a "Ingreso" → registrar patente manualmente
+6. Ir a "Salida" → procesar salida (efectivo o MP)
+
+### Gestor
+
+1. Login como `gestor1 / gestor123`
+2. Ver dashboard con estadísticas
+3. CRUD de permisionarios, listado de conductores
+4. Sesiones en vivo, reportes, deudas
 
 ### Admin
 
 1. Login como `admin / admin123`
-2. Ver dashboard con estadísticas
-3. Ir a "Penalizaciones" para ver/condonar/verificar no-show
+2. CRUD completo (conductores, permisionarios, gestores, espacios)
+3. Sesiones activas, reportes, deudas
+4. Desbloquear/suspender conductores
 
 ## 9. Estructura de archivos importante
 
 ```
 estacionamiento/
 ├── app/
-│   ├── main.py              # 1297 líneas — TODO el backend
-│   ├── models.py            # Modelos SQLAlchemy
+│   ├── main.py              # 2368 líneas — TODO el backend
+│   ├── models.py            # 10 modelos SQLAlchemy
 │   ├── schemas.py           # Schemas Pydantic
 │   ├── database.py          # Conexión async SQLite
 │   ├── auth.py              # JWT + bcrypt
-│   ├── auth_routes.py       # Login endpoint
-│   ├── deps.py              # Dependencias
+│   ├── auth_routes.py       # Login + registro + verificación email
+│   ├── deps.py              # Dependencias (get_current_user, require_role)
 │   ├── qr_utils.py          # Generación QR
-│   ├── mercado_pago.py      # Integración MP
+│   ├── mercado_pago.py      # Integración MP (simulada)
 │   ├── mapa_data.py         # Calles del centro
-│   ├── idemsa_data.py       # Sincronización GIS
-│   └── templates/           # 26 templates Jinja2
+│   ├── idemsa_data.py       # Sincronización GIS IDEMSA
+│   └── templates/           # 30+ templates Jinja2
 ├── mobile-app/              # Expo React Native
 ├── docs/                    # Documentación
 ├── seed.py                  # Datos de prueba
@@ -165,7 +192,7 @@ pip install bcrypt==4.0.1
 
 **Error de base de datos (tabla no existe):**
 ```bash
-rm estacionamiento.db
+rm estacionamiento.db*
 python seed.py
 ```
 

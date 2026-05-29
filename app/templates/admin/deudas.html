@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Deudas</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
+            --radius: 16px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
+            }
+        }
+        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; margin:0; }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; color:var(--text-muted); text-decoration:none; font-size:.9rem; font-weight:500; transition:all .15s; }
+        .sidebar-link:hover,.sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        table { width:100%; border-collapse:collapse; font-size:.875rem; }
+        th { background:var(--bg); padding:12px 16px; text-align:left; font-weight:600; color:var(--text-muted); border-bottom:1px solid var(--border); }
+        td { padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text); }
+        tr:hover td { background:var(--primary-light); }
+        .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.75rem; font-weight:600; }
+        .badge-green { background:#bbf7d0; color:#166534; }
+        .badge-red { background:#fecaca; color:#991b1b; }
+        .badge-yellow { background:#fef3c7; color:#92400e; }
+        .btn { padding:10px 20px; border-radius:10px; font-weight:600; font-size:.9rem; cursor:pointer; border:none; transition:all .15s; }
+        .btn-primary { background:var(--primary); color:#fff; }
+        .btn-primary:hover { filter:brightness(1.1); }
+        .btn-sm { padding:4px 10px; font-size:.75rem; border-radius:8px; cursor:pointer; border:none; font-weight:600; transition:all .15s; }
+        .search-box { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:12px; font-size:.9rem; font-family:inherit; background:var(--card); color:var(--text); outline:none; }
+        .search-box:focus { border-color:var(--primary); }
+        select.search-box { appearance:auto; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+        .stat-card .stat-number { font-family:'Montserrat',sans-serif; font-size:1.8rem; font-weight:800; }
+        .stat-card .stat-label { color:var(--text-muted); font-size:.85rem; margin-top:4px; }
+    </style>
+</head>
+<body>
+    <div style="display:flex;min-height:100vh;background:var(--bg);">
+        <aside style="width:260px;background:var(--card);border-right:1px solid var(--border);padding:20px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.1rem;">P</div>
+                <div>
+                    <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.95rem;">Estacionamiento</div>
+                    <div style="font-size:.7rem;color:var(--text-muted);">Admin v2.0</div>
+                </div>
+            </div>
+            <nav style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin" class="sidebar-link">&#128202; Dashboard</a>
+                <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
+                <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
+                <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
+                <a href="/admin/deudas" class="sidebar-link active">&#128176; Deudas</a>
+                <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+            </nav>
+        </aside>
+        <main style="flex:1;padding:24px;margin-left:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <div>
+                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Deudas</h1>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Gesti&oacute;n de deudas de conductores</p>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#dc2626;" id="totalDeuda">$0</div>
+                    <div class="stat-label">Deuda total impaga</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#eab308;" id="conductoresDeuda">0</div>
+                    <div class="stat-label">Conductores con deuda</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#16a34a;" id="deudasPagadas">0</div>
+                    <div class="stat-label">Deudas pagadas</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
+                <input type="text" id="searchInput" class="search-box" placeholder="&#128269; Buscar por conductor o DNI..." oninput="cargar()" style="flex:1;">
+                <select id="filterEstado" class="search-box" onchange="cargar()" style="width:180px;">
+                    <option value="">Todos</option>
+                    <option value="impaga">Impagas</option>
+                    <option value="pagada">Pagadas</option>
+                </select>
+            </div>
+
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Conductor</th>
+                                <th>DNI</th>
+                                <th>Monto</th>
+                                <th>Fecha</th>
+                                <th>Reportado por</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDeudas"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+
+        async function marcarPagada(id) {
+            if (!confirm('\u00bfMarcar deuda #' + id + ' como pagada?')) return;
+            const res = await fetch('/api/admin/deudas/' + id + '/pagar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) { cargar(); alert('Deuda marcada como pagada'); }
+            else { alert('Error al marcar como pagada'); }
+        }
+
+        async function cargar() {
+            const query = document.getElementById('searchInput').value.trim();
+            const estado = document.getElementById('filterEstado').value;
+
+            try {
+                const params = new URLSearchParams();
+                if (query) params.set('q', query);
+                if (estado) params.set('estado', estado);
+
+                const res = await fetch('/api/admin/deudas?' + params.toString(), {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const deudas = Array.isArray(data) ? data : [];
+
+                const totalDeuda = deudas.filter(d => !d.pagada).reduce((sum, d) => sum + (d.monto || 0), 0);
+                const conductoresDeuda = new Set(deudas.filter(d => !d.pagada).map(d => d.conductor_id)).size;
+                const pagadas = deudas.filter(d => d.pagada).length;
+
+                document.getElementById('totalDeuda').textContent = '$' + totalDeuda.toLocaleString('es-AR');
+                document.getElementById('conductoresDeuda').textContent = conductoresDeuda;
+                document.getElementById('deudasPagadas').textContent = pagadas;
+
+                document.getElementById('tablaDeudas').innerHTML = deudas.length === 0
+                    ? '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">No hay deudas</td></tr>'
+                    : deudas.map(d => `<tr>
+                        <td>${d.id}</td>
+                        <td>${d.conductor_nombre || 'Conductor #' + (d.conductor_id || '')}</td>
+                        <td>${d.conductor_dni || '-'}</td>
+                        <td style="font-family:monospace;font-weight:600;">$${(d.monto || 0).toLocaleString('es-AR')}</td>
+                        <td>${d.fecha ? new Date(d.fecha).toLocaleDateString('es-AR') : '-'}</td>
+                        <td>${d.reportado_por || '-'}</td>
+                        <td>${d.pagada ? '<span class="badge badge-green">Pagada</span>' : '<span class="badge badge-red">Impaga</span>'}</td>
+                        <td>${!d.pagada ? '<button onclick="marcarPagada(' + d.id + ')" class="btn-sm" style="background:#16a34a;color:#fff;">Marcar pagada</button>' : '<span style="color:var(--text-muted);font-size:.8rem;">-</span>'}</td>
+                    </tr>`).join('');
+            } catch {
+                document.getElementById('tablaDeudas').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
+            }
+        }
+
+        cargar();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    </script>
+</body>
+</html>

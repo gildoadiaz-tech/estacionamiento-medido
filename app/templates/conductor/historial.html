@@ -3,161 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Historial</title>
+    <title>Historial — Estacionamiento Salta</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --radius: 16px;
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 72px;
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
-            }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            a { color: #60a5fa !important; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
         }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .tabs { display: flex; gap: 0; margin-bottom: 16px; background: var(--card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
-        .tab { flex: 1; padding: 10px; text-align: center; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.15s; }
-        .tab.active { background: var(--primary); color: white; }
-        .tab:not(.active) { color: var(--text-muted); }
-        .btn-comprobante { font-size: 12px; color: var(--primary); cursor: pointer; text-decoration: underline; }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .header a { color: var(--primary); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+            transition: background 0.15s;
+        }
+        .card.expanded { background: var(--primary-light); }
+        .card .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card .ubicacion { font-weight: 600; font-size: 15px; }
+        .card .fecha { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .card .costo { font-weight: 700; font-size: 16px; color: var(--primary); }
+        .card .status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+        .card .status.pagado { background: #dcfce7; color: #16a34a; }
+        .card .status.pendiente { background: #fef3c7; color: #d97706; }
+        .card .status.activo { background: #dbeafe; color: #015cb4; }
+        .card .details { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .card.expanded .details { display: block; }
+        .detail-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+        .detail-row .label { color: var(--text-secondary); }
+        .detail-row .value { font-weight: 500; }
+        .btn-comprobante {
+            display: inline-block; margin-top: 8px;
+            background: var(--primary); color: #fff; border: none;
+            border-radius: var(--radius-sm); padding: 8px 16px;
+            font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+            -webkit-appearance: none;
+        }
+        .btn-comprobante:active { opacity: 0.85; }
+        .total-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-top: 16px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .total-card .label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .total-card .amount { font-size: 28px; font-weight: 700; color: var(--primary); margin-top: 2px; }
+        .empty { text-align: center; color: var(--text-tertiary); font-size: 14px; padding: 40px 0; }
+        .spinner { text-align: center; color: var(--text-tertiary); padding: 40px 0; }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/conductor" class="text-2xl">←</a>
-            <h1 class="text-xl font-bold">Historial</h1>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/conductor">←</a>
+            <h1>Historial</h1>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('sesiones')" id="tabSesiones">Sesiones</div>
-            <div class="tab" onclick="switchTab('pagos')" id="tabPagos">Pagos</div>
+        <div id="listaSesiones">
+            <div class="spinner">Cargando...</div>
         </div>
 
-        <div id="tabSesionesContent">
-            <div id="listaSesiones" class="space-y-3">
-                <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
-            </div>
-            <div class="mt-4 text-center">
-                <p class="text-xs text-gray-400">Total gastado: <span id="totalGastado" class="font-bold">$0</span></p>
-            </div>
-        </div>
-
-        <div id="tabPagosContent" style="display:none">
-            <div id="listaPagos" class="space-y-3">
-                <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
-            </div>
+        <div class="total-card">
+            <div class="label">Total gastado</div>
+            <div class="amount" id="totalGastado">$0</div>
         </div>
     </div>
 
+    <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
+        <a href="/conductor" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio</a>
+        <a href="/conductor/buscar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar</a>
+        <a href="/conductor/estacionar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px"><div style="width:48px;height:48px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 4px 12px rgba(1,92,180,0.3);color:#fff;font-size:20px;font-weight:700">P</div><span style="font-size:11px;color:var(--primary);font-weight:600">Estacionar</span></a>
+        <a href="/conductor/historial" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--primary);font-size:11px;font-weight:600;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial</a>
+        <a href="/conductor/perfil" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+
     <script>
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login'; }
         const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
 
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tabSesionesContent').style.display = tab === 'sesiones' ? 'block' : 'none';
-            document.getElementById('tabPagosContent').style.display = tab === 'pagos' ? 'block' : 'none';
-            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-            if (tab === 'pagos') cargarPagos();
+        async function api(url, opts = {}) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = 'Bearer ' + token;
+            return fetch(url, opts);
         }
 
         async function cargarHistorial() {
-            const res = await fetch(`/api/sesiones/conductor/${CONDUCTOR_ID}`);
-            const sesiones = await res.json();
-            const container = document.getElementById("listaSesiones");
-            let total = 0;
-
-            if (sesiones.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">Sin estacionamientos registrados</p>';
-                return;
+            try {
+                const res = await api('/api/conductor/historial');
+                const body = await res.json();
+                const sesiones = body.sesiones || body;
+                const container = document.getElementById('listaSesiones');
+                if (!sesiones.length) {
+                    container.innerHTML = '<div class="empty">Sin estacionamientos registrados</div>';
+                    return;
+                }
+                let total = 0;
+                container.innerHTML = sesiones.map(s => {
+                    if (s.costo_total) total += s.costo_total;
+                    const statusClass = !s.hora_fin ? 'activo' : (s.pagado ? 'pagado' : 'pendiente');
+                    const statusText = !s.hora_fin ? 'Activo' : (s.pagado ? 'Pagado' : 'Pendiente');
+                    const inicio = new Date(s.hora_inicio);
+                    const fin = s.hora_fin ? new Date(s.hora_fin) : null;
+                    return '<div class="card" onclick="this.classList.toggle(\'expanded\')" style="cursor:pointer"><div class="top-row"><div><div class="ubicacion">' + (s.ubicacion || 'Espacio #' + s.espacio_id) + '</div><div class="fecha">' + inicio.toLocaleDateString() + ' ' + inicio.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + (fin ? ' → ' + fin.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '') + '</div></div><div style="text-align:right"><div class="costo">' + (s.costo_total ? '$' + s.costo_total : '—') + '</div><span class="status ' + statusClass + '">' + statusText + '</span></div></div><div class="details"><div class="detail-row"><span class="label">Patente</span><span class="value">' + (s.vehiculo_patente || '—') + '</span></div><div class="detail-row"><span class="label">Inicio</span><span class="value">' + inicio.toLocaleString() + '</span></div>' + (fin ? '<div class="detail-row"><span class="label">Fin</span><span class="value">' + fin.toLocaleString() + '</span></div>' : '') + '<div class="detail-row"><span class="label">Método</span><span class="value">' + (s.metodo_pago || '—') + '</span></div>' + (s.pagado ? '<button class="btn-comprobante" onclick="event.stopPropagation();verComprobante(' + s.id + ')">Comprobante PDF</button>' : '') + '</div></div>';
+                }).join('');
+                document.getElementById('totalGastado').textContent = '$' + total.toFixed(0);
+            } catch {
+                document.getElementById('listaSesiones').innerHTML = '<div class="empty">Error al cargar historial</div>';
             }
-
-            container.innerHTML = sesiones.map(s => {
-                if (s.costo_total) total += s.costo_total;
-                return `<div class="card">
-                    <div class="flex justify-between">
-                        <div>
-                            <p class="font-semibold">${s.ubicacion || 'Espacio #' + s.espacio_id}</p>
-                            <p class="text-xs text-gray-500">${new Date(s.hora_inicio).toLocaleString()}</p>
-                            ${s.hora_fin ? `<p class="text-xs text-gray-500">→ ${new Date(s.hora_fin).toLocaleString()}</p>` : '<p class="text-xs text-blue-500">● Activo</p>'}
-                        </div>
-                        <div class="text-right">
-                            ${s.costo_total ? `<p class="font-bold">$${s.costo_total}</p>` : ''}
-                            <span class="text-xs px-2 py-1 rounded-full ${s.pagado ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${s.pagado ? 'Pagado' : 'Pendiente'}</span>
-                            ${s.pagado ? `<br><span class="btn-comprobante" onclick="verComprobante(${s.id})">🧾 Comprobante</span>` : ''}
-                        </div>
-                    </div>
-                </div>`;
-            }).join("");
-
-            document.getElementById("totalGastado").textContent = '$' + total.toFixed(2);
-        }
-
-        async function cargarPagos() {
-            const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/pagos`);
-            const pagos = await res.json();
-            const container = document.getElementById("listaPagos");
-            if (!pagos.length) {
-                container.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">Sin pagos registrados</p>';
-                return;
-            }
-            container.innerHTML = pagos.map(p => `
-                <div class="card">
-                    <div class="flex justify-between">
-                        <div>
-                            <p class="font-semibold">${p.ubicacion || 'Espacio'}</p>
-                            <p class="text-xs text-gray-500">${new Date(p.hora_inicio).toLocaleDateString()}</p>
-                            <p class="text-xs text-gray-400">${p.metodo_pago || '-'}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-bold text-green-600">$${p.costo_total}</p>
-                            <span class="btn-comprobante" onclick="verComprobante(${p.id})">🧾 Comprobante</span>
-                        </div>
-                    </div>
-                </div>
-            `).join("");
         }
 
         async function verComprobante(sesionId) {
-            const res = await fetch(`/api/sesion/${sesionId}/comprobante`);
-            const c = await res.json();
-            alert(`🧾 COMPROBANTE\n\nConductor: ${c.conductor}\nPatente: ${c.patente}\nUbicación: ${c.ubicacion}\nIngreso: ${c.hora_inicio}\nSalida: ${c.hora_fin}\nTotal: $${c.costo_total}\nMétodo: ${c.metodo_pago}\nPagado: ${c.pagado ? 'Si' : 'No'}`);
+            try {
+                const res = await api('/api/conductor/comprobante/' + sesionId);
+                const d = await res.json();
+                if (!res.ok) throw new Error(d.detail || 'Error');
+                const metodoPago = d.metodo_pago === 'mercadopago' ? 'Mercado Pago' : 'Efectivo';
+                alert(
+                    'COMPROBANTE\n' +
+                    '━━━━━━━━━━━━━━━\n' +
+                    'Sesión #' + d.sesion_id + '\n' +
+                    'Conductor: ' + d.conductor + '\n' +
+                    'Patente: ' + d.patente + ' (' + d.tipo_vehiculo + ')\n' +
+                    'Ubicación: ' + d.ubicacion + '\n' +
+                    'Permisionario: ' + d.permisionario + '\n' +
+                    'Inicio: ' + new Date(d.hora_inicio).toLocaleString() + '\n' +
+                    (d.hora_fin ? 'Fin: ' + new Date(d.hora_fin).toLocaleString() + '\n' : '') +
+                    'Método: ' + metodoPago + '\n' +
+                    'Estado: ' + d.estado + '\n' +
+                    '━━━━━━━━━━━━━━━\n' +
+                    'Total: $' + (d.costo_total || 0)
+                );
+            } catch { alert('Error al cargar comprobante'); }
         }
 
         cargarHistorial();
     </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-        }
-    </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
 </body>
 </html>

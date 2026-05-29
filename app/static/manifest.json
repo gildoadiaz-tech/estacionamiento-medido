@@ -1,11 +1,11 @@
 {
-  "name": "Estacionamiento Salta",
-  "short_name": "Estaciona",
-  "description": "App de estacionamiento medido para la ciudad de Salta",
+  "name": "Estacionamiento Medido — Salta",
+  "short_name": "Estaciona Salta",
+  "description": "Estacionamiento medido de la Municipalidad de Salta",
   "start_url": "/login",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#f5f7fa",
+  "theme_color": "#015cb4",
   "icons": [
     { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png" }

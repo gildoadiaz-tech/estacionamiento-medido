@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Estacionar — Estacionamiento Salta</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 72px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header a { color: var(--primary); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .option-card {
+            display: flex; align-items: center; gap: 16px;
+            background: var(--bg-card); border: 2px solid var(--border);
+            border-radius: var(--radius); padding: 20px 16px; margin-bottom: 12px;
+            cursor: pointer; transition: border-color 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent; text-decoration: none; color: var(--text-primary);
+        }
+        .option-card:active { transform: scale(0.98); border-color: var(--primary); }
+        .option-card .icon-wrap {
+            width: 56px; height: 56px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; flex-shrink: 0;
+        }
+        .option-card .icon-wrap.qr { background: var(--primary-light); color: var(--primary); }
+        .option-card .icon-wrap.gps { background: var(--accent-light); color: var(--accent); }
+        .option-card .info { flex: 1; }
+        .option-card .title { font-size: 17px; font-weight: 700; }
+        .option-card .desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .option-card .arrow { color: var(--text-tertiary); font-size: 20px; }
+        #qrScanner { display: none; margin-bottom: 12px; position: relative; border-radius: var(--radius); overflow: hidden; }
+        #qrScanner.show { display: block; }
+        #qrScanner video { width: 100%; border-radius: var(--radius); display: block; }
+        #qrScanner canvas { display: none; }
+        .scan-frame {
+            position: absolute; top: 50%; left: 50%;
+            width: 200px; height: 200px;
+            transform: translate(-50%, -50%);
+            border: 3px solid var(--accent);
+            border-radius: 16px;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+        }
+        .scan-frame::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 3px; background: var(--accent);
+            animation: scanLine 2s ease-in-out infinite;
+            border-radius: 2px;
+        }
+        @keyframes scanLine { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }
+        #qrResult { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 8px; }
+        .btn-close-scanner {
+            color: var(--text-secondary); font-size: 13px; background: none; border: none;
+            cursor: pointer; font-family: inherit; -webkit-appearance: none; margin-top: 4px;
+            display: block; margin-left: auto; margin-right: auto;
+        }
+        .section-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .vehicle-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px;
+            display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+            cursor: pointer; transition: border-color 0.2s;
+        }
+        .vehicle-card.selected { border-color: var(--primary); background: var(--primary-light); }
+        .vehicle-card .dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .vehicle-card.selected .dot { border-color: var(--primary); background: var(--primary); }
+        .vehicle-card.selected .dot::after { content: '✓'; color: #fff; font-size: 12px; }
+        .vehicle-card .v-info { flex: 1; }
+        .vehicle-card .v-patente { font-size: 16px; font-weight: 700; font-family: 'SF Mono', monospace; text-transform: uppercase; }
+        .vehicle-card .v-detail { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+        .space-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px;
+        }
+        .space-card .s-top { display: flex; justify-content: space-between; align-items: center; }
+        .space-card .s-calle { font-weight: 600; font-size: 15px; }
+        .space-card .s-dist { font-size: 12px; color: var(--text-tertiary); }
+        .space-card .s-avail { font-size: 13px; color: var(--success); font-weight: 600; margin-top: 4px; }
+        .space-card .s-price { font-size: 13px; color: var(--text-secondary); }
+        .btn-park {
+            width: 100%; padding: 16px; background: var(--accent); color: #fff;
+            border: none; border-radius: var(--radius); font-size: 17px; font-weight: 700;
+            cursor: pointer; font-family: inherit; margin-top: 16px; -webkit-appearance: none;
+        }
+        .btn-park:active { opacity: 0.85; transform: scale(0.98); }
+        .btn-park:disabled { opacity: 0.4; cursor: default; }
+        #nearbySpaces { display: none; }
+        #nearbySpaces.show { display: block; }
+        .spinner { text-align: center; padding: 30px; color: var(--text-tertiary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/conductor">←</a>
+            <h1>Estacionar</h1>
+        </div>
+
+        <div class="section-title">¿Cómo querés estacionar?</div>
+
+        <div class="option-card" id="btnScanQR">
+            <div class="icon-wrap qr">◉</div>
+            <div class="info">
+                <div class="title">Escanear QR</div>
+                <div class="desc">Escaneá el código del espacio</div>
+            </div>
+            <div class="arrow">→</div>
+        </div>
+
+        <div class="option-card" id="btnUseGPS">
+            <div class="icon-wrap gps">⊙</div>
+            <div class="info">
+                <div class="title">Estacionar aquí</div>
+                <div class="desc">Usá tu ubicación para encontrar espacios cercanos</div>
+            </div>
+            <div class="arrow">→</div>
+        </div>
+
+        <div id="qrScanner">
+            <video id="videoQR" autoplay playsinline></video>
+            <canvas id="canvasQR" style="display:none"></canvas>
+            <div class="scan-frame"></div>
+            <p id="qrResult">Enfocá el código QR...</p>
+            <button class="btn-close-scanner" id="btnCerrarScanner">Cerrar escáner</button>
+        </div>
+
+        <div id="nearbySpaces">
+            <div class="section-title">Espacios cercanos</div>
+            <div id="spacesList"></div>
+        </div>
+
+        <div class="section-title">Seleccionar vehículo</div>
+        <div id="vehicleList">
+            <div class="spinner">Cargando vehículos...</div>
+        </div>
+
+        <button class="btn-park" id="btnEstacionar" disabled>Estacionar</button>
+    </div>
+
+    <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
+        <a href="/conductor" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio</a>
+        <a href="/conductor/buscar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar</a>
+        <a href="/conductor/estacionar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px"><div style="width:48px;height:48px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 4px 12px rgba(1,92,180,0.3);color:#fff;font-size:20px;font-weight:700">P</div><span style="font-size:11px;color:var(--primary);font-weight:600">Estacionar</span></a>
+        <a href="/conductor/historial" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial</a>
+        <a href="/conductor/perfil" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login'; }
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('user_id') || localStorage.getItem('conductor_id') || '0');
+        let selectedVehicle = null;
+        let selectedEspacio = null;
+        let vehicles = [];
+
+        async function api(url, opts = {}) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = 'Bearer ' + token;
+            return fetch(url, opts);
+        }
+
+        async function cargarVehiculos() {
+            try {
+                const res = await api('/api/conductor/me');
+                const data = await res.json();
+                if (!res.ok) { window.location.href = '/login'; return; }
+                vehicles = data.vehiculos || [];
+                const el = document.getElementById('vehicleList');
+                if (!vehicles.length) {
+                    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-tertiary);font-size:13px">No tenés vehículos registrados. <a href="/conductor/vehiculos" style="color:var(--primary);font-weight:600">Agregar</a></div>';
+                    return;
+                }
+                el.innerHTML = vehicles.map((v, i) => {
+                    const sel = v.predeterminado ? 'selected' : '';
+                    if (sel || i === 0) selectedVehicle = v.id;
+                    return '<div class="vehicle-card ' + sel + '" data-id="' + v.id + '" onclick="selectVehicle(this,' + v.id + ')"><div class="dot"></div><div class="v-info"><div class="v-patente">' + v.patente + '</div><div class="v-detail">' + (v.tipo || '') + (v.marca ? ' · ' + v.marca : '') + (v.modelo ? ' ' + v.modelo : '') + '</div></div></div>';
+                }).join('');
+                if (selectedVehicle) document.getElementById('btnEstacionar').disabled = false;
+            } catch { document.getElementById('vehicleList').innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px">Cargando...</div>'; }
+        }
+
+        function selectVehicle(el, id) {
+            document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedVehicle = id;
+            updateEstacionarBtn();
+        }
+
+        function updateEstacionarBtn() {
+            document.getElementById('btnEstacionar').disabled = !(selectedEspacio || selectedVehicle);
+        }
+
+        let scanningActive = false, scanInterval = null;
+
+        document.getElementById('btnScanQR').addEventListener('click', async () => {
+            const scanner = document.getElementById('qrScanner');
+            if (scanner.classList.contains('show')) { scanner.classList.remove('show'); stopScanner(); return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
+                const vid = document.getElementById('videoQR');
+                vid.srcObject = stream;
+                try { await vid.play(); } catch(e) {}
+                scanner.classList.add('show');
+                scanningActive = true;
+                document.getElementById('qrResult').textContent = 'Enfoc\u00e1 el QR...';
+                scanLoop();
+            } catch { alert('No se pudo acceder a la c\u00e1mara'); }
+        });
+
+        document.getElementById('btnCerrarScanner').addEventListener('click', () => {
+            document.getElementById('qrScanner').classList.remove('show');
+            stopScanner();
+        });
+
+        function stopScanner() {
+            scanningActive = false;
+            if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
+            const v = document.getElementById('videoQR');
+            if (v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+        }
+
+        async function scanLoop() {
+            if (!scanningActive) return;
+            const video = document.getElementById('videoQR');
+            if (!video.videoWidth || !video.videoHeight) { scanInterval = requestAnimationFrame(scanLoop); return; }
+            const canvas = document.getElementById('canvasQR');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+            if (code) {
+                try { navigator.vibrate(100); } catch {}
+                const qrData = code.data;
+                let matchEspacio = null;
+                let matchPerm = null;
+
+                // Try URL patterns: /conductor/estacionar?perm=1 or espacio_1 or perm_1
+                const urlMatchEspacio = qrData.match(/espacio[_/](\d+)/);
+                const urlMatchPerm = qrData.match(/perm(?:isionario)?[=_/](\d+)/);
+                const urlMatchPermParam = qrData.match(/[?&]perm=(\d+)/);
+                const urlMatchEspacioParam = qrData.match(/[?&]espacio=(\d+)/);
+
+                if (urlMatchEspacio) matchEspacio = parseInt(urlMatchEspacio[1]);
+                else if (urlMatchEspacioParam) matchEspacio = parseInt(urlMatchEspacioParam[1]);
+
+                if (urlMatchPerm) matchPerm = parseInt(urlMatchPerm[1]);
+                else if (urlMatchPermParam) matchPerm = parseInt(urlMatchPermParam[1]);
+
+                // Try JSON payload
+                if (!matchEspacio && !matchPerm) {
+                    try {
+                        const json = JSON.parse(qrData);
+                        if (json.permisionario_id) matchPerm = parseInt(json.permisionario_id);
+                        if (json.espacio_id) matchEspacio = parseInt(json.espacio_id);
+                    } catch {}
+                }
+
+                if (matchEspacio) { estacionarEnEspacio(matchEspacio); return; }
+                if (matchPerm) { estacionarConPerm(matchPerm); return; }
+                document.getElementById('qrResult').textContent = 'QR no reconocido: ' + qrData.substring(0, 50);
+            } else {
+                document.getElementById('qrResult').textContent = 'Buscando QR...';
+            }
+            scanInterval = requestAnimationFrame(scanLoop);
+        }
+
+async function estacionarEnEspacio(espacioId) {
+            stopScanner();
+            document.getElementById('qrScanner').classList.remove('show');
+            if (!selectedVehicle && vehicles.length === 0) { alert('No tenés vehículos registrados'); return; }
+            const vehiculoId = selectedVehicle || (vehicles[0] && vehicles[0].id);
+            try {
+                const res = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ espacio_id: espacioId, vehiculo_id: vehiculoId, metodo_ingreso: 'qr' }) });
+                const data = await res.json();
+                if (res.ok) { window.location.href = '/conductor/checkout/' + data.sesion_id; }
+                else { alert('Error: ' + (data.detail || 'desconocido')); }
+            } catch { alert('Error de conexión'); }
+        }
+
+        async function estacionarConPerm(permId) {
+            stopScanner();
+            document.getElementById('qrScanner').classList.remove('show');
+            if (!selectedVehicle && vehicles.length === 0) { alert('No tenés vehículos registrados'); return; }
+            const vehiculoId = selectedVehicle || (vehicles[0] && vehicles[0].id);
+            try {
+                const res = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ permisionario_id: permId, vehiculo_id: vehiculoId, metodo_ingreso: 'qr' }) });
+                const data = await res.json();
+                if (res.ok) { window.location.href = '/conductor/checkout/' + data.sesion_id; }
+                else { alert('Error: ' + (data.detail || 'desconocido')); }
+            } catch { alert('Error de conexión'); }
+        }
+
+        document.getElementById('btnUseGPS').addEventListener('click', () => {
+            if (!navigator.geolocation) { alert('GPS no disponible'); return; }
+            const listEl = document.getElementById('spacesList');
+            listEl.innerHTML = '<div class="spinner">Buscando espacios cercanos...</div>';
+            document.getElementById('nearbySpaces').classList.add('show');
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                try {
+                    const res = await api('/api/buscar-estacionamiento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: lat, lng: lng }) });
+                    const data = await res.json();
+                    if (data.error) { listEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">' + data.error + '</div>'; return; }
+                    if (!data.resultados.length) { listEl.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:20px">No se encontraron espacios cercanos</div>'; return; }
+                    listEl.innerHTML = data.resultados.slice(0, 10).map(r => {
+                        const avail = r.disponible ? 'Disponible' : 'Ocupado';
+                        const availColor = r.disponible ? 'var(--success)' : 'var(--danger)';
+                        return '<div class="space-card" onclick="estacionarEnEspacio(' + r.espacio_id + ')"><div class="s-top"><div><div class="s-calle">' + r.calle + (r.altura ? ' ' + r.altura : '') + '</div><div class="s-price">$' + r.precio_por_hora + '/h</div></div><div style="text-align:right"><div class="s-dist">' + r.distancia + 'm</div><div class="s-avail" style="color:' + availColor + '">' + avail + '</div></div></div></div>';
+                    }).join('');
+                } catch { listEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">Error de conexion</div>'; }
+            }, () => { listEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">No se pudo obtener la ubicacion</div>'; }, { enableHighAccuracy: true, timeout: 10000 });
+        });
+
+        document.getElementById('btnEstacionar').addEventListener('click', () => {
+            if (!selectedVehicle) { alert('Seleccioná un vehículo'); return; }
+            if (!selectedEspacio) { alert('Escaneá un QR o buscá un espacio con GPS'); return; }
+            estacionarEnEspacio(selectedEspacio);
+        });
+
+        cargarVehiculos();
+    </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
+</body>
+</html>

@@ -5,58 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Sesiones en Vivo</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
+            --radius: 16px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
+            }
+        }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#f8fafc; color:#1e293b; font-family:system-ui,sans-serif; }
-        .header { display:flex; align-items:center; gap:12px; padding:16px 24px; max-width:1200px; margin:0 auto; }
-        #mapa { width:100%; height:calc(100vh - 80px); }
-        .popup-conductor { font-size:14px; }
-        .popup-conductor b { display:block; font-size:16px; }
+        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; color:var(--text-muted); text-decoration:none; font-size:.9rem; font-weight:500; transition:all .15s; }
+        .sidebar-link:hover,.sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        table { width:100%; border-collapse:collapse; font-size:.875rem; }
+        th { background:var(--bg); padding:12px 16px; text-align:left; font-weight:600; color:var(--text-muted); border-bottom:1px solid var(--border); }
+        td { padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text); }
+        tr:hover td { background:var(--primary-light); }
+        .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.75rem; font-weight:600; }
+        .badge-green { background:#bbf7d0; color:#166534; }
+        .badge-red { background:#fecaca; color:#991b1b; }
+        .badge-yellow { background:#fef3c7; color:#92400e; }
+        .badge-orange { background:#fed7aa; color:#9a3412; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity:1; } 50% { opacity:.5; } }
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/admin" style="font-size:24px;text-decoration:none">←</a>
-        <h1 style="font-size:22px;font-weight:700">Sesiones en Vivo</h1>
-        <span id="contador" style="font-size:14px;color:#64748b;margin-left:auto">0 activas</span>
+    <div style="display:flex;min-height:100vh;background:var(--bg);">
+        <aside style="width:260px;background:var(--card);border-right:1px solid var(--border);padding:20px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.1rem;">P</div>
+                <div>
+                    <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.95rem;">Estacionamiento</div>
+                    <div style="font-size:.7rem;color:var(--text-muted);">Admin v2.0</div>
+                </div>
+            </div>
+            <nav style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin" class="sidebar-link">&#128202; Dashboard</a>
+                <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
+                <a href="/admin/sesiones-vivo" class="sidebar-link active">&#127759; Sesiones vivo</a>
+                <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
+                <a href="/admin/deudas" class="sidebar-link">&#128176; Deudas</a>
+                <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+            </nav>
+        </aside>
+        <main style="flex:1;padding:24px;margin-left:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <div>
+                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Sesiones en Vivo</h1>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Mapa en tiempo real de estacionamientos activos</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span class="pulse" id="liveIndicator" style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                    <span style="font-size:.85rem;color:var(--text-muted);" id="lastUpdate">Actualizando...</span>
+                </div>
+            </div>
+
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);">
+                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
+                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:var(--primary);" id="countActive">0</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);">Activas</div>
+                    </div>
+                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
+                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#16a34a;" id="countPaid">0</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);">Pagadas</div>
+                    </div>
+                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
+                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#eab308;" id="countPending">0</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);">Pendientes</div>
+                    </div>
+                    <div style="padding:16px;text-align:center;">
+                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#dc2626;" id="countDebt">0</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);">Con deuda</div>
+                    </div>
+                </div>
+                <div id="mapa" style="width:100%;height:400px;"></div>
+            </div>
+
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-family:'Montserrat',sans-serif;">Detalle de sesiones</div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Conductor</th>
+                                <th>Patente</th>
+                                <th>Ubicaci&oacute;n</th>
+                                <th>Inicio</th>
+                                <th>Estado</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaSesiones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
-    <div id="mapa"></div>
 
     <script>
+        const token = localStorage.getItem('token');
         const map = L.map('mapa').setView([-24.7858, -65.4056], 16);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap', maxZoom: 19,
+            attribution: '\u00a9 OpenStreetMap', maxZoom: 19,
         }).addTo(map);
 
-        const iconActive = L.divIcon({
-            html: '<div style="background:#06C167;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff">🅿</div>',
-            className: '', iconSize: [20,20], iconAnchor: [10,10],
-        });
+        const markerColors = {
+            active: '#015cb4',
+            paid: '#16a34a',
+            pending: '#eab308',
+            debt: '#dc2626'
+        };
+
+        const markerIcons = {
+            active: L.divIcon({ html: '<div style="background:#015cb4;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
+            paid: L.divIcon({ html: '<div style="background:#16a34a;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
+            pending: L.divIcon({ html: '<div style="background:#eab308;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
+            debt: L.divIcon({ html: '<div style="background:#dc2626;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
+        };
+
+        let markers = [];
+
+        function getStatus(s) {
+            if (s.tiene_deuda) return 'debt';
+            if (!s.hora_fin && s.pagado) return 'paid';
+            if (!s.hora_fin && !s.pagado) return 'pending';
+            return 'active';
+        }
+
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'paid': return '<span class="badge badge-green">Pagada</span>';
+                case 'pending': return '<span class="badge badge-yellow">Pendiente</span>';
+                case 'debt': return '<span class="badge badge-red">Con deuda</span>';
+                default: return '<span class="badge" style="background:var(--primary-light);color:var(--primary);">Activa</span>';
+            }
+        }
 
         async function cargar() {
-            const res = await fetch('/api/admin/sesiones-vivo', {
-                headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')},
-            });
-            const data = await res.json();
-            document.getElementById('contador').textContent = data.length + ' activas';
-            data.forEach(s => {
-                if (!s.lat || !s.lng) return;
-                L.marker([s.lat, s.lng], { icon: iconActive }).addTo(map).bindPopup(`
-                    <div class="popup-conductor">
-                        <b>${s.conductor}</b>
-                        ${s.patente ? `<span>🚗 ${s.patente}</span><br>` : ''}
-                        <span>📍 ${s.ubicacion}</span><br>
-                        <span style="font-size:12px;color:gray">🕐 ${s.hora_inicio}</span><br>
-                        <span style="font-size:12px;color:${s.pagado ? 'green' : 'orange'}">${s.pagado ? '✅ Pagado' : '⏳ Pendiente'} · ${s.metodo_pago || '-'}</span>
-                    </div>
-                `);
-            });
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            let activeCount = 0, paidCount = 0, pendingCount = 0, debtCount = 0;
+
+            try {
+                const res = await fetch('/api/admin/sesiones-vivo', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const sesiones = Array.isArray(data) ? data : [];
+
+                document.getElementById('tablaSesiones').innerHTML = sesiones.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No hay sesiones activas</td></tr>'
+                    : sesiones.map(s => {
+                        const status = getStatus(s);
+                        if (status === 'debt') debtCount++;
+                        else if (status === 'paid') paidCount++;
+                        else if (status === 'pending') pendingCount++;
+                        else activeCount++;
+
+                        if (s.lat && s.lng) {
+                            const marker = L.marker([s.lat, s.lng], { icon: markerIcons[status] }).addTo(map).bindPopup(
+                                '<div style="font-size:14px;"><b>' + (s.conductor || 'Conductor') + '</b><br>' +
+                                (s.patente ? '🚗 ' + s.patente + '<br>' : '') +
+                                '📍 ' + (s.ubicacion || '-') + '<br>' +
+                                '🕐 ' + (s.hora_inicio || '-') + '<br>' +
+                                '<span style="font-size:12px;color:' + (status === 'paid' ? 'green' : status === 'debt' ? 'red' : 'orange') + ';">' +
+                                (status === 'paid' ? '✅ Pagado' : status === 'debt' ? '🚫 Con deuda' : '⏳ Pendiente') +
+                                '</span></div>'
+                            );
+                            markers.push(marker);
+                        }
+
+                        return `<tr>
+                            <td>${s.conductor || 'Conductor #' + (s.conductor_id || '')}</td>
+                            <td>${s.patente || '-'}</td>
+                            <td>${s.ubicacion || 'Espacio #' + (s.espacio_id || '')}</td>
+                            <td>${s.hora_inicio ? new Date(s.hora_inicio).toLocaleString('es-AR') : '-'}</td>
+                            <td>${getStatusBadge(status)}</td>
+                            <td>$${(s.costo_total || 0).toLocaleString('es-AR')}</td>
+                        </tr>`;
+                    }).join('');
+
+                activeCount = paidCount + pendingCount + activeCount;
+                document.getElementById('countActive').textContent = activeCount;
+                document.getElementById('countPaid').textContent = paidCount;
+                document.getElementById('countPending').textContent = pendingCount;
+                document.getElementById('countDebt').textContent = debtCount;
+            } catch {
+                document.getElementById('tablaSesiones').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
+            }
+
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR');
         }
+
         cargar();
-        setInterval(cargar, 15000);
+        setInterval(cargar, 30000);
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     </script>
 </body>
 </html>

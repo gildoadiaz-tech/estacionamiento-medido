@@ -196,7 +196,7 @@ async def sync_espacios_db(db_session):
 
     result = await db_session.execute(select(func.count(Espacio.id)))
     count = result.scalar()
-    if count and count > 100:
+    if count and count > 200:
         return  # ya hay datos
 
     calles = get_all_calles_cached()
@@ -204,12 +204,19 @@ async def sync_espacios_db(db_session):
 
     batch = []
     for i, e in enumerate(espacios):
+        altura_val = e.get("altura", "") or ""
+        ubicacion = f"{e['calle']} {altura_val}".strip() if altura_val else e["calle"]
+        try:
+            numero_int = int(altura_val) if altura_val else None
+        except ValueError:
+            numero_int = None
         batch.append(Espacio(
-            ubicacion=e["calle"],
+            ubicacion=ubicacion,
             precio_por_hora=e["tarifa"],
             disponible=True,
             lat=e["lat"],
             lng=e["lng"],
+            numero=numero_int,
         ))
         if len(batch) >= 500:
             db_session.add_all(batch)

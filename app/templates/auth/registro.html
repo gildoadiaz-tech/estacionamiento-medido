@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Registro — Estacionamiento Salta</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+        }
+        .logo-area {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 32px;
+            color: #fff;
+            font-weight: 700;
+        }
+        .logo-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .logo-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+        .form-input:focus {
+            border-color: var(--primary);
+        }
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        select.form-input {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23686868' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            font-family: inherit;
+            margin-top: 8px;
+            -webkit-appearance: none;
+        }
+        .btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
+        .error-msg {
+            text-align: center;
+            font-size: 14px;
+            color: var(--danger);
+            margin-bottom: 12px;
+            min-height: 20px;
+        }
+        .icon-success {
+            width: 72px;
+            height: 72px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 36px;
+            color: #fff;
+        }
+        .icon-email {
+            width: 72px;
+            height: 72px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 36px;
+            color: #fff;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .login-link a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .row { display: flex; gap: 10px; }
+        .row .form-group { flex: 1; }
+        .step-container { display: none; }
+        .step-container.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-area">
+            <div class="logo-icon">P</div>
+            <h1 class="logo-title">Estacionamiento</h1>
+            <p class="logo-subtitle">Municipalidad de Salta</p>
+        </div>
+
+        <p class="error-msg" id="errorMsg"></p>
+
+        <div class="step-container active" id="step1">
+            <div class="card">
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" id="regNombre" class="form-input" placeholder="Juan" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" id="regApellido" class="form-input" placeholder="Pérez" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="tu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">DNI</label>
+                    <input type="text" id="regDNI" class="form-input" placeholder="12345678" maxlength="8" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Teléfono</label>
+                    <input type="tel" id="regTelefono" class="form-input" placeholder="3874123456" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" id="regPassword" class="form-input" placeholder="Mínimo 4 caracteres" required>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="form-group">
+                    <label class="form-label">Patente</label>
+                    <input type="text" id="regPatente" class="form-input" placeholder="AB123CD" maxlength="7" style="text-transform:uppercase" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo de vehículo</label>
+                    <select id="regTipoVehiculo" class="form-input">
+                        <option value="auto">Auto</option>
+                        <option value="moto">Moto</option>
+                        <option value="camioneta">Camioneta / SUV</option>
+                        <option value="utilitario">Utilitario</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label">Marca</label>
+                        <input type="text" id="regMarca" class="form-input" placeholder="Toyota" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modelo</label>
+                        <input type="text" id="regModelo" class="form-input" placeholder="Corolla" required>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" id="btnRegister">Crear cuenta</button>
+            <div class="login-link">¿Ya tenés cuenta? <a href="/login">Ingresá</a></div>
+        </div>
+
+        <div class="step-container" id="step2">
+            <div class="card" style="text-align:center;padding:32px 20px">
+                <div class="icon-email">✉</div>
+                <h2 style="font-size:20px;font-weight:700;margin-bottom:8px">Revisá tu email</h2>
+                <p style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">
+                    Te enviamos un enlace de verificación a<br>
+                    <strong id="confirmEmail" style="color:var(--text-primary)"></strong>
+                </p>
+                <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:4px">Hacé clic en el enlace para activar tu cuenta.</p>
+                <p style="font-size:13px;color:var(--text-tertiary)">Luego podés iniciar sesión con tu DNI y contraseña.</p>
+                <a href="/login" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:20px">Ir a iniciar sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+        }
+
+        document.getElementById('btnRegister').addEventListener('click', async () => {
+            const nombre = document.getElementById('regNombre').value.trim();
+            const apellido = document.getElementById('regApellido').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const dni = document.getElementById('regDNI').value.trim();
+            const telefono = document.getElementById('regTelefono').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const patente = document.getElementById('regPatente').value.trim().toUpperCase();
+            const tipo = document.getElementById('regTipoVehiculo').value;
+            const marca = document.getElementById('regMarca').value.trim();
+            const modelo = document.getElementById('regModelo').value.trim();
+
+            if (!nombre || !apellido || !email || !dni || !telefono || !password || !patente || !marca || !modelo) {
+                setError('Completá todos los campos');
+                return;
+            }
+            if (dni.length < 7) { setError('DNI inválido'); return; }
+            if (password.length < 4) { setError('Contraseña: mínimo 4 caracteres'); return; }
+
+            const btn = document.getElementById('btnRegister');
+            btn.disabled = true;
+            btn.textContent = 'Creando cuenta...';
+            try {
+                const res = await fetch('/api/auth/register/conductor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        nombre: nombre,
+                        apellido: apellido,
+                        dni: dni,
+                        telefono: telefono,
+                        password: password,
+                        patente: patente,
+                        tipo_vehiculo: tipo,
+                        marca: marca,
+                        modelo: modelo,
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('confirmEmail').textContent = email;
+                    document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+                    document.getElementById('step2').classList.add('active');
+                } else {
+                    setError(data.detail || 'Error en el registro');
+                }
+            } catch {
+                setError('Error de conexión');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Crear cuenta';
+        });
+    </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
+</body>
+</html>

@@ -3,45 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Estacionamiento — Conductor</title>
+    <title>Inicio — Estacionamiento Salta</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         :root {
-            --uber-green: #06C167;
-            --bg-primary: #000;
-            --bg-card: #1C1C1E;
-            --bg-elevated: #2C2C2E;
-            --text-primary: #FFF;
-            --text-secondary: #98989F;
-            --text-tertiary: #636366;
-            --border: #3A3A3C;
-            --radius: 14px;
-            --danger: #FF453A;
-            --warning: #FF9F0A;
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
             --nav-height: 72px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: var(--bg-primary);
             color: var(--text-primary);
-            font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
             min-height: 100dvh;
             padding-bottom: calc(var(--nav-height) + 16px);
             -webkit-font-smoothing: antialiased;
             -webkit-tap-highlight-color: transparent;
         }
         .container { max-width: 420px; margin: 0 auto; padding: 16px; }
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 16px;
-        }
         .bloqueo-banner {
-            background: #391C1C;
-            border: 1px solid var(--danger);
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
             border-radius: var(--radius);
             padding: 14px 16px;
             margin-bottom: 12px;
@@ -53,13 +59,11 @@
         .bloqueo-banner .icon { font-size: 28px; flex-shrink: 0; }
         .bloqueo-banner .text { flex: 1; }
         .bloqueo-banner .title { font-weight: 700; font-size: 15px; color: var(--danger); }
-        .bloqueo-banner .reason { font-size: 13px; color: #F87171; }
-        .bloqueo-banner .link { color: #FFF; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 14px; background: #4A1A1A; border-radius: 20px; white-space: nowrap; }
-
+        .bloqueo-banner .reason { font-size: 13px; color: #dc2626; }
+        .bloqueo-banner .link { color: #fff; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 14px; background: #dc2626; border-radius: 20px; white-space: nowrap; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .header .greeting { font-size: 22px; font-weight: 700; }
-        .header .avatar { width: 40px; height: 40px; border-radius: 20px; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 20px; text-decoration: none; }
-
+        .header .avatar { width: 40px; height: 40px; border-radius: 20px; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 20px; text-decoration: none; color: var(--text-primary); }
         .stats-row { display: flex; gap: 8px; margin-bottom: 14px; }
         .stat-card {
             flex: 1;
@@ -73,26 +77,16 @@
         .stat-card .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 4px; }
         .stat-card .value { font-size: 24px; font-weight: 700; margin: 4px 0 2px; }
         .stat-card .label { font-size: 12px; color: var(--text-secondary); }
-
         .sesion-card {
-            background: var(--uber-green);
+            background: var(--primary);
             border-radius: var(--radius);
             padding: 16px;
             margin-bottom: 14px;
             display: none;
         }
         .sesion-card.show { display: block; }
-        .sesion-card * { color: #000 !important; }
-        .sesion-card .badge {
-            display: inline-block;
-            background: rgba(0,0,0,0.25);
-            color: #FFF !important;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            text-transform: uppercase;
-        }
+        .sesion-card * { color: #fff !important; }
+        .sesion-card .badge { display: inline-block; background: rgba(255,255,255,0.25); font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; }
         .sesion-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         .sesion-card .ubicacion { font-size: 18px; font-weight: 700; }
         .sesion-card .patente { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
@@ -100,115 +94,45 @@
         .sesion-card .timer-value { font-size: 32px; font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; }
         .sesion-card .timer-label { font-size: 12px; opacity: 0.7; }
         .sesion-card .actions { display: flex; gap: 8px; }
-        .sesion-card .btn-outline {
-            background: rgba(0,0,0,0.15);
-            border: 1.5px solid rgba(0,0,0,0.3);
-            color: #000 !important;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            font-family: inherit;
-            text-align: center;
-            -webkit-appearance: none;
-        }
+        .sesion-card .btn-outline { background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.4); color: #fff !important; padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; text-align: center; -webkit-appearance: none; }
         .sesion-card .btn-outline:first-child { flex: 1; }
-        .sesion-card .qr-container { margin-top: 12px; text-align: center; display: none; }
-        .sesion-card .qr-container.show { display: block; }
-
         .action-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 16px;
-            margin-bottom: 8px;
-            text-decoration: none;
-            color: var(--text-primary);
+            display: flex; align-items: center; gap: 12px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px;
+            margin-bottom: 8px; text-decoration: none; color: var(--text-primary);
             transition: background 0.15s;
         }
         .action-link:active { background: var(--bg-elevated); }
-        .action-link .icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+        .action-link .ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+        .action-link .ico.ico-scan { background: var(--primary-light); color: var(--primary); }
+        .action-link .ico.ico-hist { background: rgba(26,86,219,0.10); color: var(--text-secondary); }
         .action-link .info { flex: 1; }
         .action-link .title { font-size: 15px; font-weight: 600; }
         .action-link .desc { font-size: 13px; color: var(--text-secondary); margin-top: 1px; }
         .action-link .arrow { color: var(--text-tertiary); font-size: 18px; }
-
         .highlight-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, #06C167 0%, #059550 100%);
-            border-radius: var(--radius);
-            padding: 14px 16px;
-            margin-bottom: 8px;
-            text-decoration: none;
-            color: #000;
-            font-weight: 600;
+            display: flex; align-items: center; gap: 12px;
+            background: var(--accent); border-radius: var(--radius);
+            padding: 14px 16px; margin-bottom: 8px;
+            text-decoration: none; color: #fff; font-weight: 600;
         }
         .highlight-link:active { opacity: 0.9; }
         .highlight-link .icon { font-size: 28px; }
         .highlight-link .title { font-size: 15px; }
-
         #qrScanner { display: none; margin-bottom: 8px; position: relative; }
         #qrScanner.show { display: block; }
         #qrScanner video { width: 100%; border-radius: 12px; display: block; }
         #qrScanner .close { color: var(--text-secondary); font-size: 13px; background: none; border: none; cursor: pointer; font-family: inherit; -webkit-appearance: none; margin-top: 4px; }
-        .scan-frame {
-            position: absolute; top: 50%; left: 50%;
-            width: 200px; height: 200px;
-            transform: translate(-50%, -50%);
-            border: 3px solid var(--uber-green);
-            border-radius: 16px;
-            pointer-events: none;
-            box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
-        }
-        .scan-frame::after {
-            content: ''; position: absolute; top: 0; left: 0; right: 0;
-            height: 3px; background: var(--uber-green);
-            animation: scanLine 2s ease-in-out infinite;
-            border-radius: 2px;
-        }
-        @keyframes scanLine {
-            0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; }
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            height: var(--nav-height);
-            background: var(--bg-primary);
-            border-top: 1px solid var(--border);
-            display: flex;
-            z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
-        .bottom-nav a {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 11px;
-            font-weight: 500;
-            gap: 2px;
-            transition: color 0.15s;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .bottom-nav a.active { color: var(--uber-green); }
-        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+        .scan-frame { position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; transform: translate(-50%, -50%); border: 3px solid var(--primary); border-radius: 16px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
+        .scan-frame::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); animation: scanLine 2s ease-in-out infinite; border-radius: 2px; }
+        @keyframes scanLine { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Bloqueo -->
         <div id="bloqueoBanner" class="bloqueo-banner">
-            <span class="icon">🚫</span>
+            <span class="icon">!</span>
             <div class="text">
                 <p class="title">Cuenta bloqueada</p>
                 <p class="reason" id="motivoBloqueo">-</p>
@@ -216,31 +140,33 @@
             <a href="/conductor/perfil" class="link">Ver</a>
         </div>
 
-        <!-- Header -->
         <div class="header">
-            <div>
-                <p class="greeting" id="greeting">¡Hola!</p>
+            <div><p class="greeting" id="greeting">Hola!</p></div>
+            <a href="/conductor/perfil" class="avatar" id="userAvatar">P</a>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="dot" style="background:var(--primary)"></span>
+                <span class="label">Este mes</span>
+                <p class="value" id="statSesiones">0</p>
+                <p class="label">Sesiones</p>
             </div>
-            <div style="display:flex;align-items:center;gap:12px">
-                <div id="notifBell" style="position:relative;cursor:pointer;font-size:22px" onclick="toggleNotif()">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-6px;background:var(--danger);color:#fff;font-size:10px;border-radius:50%;width:16px;height:16px;display:none;align-items:center;justify-content:center;font-weight:700"></span></div>
-                <a href="/conductor/perfil" class="avatar">👤</a>
+            <div class="stat-card">
+                <span class="dot" style="background:var(--danger)"></span>
+                <span class="label">Deuda</span>
+                <p class="value" id="statDeuda" style="color:var(--danger)">$0</p>
+                <p class="label">Pendiente</p>
             </div>
         </div>
 
-        <!-- Notifications panel -->
-        <div id="notifPanel" class="card" style="display:none;margin-bottom:12px">
-            <p style="font-size:14px;font-weight:600;margin-bottom:8px">Notificaciones</p>
-            <div id="notifList"><p style="font-size:13px;color:var(--text-tertiary)">Cargando...</p></div>
-        </div>
-
-        <!-- Active Session -->
         <div id="sesionActiva" class="sesion-card">
             <div class="top-row">
                 <div>
                     <p id="espacioActivo" class="ubicacion">-</p>
                     <p id="patenteDisplay" class="patente" style="display:none">Patente: <span id="patenteTexto"></span></p>
                 </div>
-                <span class="badge">● En curso</span>
+                <span class="badge">En curso</span>
             </div>
             <div class="timer-row">
                 <div>
@@ -253,32 +179,30 @@
                 </div>
             </div>
             <div class="actions">
-                <button id="btnCheckout" class="btn-outline">Finalizar</button>
-                <button id="btnExtender" class="btn-outline" style="display:none">⏱ Extender</button>
+                <button id="btnCheckout" class="btn-outline">Ver sesión</button>
                 <button id="btnVerQR" class="btn-outline">QR</button>
             </div>
-            <div id="qrSalida" class="qr-container"></div>
+            <div id="qrSalida" style="margin-top:12px;text-align:center;display:none"></div>
         </div>
 
-        <!-- Actions -->
-        <a href="/conductor/buscar" class="highlight-link" style="margin-bottom:8px">
-            <span class="icon">🔍</span>
-            <span class="title">Buscar estacionamiento</span>
+        <a href="/conductor/estacionar" class="highlight-link">
+            <span class="icon">P</span>
+            <span class="title">Estacionar ahora</span>
             <span style="flex:1"></span>
-            <span class="arrow" style="color:rgba(0,0,0,0.6)">→</span>
+            <span>→</span>
         </a>
 
-        <a href="/conductor/reservar" class="action-link">
-            <span class="icon">📅</span>
+        <a href="/conductor/buscar" class="action-link">
+            <span class="ico ico-scan">Q</span>
             <div class="info">
-                <p class="title">Reservar</p>
-                <p class="desc">Apartá un lugar con anticipación</p>
+                <p class="title">Buscar estacionamiento</p>
+                <p class="desc">Encontrá espacios disponibles</p>
             </div>
             <span class="arrow">→</span>
         </a>
 
-        <button id="btnScannerQR" class="action-link" style="width:100%; text-align:left">
-            <span class="icon">📷</span>
+        <button id="btnScannerQR" class="action-link" style="width:100%;text-align:left">
+            <span class="ico ico-scan">◉</span>
             <div class="info">
                 <p class="title">Escanear QR</p>
                 <p class="desc">Leé el código del permisionario</p>
@@ -286,25 +210,16 @@
             <span class="arrow">→</span>
         </button>
 
-        <div id="qrScanner" class="card">
+        <div id="qrScanner" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
             <video id="videoQR" autoplay playsinline></video>
             <canvas id="canvasQR" style="display:none"></canvas>
             <div class="scan-frame"></div>
-            <p id="qrResult" style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:6px;"></p>
-            <button id="btnCerrarScanner" class="close">✕ Cerrar</button>
+            <p id="qrResult" style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:6px"></p>
+            <button id="btnCerrarScanner" class="close">Cerrar</button>
         </div>
 
-        <a href="/conductor/mis-reservas" class="action-link">
-            <span class="icon">📋</span>
-            <div class="info">
-                <p class="title">Mis reservas</p>
-                <p class="desc">Ver y gestionar tus reservas</p>
-            </div>
-            <span class="arrow">→</span>
-        </a>
-
         <a href="/conductor/historial" class="action-link">
-            <span class="icon">⏱️</span>
+            <span class="ico ico-hist">↻</span>
             <div class="info">
                 <p class="title">Historial</p>
                 <p class="desc">Estacionamientos anteriores</p>
@@ -313,36 +228,46 @@
         </a>
     </div>
 
-    <!-- Bottom Nav -->
-    <nav class="bottom-nav">
-        <a href="/conductor" class="active">
-            <span class="nav-icon">🏠</span>
-            <span>Inicio</span>
+    <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
+        <a href="/conductor" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--primary);font-size:11px;padding:6px 12px;font-weight:600">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Inicio
         </a>
-        <a href="/conductor/mapa">
-            <span class="nav-icon">🗺️</span>
-            <span>Mapa</span>
+        <a href="/conductor/buscar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Buscar
         </a>
-        <a href="/conductor/mis-reservas">
-            <span class="nav-icon">📋</span>
-            <span>Reservas</span>
+        <a href="/conductor/estacionar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px">
+            <div style="width:48px;height:48px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 4px 12px rgba(1,92,180,0.3);color:#fff;font-size:20px;font-weight:700">P</div>
+            <span style="font-size:11px;color:var(--primary);font-weight:600">Estacionar</span>
         </a>
-        <a href="/conductor/perfil">
-            <span class="nav-icon">👤</span>
-            <span>Perfil</span>
+        <a href="/conductor/historial" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Historial
+        </a>
+        <a href="/conductor/perfil" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Perfil
         </a>
     </nav>
 
     <script>
-        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
-        let timerInterval = null, sesionActual = null, alertaProgramada = null;
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login'; }
+        const CONDUCTOR_ID = parseInt(localStorage.getItem('user_id') || localStorage.getItem('conductor_id') || '0');
+        let timerInterval = null, sesionActual = null, defaultVehiculoId = null;
 
-        // Greeting
-        document.getElementById('greeting').textContent = `¡${localStorage.getItem('user_nombre') || 'Hola'}!`;
+        document.getElementById('greeting').textContent = (localStorage.getItem('user_nombre') || 'Hola') + '!';
+
+        async function api(url, opts = {}) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = 'Bearer ' + token;
+            return fetch(url, opts);
+        }
 
         async function cargarSesionActiva() {
             try {
-                const res = await fetch(`/api/sesiones/activa/${CONDUCTOR_ID}`);
+                const res = await api('/api/conductor/sesion-activa');
                 sesionActual = await res.json();
                 if (sesionActual && sesionActual.id) mostrarSesionActiva(sesionActual);
                 else ocultarSesionActiva();
@@ -351,74 +276,61 @@
 
         function mostrarSesionActiva(s) {
             document.getElementById('sesionActiva').classList.add('show');
-            document.getElementById('espacioActivo').textContent = s.ubicacion || `Espacio #${s.espacio_id}`;
-            if (s.patente) {
-                document.getElementById('patenteDisplay').style.display = 'block';
-                document.getElementById('patenteTexto').textContent = s.patente;
-            }
-            const btnExt = document.getElementById('btnExtender');
-            btnExt.style.display = s.pagado ? 'block' : 'none';
+            document.getElementById('espacioActivo').textContent = s.ubicacion || 'Espacio #' + s.espacio_id;
+            const veh = s.vehiculo || {};
+            if (veh.patente) { document.getElementById('patenteDisplay').style.display = 'block'; document.getElementById('patenteTexto').textContent = veh.patente + (veh.tipo ? ' (' + veh.tipo + ')' : ''); }
+            const esGratis = s.es_gratuito || (s.exencion && s.exencion !== 'ninguna') || ((veh.tipo || 'auto') === 'bicicleta');
+            const tarifa = s.tarifa_por_hora || 600;
+            const exencion = s.exencion || 'ninguna';
+            const EXENCION_LABELS = { discapacidad: 'Discapacidad - GRATUITO', frentista: 'Frentista - GRATUITO', veterano_malvinas: 'Veterano Malvinas - GRATUITO' };
             const inicio = new Date(s.hora_inicio + (s.hora_inicio.endsWith('Z') ? '' : 'Z')).getTime();
             function tick() {
                 const diff = Date.now() - inicio;
                 const m = Math.floor(diff / 60000), s2 = Math.floor((diff % 60000) / 1000);
-                document.getElementById('timerDisplay').textContent = String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0');
-                document.getElementById('costoDisplay').textContent = '—';
+                document.getElementById('timerDisplay').textContent = String(m).padStart(2, '0') + ':' + String(s2).padStart(2, '0');
+                if (esGratis) { document.getElementById('costoDisplay').textContent = EXENCION_LABELS[exencion] || 'GRATIS'; }
+                else { document.getElementById('costoDisplay').textContent = '$' + Math.ceil(diff / 3600000 * tarifa); }
             }
             tick();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(tick, 1000);
-            if (Notification.permission === 'granted' && !alertaProgramada) {
-                const alerta = (60*60*1000)-(5*60*1000);
-                const restante = inicio+alerta-Date.now();
-                if (restante>0) alertaProgramada = setTimeout(() => {
-                    new Notification('⏰ 5 min restantes', { body: `Tu estacionamiento vence pronto` });
-                }, restante);
-            }
         }
 
         function ocultarSesionActiva() {
             document.getElementById('sesionActiva').classList.remove('show');
             if (timerInterval) clearInterval(timerInterval);
-            if (alertaProgramada) { clearTimeout(alertaProgramada); alertaProgramada = null; }
         }
 
-        document.getElementById('btnCheckout').addEventListener('click', async () => {
-            if (!sesionActual) return;
-            window.location.href = '/conductor/checkout/' + sesionActual.id;
-        });
-
-        document.getElementById('btnExtender').addEventListener('click', async () => {
-            if (!sesionActual) return;
-            const res = await fetch(`/api/sesion/${sesionActual.id}/extender`, { method: 'POST' });
-            if (res.ok) { alert('✅ Sesión extendida'); cargarSesionActiva(); }
-            else { alert('Error'); }
+        document.getElementById('btnCheckout').addEventListener('click', () => {
+            if (sesionActual) window.location.href = '/conductor/checkout/' + sesionActual.id;
         });
 
         document.getElementById('btnVerQR').addEventListener('click', async () => {
             if (!sesionActual) return;
             const c = document.getElementById('qrSalida');
-            if (c.classList.contains('show')) { c.classList.remove('show'); c.innerHTML=''; return; }
-            const res = await fetch('/api/checkin-qr/'+sesionActual.id);
-            const d = await res.json();
-            c.innerHTML = `<img src="data:image/png;base64,${d.qr}" style="width:160px;height:160px;margin:0 auto;display:block"><p style="font-size:11px;opacity:0.7;margin-top:6px;color:#000;text-align:center">QR para finalizar</p>`;
-            c.classList.add('show');
+            if (c.style.display !== 'none') { c.style.display = 'none'; c.innerHTML = ''; return; }
+            try {
+                const res = await api('/api/conductor/sesion-qr/' + sesionActual.id);
+                const d = await res.json();
+                c.innerHTML = '<img src="data:image/png;base64,' + d.qr + '" style="width:160px;height:160px;margin:0 auto;display:block"><p style="font-size:11px;opacity:0.7;margin-top:6px;text-align:center">QR de salida</p>';
+                c.style.display = 'block';
+            } catch {}
         });
 
-        // QR Scanner
         let scanInterval = null, scanningActive = false;
-
         document.getElementById('btnScannerQR').addEventListener('click', async () => {
             const scanner = document.getElementById('qrScanner');
             if (scanner.classList.contains('show')) { scanner.classList.remove('show'); stopScanner(); return; }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
-                document.getElementById('videoQR').srcObject = stream;
+                const vid = document.getElementById('videoQR');
+                vid.srcObject = stream;
+                try { await vid.play(); } catch(e) {}
                 scanner.classList.add('show');
-                document.getElementById('qrResult').textContent = 'Enfocá el QR…';
+                document.getElementById('qrResult').textContent = 'Enfoc\u00e1 el QR...';
                 scanningActive = true;
                 scanLoop();
-            } catch { alert('No se pudo acceder a la cámara'); }
+            } catch { alert('No se pudo acceder a la c\u00e1mara'); }
         });
         document.getElementById('btnCerrarScanner').addEventListener('click', () => { document.getElementById('qrScanner').classList.remove('show'); stopScanner(); });
 
@@ -434,123 +346,108 @@
             const video = document.getElementById('videoQR');
             if (!video.videoWidth || !video.videoHeight) { scanInterval = requestAnimationFrame(scanLoop); return; }
             const canvas = document.getElementById('canvasQR');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
             if (code) {
-                document.getElementById('qrResult').textContent = '✅ QR detectado';
                 try { navigator.vibrate(100); } catch {}
-                const url = code.data;
-                console.log('QR:', url);
-                // check-in QR: /conductor/checkin/perm/{perm_id}
-                const matchPerm = url.match(/\/conductor\/checkin\/perm\/(\d+)/);
-                if (matchPerm) {
-                    const permId = parseInt(matchPerm[1]);
-                    stopScanner();
-                    document.getElementById('qrScanner').classList.remove('show');
-                    if (confirm(`¿Estacionar en esta cuadra?`)) {
-                        document.getElementById('qrResult').textContent = 'Registrando…';
-                        fetch('/api/checkin-por-perm', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ permisionario_id: permId, conductor_id: CONDUCTOR_ID }),
-                        }).then(r => {
-                            if (r.ok) {
-                                alert('✅ Estacionando');
-                                cargarSesionActiva();
-                            } else {
-                                r.json().then(d => alert('Error: ' + (d.detail || 'desconocido')));
-                            }
-                        }).catch(() => alert('Error de conexión'));
-                    }
-                    return;
+                const qrData = code.data;
+                let matchPerm = null;
+                let matchEspacio = null;
+                let matchCheckout = null;
+
+                // URL patterns
+                const urlMatchPerm = qrData.match(/perm(?:isionario)?[=_/](\d+)/);
+                const urlMatchPermParam = qrData.match(/[?&]perm=(\d+)/);
+                const urlMatchEspacio = qrData.match(/espacio[_/](\d+)/);
+                const urlMatchCheckout = qrData.match(/\/conductor\/checkout\/(\d+)/);
+
+                if (urlMatchPerm) matchPerm = parseInt(urlMatchPerm[1]);
+                else if (urlMatchPermParam) matchPerm = parseInt(urlMatchPermParam[1]);
+                if (urlMatchEspacio) matchEspacio = parseInt(urlMatchEspacio[1]);
+                if (urlMatchCheckout) matchCheckout = parseInt(urlMatchCheckout[1]);
+
+                // Try JSON
+                if (!matchPerm && !matchEspacio && !matchCheckout) {
+                    try {
+                        const json = JSON.parse(qrData);
+                        if (json.permisionario_id) matchPerm = parseInt(json.permisionario_id);
+                        if (json.espacio_id) matchEspacio = parseInt(json.espacio_id);
+                    } catch {}
                 }
-                // checkout QR: /conductor/checkout/{sesion_id}
-                const matchCheckout = url.match(/\/conductor\/checkout\/(\d+)/);
+
                 if (matchCheckout) {
-                    const sesionId = parseInt(matchCheckout[1]);
-                    stopScanner();
-                    document.getElementById('qrScanner').classList.remove('show');
-                    if (confirm(`¿Finalizar estacionamiento?`)) {
-                        document.getElementById('qrResult').textContent = 'Finalizando…';
+                    stopScanner(); document.getElementById('qrScanner').classList.remove('show');
+                    window.location.href = '/conductor/checkout/' + matchCheckout;
+                    return;
+                }
+                if (matchPerm) {
+                    stopScanner(); document.getElementById('qrScanner').classList.remove('show');
+                    if (confirm('¿Estacionar en esta cuadra?')) {
+                        document.getElementById('qrResult').textContent = 'Registrando...';
                         try {
-                            const fin = await fetch(`/api/sesion/${sesionId}/finalizar-por-scan`, { method: 'POST' });
-                            const data = await fin.json();
-                            if (fin.ok) {
-                                alert('✅ Estacionamiento finalizado. Costo: $' + (data.costo_total || 0));
-                                cargarSesionActiva();
-                            } else {
-                                // Not ready yet — redirect to checkout page
-                                window.location.href = '/conductor/checkout/' + sesionId;
-                            }
-                        } catch {
-                            alert('Error de conexión');
-                        }
+                            const r = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ permisionario_id: matchPerm, conductor_id: CONDUCTOR_ID, vehiculo_id: defaultVehiculoId, metodo_ingreso: 'qr' }) });
+                            if (r.ok) { const data = await r.json(); if (data.sesion_id) window.location.href = '/conductor/checkout/' + data.sesion_id; else cargarSesionActiva(); } else { const d = await r.json(); alert('Error: ' + (d.detail || 'desconocido')); }
+                        } catch { alert('Error de conexion'); }
                     }
                     return;
                 }
-                // Unknown QR — try again
-                document.getElementById('qrResult').textContent = '🔁 QR no reconocido, intentá de nuevo';
+                if (matchEspacio) {
+                    stopScanner(); document.getElementById('qrScanner').classList.remove('show');
+                    if (confirm('¿Estacionar en este espacio?')) {
+                        document.getElementById('qrResult').textContent = 'Registrando...';
+                        try {
+                            const r = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ espacio_id: matchEspacio, vehiculo_id: defaultVehiculoId, metodo_ingreso: 'qr' }) });
+                            if (r.ok) { const data = await r.json(); if (data.sesion_id) window.location.href = '/conductor/checkout/' + data.sesion_id; else cargarSesionActiva(); } else { const d = await r.json(); alert('Error: ' + (d.detail || 'desconocido')); }
+                        } catch { alert('Error de conexion'); }
+                    }
+                    return;
+                }
+                document.getElementById('qrResult').textContent = 'QR no reconocido';
             } else {
-                document.getElementById('qrResult').textContent = '🔍 Buscando QR…';
+                document.getElementById('qrResult').textContent = 'Buscando QR...';
             }
             scanInterval = requestAnimationFrame(scanLoop);
         }
 
-        if (Notification.permission === 'default') Notification.requestPermission();
-        cargarSesionActiva();
-
-        fetch(`/api/conductores/${CONDUCTOR_ID}/status`).then(r=>r.json()).then(s => {
-            if (s.bloqueado) {
-                document.getElementById('bloqueoBanner').classList.add('show');
-                document.getElementById('motivoBloqueo').textContent = s.motivo_bloqueo || 'Violación de términos';
-            }
-        }).catch(()=>{});
-
-        // ─── Notificaciones ─────────────────────────────────
-        let notifsActuales = [];
-
-        async function checkNotificaciones() {
+        async function cargarStats() {
             try {
-                const res = await fetch(`/api/conductores/${CONDUCTOR_ID}/notificaciones`);
-                const list = await res.json();
-                notifsActuales = list;
-                const badge = document.getElementById('notifBadge');
-                const noLeidas = list.filter(n => !n.leida).length;
-                if (noLeidas > 0) {
-                    badge.style.display = 'flex';
-                    badge.textContent = noLeidas > 9 ? '9+' : noLeidas;
-                } else {
-                    badge.style.display = 'none';
-                }
+                const res = await api('/api/conductor/historial');
+                const data = await res.json();
+                const sesiones = data.sesiones || data || [];
+                const now = new Date();
+                const esteMes = sesiones.filter(s => { const d = new Date(s.hora_inicio); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+                document.getElementById('statSesiones').textContent = esteMes.length;
+            } catch {}
+try {
+                const me = await api('/api/conductor/me');
+                const s = await me.json();
+                document.getElementById('statDeuda').textContent = '$' + (s.saldo_deudor || 0).toFixed(0);
+                if (s.bloqueado) { document.getElementById('bloqueoBanner').classList.add('show'); document.getElementById('motivoBloqueo').textContent = 'Cuenta bloqueada'; }
+                const vehs = s.vehiculos || [];
+                if (vehs.length > 0) defaultVehiculoId = vehs[0].id;
+            } catch {}
+            try {
+                const res = await api('/api/conductor/historial');
+                const data = await res.json();
+                const sesiones = data.sesiones || data || [];
+                const now = new Date();
+                const esteMes = sesiones.filter(s => { const d = new Date(s.hora_inicio); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+                document.getElementById('statSesiones').textContent = esteMes.length;
+            } catch {}
+            try {
+                const vr = await api('/api/conductor/vehiculos');
+                const vehiculos = await vr.json();
+                if (Array.isArray(vehiculos) && vehiculos.length > 0) defaultVehiculoId = vehiculos[0].id;
             } catch {}
         }
 
-        function toggleNotif() {
-            const panel = document.getElementById('notifPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            if (panel.style.display === 'block') {
-                const list = document.getElementById('notifList');
-                if (!notifsActuales.length) {
-                    list.innerHTML = '<p style="font-size:13px;color:var(--text-tertiary)">Sin notificaciones</p>';
-                } else {
-                    list.innerHTML = notifsActuales.map(n => `
-                        <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">
-                            <span>${n.tipo === 'cierre' ? '⏰' : '⚠️'} ${n.mensaje}</span>
-                        </div>
-                    `).join('');
-                }
-            }
-        }
-
-        setInterval(checkNotificaciones, 30000);
-        checkNotificaciones();
+        document.getElementById('userAvatar').textContent = (localStorage.getItem('user_nombre') || 'P').charAt(0);
+        cargarSesionActiva();
+        cargarStats();
     </script>
-    <script>
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
-    </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
 </body>
 </html>

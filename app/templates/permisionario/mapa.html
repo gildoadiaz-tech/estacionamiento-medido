@@ -5,35 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mapa - Permisionario</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
             --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
             --radius: 16px;
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); font-family: 'Manrope', system-ui, -apple-system, sans-serif; }
         @media (prefers-color-scheme: dark) {
             :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
             }
             .bg-white, .card-dark { background: var(--card) !important; }
             .bg-gray-50 { background: var(--bg) !important; }
+            .bg-gray-100 { background: var(--bg) !important; }
             .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
             .text-gray-800, .text-gray-700 { color: var(--text) !important; }
             .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }

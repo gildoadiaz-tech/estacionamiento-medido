@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de email — Estacionamiento Salta</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f5f7fa;
+            color: #1a1a2e;
+            font-family: 'Manrope', system-ui, sans-serif;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e0e5ec;
+            border-radius: 12px;
+            padding: 40px 32px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+            color: #fff;
+        }
+        .icon.success { background: #16a34a; }
+        .icon.error { background: #dc2626; }
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+        p { font-size: 15px; color: #455a72; line-height: 1.5; }
+        .btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 14px 32px;
+            background: #015cb4;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .btn:hover { background: #014a94; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon {{ 'success' if success else 'error' }}">
+            {{ '✓' if success else '✕' }}
+        </div>
+        <h1>{{ 'Email verificado' if success else 'Error de verificación' }}</h1>
+        <p>{{ message }}</p>
+        {% if success %}
+        <a href="/login" class="btn">Iniciar sesión</a>
+        {% else %}
+        <a href="/login" class="btn">Ir al inicio</a>
+        {% endif %}
+    </div>
+</body>
+</html>

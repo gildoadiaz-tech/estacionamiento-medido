@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ingreso — Permisionario</title>
+    <meta name="theme-color" content="#015cb4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 64px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 24px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+
+        .header { margin-bottom: 20px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+        .option-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-decoration: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: border-color 0.2s, background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .option-card:active { background: var(--bg-elevated); }
+        .option-card .ocard-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .option-card .ocard-icon svg { width: 24px; height: 24px; }
+        .ocard-icon-blue { background: var(--primary-light); color: var(--primary); }
+        .ocard-icon-green { background: #dcfce7; color: var(--success); }
+        .ocard-icon-orange { background: #fef3c7; color: var(--warning); }
+        .option-card .ocard-text h3 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+        .option-card .ocard-text p { font-size: 12px; color: var(--text-secondary); }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            margin-top: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+        }
+        .form-group input::placeholder { color: var(--text-tertiary); }
+
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-appearance: none;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .msg {
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-top: 10px;
+            display: none;
+        }
+        .msg.show { display: block; }
+        .msg-success { background: #dcfce7; color: var(--success); }
+        .msg-error { background: #FEF2F2; color: var(--danger); }
+
+        .pending-section { display: none; }
+        .pending-section.show { display: block; }
+        .pending-item {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .pending-item .pending-top { display: flex; justify-content: space-between; align-items: center; }
+        .pending-item .pending-top strong { font-size: 14px; }
+        .pending-item .pending-meta { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .btn-confirm {
+            background: var(--success);
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Registrar ingreso</h1>
+            <p>Elegí cómo registrar la entrada del vehículo</p>
+        </div>
+
+        <div class="option-cards">
+            <a href="/permisionario/qr" class="option-card" style="text-decoration:none;color:var(--text-primary)">
+                <div class="ocard-icon ocard-icon-blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><polyline points="14 14 17 14 17 17 21 17 21 21 14 21"/></svg>
+                </div>
+                <div class="ocard-text">
+                    <h3>Mis QR</h3>
+                    <p>Mostrar mi código QR para que los conductores escaneen</p>
+                </div>
+            </a>
+            <div class="option-card" onclick="loadPendientes()">
+                <div class="ocard-icon ocard-icon-green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="ocard-text">
+                    <h3>Confirmar estacionó aquí</h3>
+                    <p>Conductor tocó "estacionar aquí", pendiente de confirmación</p>
+                </div>
+            </div>
+            <div class="option-card" onclick="toggleManualForm()">
+                <div class="ocard-icon ocard-icon-orange">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <div class="ocard-text">
+                    <h3>Ingreso manual</h3>
+                    <p>Ingresar patente y seleccionar espacio</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pendingSection" class="pending-section">
+            <p class="section-title">Pendientes de confirmación</p>
+            <div id="pendingList"></div>
+        </div>
+
+        <div id="manualSection" style="display:none">
+            <p class="section-title">Ingreso manual</p>
+            <div class="card">
+                <div class="form-group">
+                    <label for="patente">Patente</label>
+                    <input type="text" id="patente" placeholder="AB123CD" maxlength="10" style="text-transform:uppercase">
+                </div>
+                <div class="form-group">
+                    <label for="espacio">Espacio</label>
+                    <select id="espacio">
+                        <option value="">Seleccionar espacio…</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="manualBtn" onclick="registrarManual()">Registrar ingreso</button>
+                <div id="manualMsg" class="msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="/permisionario/panel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Panel
+        </a>
+        <a href="/permisionario/qr">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><polyline points="14 14 17 14 17 17 21 17 21 21 14 21"/></svg>
+            Mis QR
+        </a>
+        <a href="/permisionario/cuadra">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Cuadra
+        </a>
+        <a href="/permisionario/ingreso" class="active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ingreso
+        </a>
+        <a href="/permisionario/salida">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Salida
+        </a>
+    </nav>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token || localStorage.getItem('role') !== 'permisionario') {
+            window.location.href = '/permisionario';
+        }
+
+        const headers = () => ({ 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' });
+        let permId = null;
+
+        function showMsg(el, text, type) {
+            el.textContent = text;
+            el.className = 'msg show ' + (type === 'success' ? 'msg-success' : 'msg-error');
+            setTimeout(() => { el.className = 'msg'; }, 4000);
+        }
+
+        async function loadPermId() {
+            const res = await fetch('/api/permisionario/me', { headers: headers() });
+            const me = await res.json();
+            permId = me.id;
+            loadEspacios();
+        }
+
+        async function loadEspacios() {
+            const res = await fetch('/api/permisionario/espacios', { headers: headers() });
+            const espacios = await res.json();
+            const sel = document.getElementById('espacio');
+            const libres = espacios.filter(e => e.disponible);
+            sel.innerHTML = '<option value="">Seleccionar espacio…</option>' +
+                libres.map(e => `<option value="${e.id}">${e.ubicacion}</option>`).join('');
+        }
+
+        function toggleManualForm() {
+            const sec = document.getElementById('manualSection');
+            sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+            if (sec.style.display === 'block') loadEspacios();
+        }
+
+        async function registrarManual() {
+            const patente = document.getElementById('patente').value.trim().toUpperCase();
+            const espacioId = document.getElementById('espacio').value;
+            const msg = document.getElementById('manualMsg');
+            const btn = document.getElementById('manualBtn');
+
+            if (!patente || !espacioId) {
+                showMsg(msg, 'Completá todos los campos', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Registrando…';
+
+            try {
+                const res = await fetch('/api/permisionario/registro-manual', {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify({
+                        permisionario_id: permId,
+                        patente: patente,
+                        espacio_id: parseInt(espacioId)
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error al registrar');
+                showMsg(msg, 'Vehículo registrado correctamente (Sesión #' + data.sesion_id + ')', 'success');
+                document.getElementById('patente').value = '';
+                document.getElementById('espacio').value = '';
+            } catch (e) {
+                showMsg(msg, e.message, 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Registrar ingreso';
+        }
+
+        async function loadPendientes() {
+            const section = document.getElementById('pendingSection');
+            section.classList.add('show');
+            const list = document.getElementById('pendingList');
+            list.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:16px">Buscando sesiones pendientes…</p>';
+
+            try {
+                const res = await fetch('/api/permisionario/sesiones-activas', { headers: headers() });
+                const activas = await res.json();
+                const pendientes = activas.filter(s => s.metodo_ingreso === 'aqui');
+                if (!pendientes.length) {
+                    list.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:16px">No hay ingresos pendientes de confirmación</p>';
+                } else {
+                    list.innerHTML = pendientes.map(s => `
+                        <div class="pending-item">
+                            <div class="pending-top">
+                                <strong>#${s.id} — ${s.ubicacion || 'Espacio'}</strong>
+                                <button class="btn-confirm" onclick="confirmarIngreso(${s.id})">Confirmar</button>
+                            </div>
+                            <p class="pending-meta">${s.patente || 'Sin patente'} · ${s.conductor_nombre || 'Conductor'}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                list.innerHTML = '<p style="color:var(--danger);font-size:13px;text-align:center">Error al cargar</p>';
+            }
+        }
+
+        async function confirmarIngreso(sesionId) {
+            try {
+                const res = await fetch(`/api/permisionario/confirmar-ingreso/${sesionId}`, {
+                    method: 'POST',
+                    headers: headers()
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error');
+                alert('Ingreso confirmado');
+                loadPendientes();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        loadPermId();
+    </script>
+</body>
+</html>

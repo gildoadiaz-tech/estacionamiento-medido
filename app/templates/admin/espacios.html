@@ -5,148 +5,265 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Espacios</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
             --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
             --radius: 16px;
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
         @media (prefers-color-scheme: dark) {
             :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
             }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            .hover\:bg-gray-50:hover { background: var(--card) !important; }
-            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
-            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
-            a { color: #60a5fa !important; }
         }
-        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .animate-slide-up { animation: slideUp 0.25s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; margin:0; }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; color:var(--text-muted); text-decoration:none; font-size:.9rem; font-weight:500; transition:all .15s; }
+        .sidebar-link:hover,.sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        table { width:100%; border-collapse:collapse; font-size:.875rem; }
+        th { background:var(--bg); padding:12px 16px; text-align:left; font-weight:600; color:var(--text-muted); border-bottom:1px solid var(--border); }
+        td { padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text); }
+        tr:hover td { background:var(--primary-light); }
+        .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.75rem; font-weight:600; }
+        .badge-green { background:#bbf7d0; color:#166534; }
+        .badge-red { background:#fecaca; color:#991b1b; }
+        .btn { padding:10px 20px; border-radius:10px; font-weight:600; font-size:.9rem; cursor:pointer; border:none; transition:all .15s; }
+        .btn-primary { background:var(--primary); color:#fff; }
+        .btn-primary:hover { filter:brightness(1.1); }
+        .btn-sm { padding:4px 10px; font-size:.75rem; border-radius:8px; cursor:pointer; border:none; font-weight:600; transition:all .15s; }
+        .search-box { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:12px; font-size:.9rem; font-family:inherit; background:var(--card); color:var(--text); outline:none; }
+        .search-box:focus { border-color:var(--primary); }
+        select.search-box { appearance:auto; }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="max-w-4xl mx-auto p-6">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/admin" class="text-2xl">←</a>
-            <h1 class="text-2xl font-bold">Espacios de Estacionamiento</h1>
-        </div>
+<body>
+    <div style="display:flex;min-height:100vh;background:var(--bg);">
+        <aside style="width:260px;background:var(--card);border-right:1px solid var(--border);padding:20px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.1rem;">P</div>
+                <div>
+                    <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.95rem;">Estacionamiento</div>
+                    <div style="font-size:.7rem;color:var(--text-muted);">Admin v2.0</div>
+                </div>
+            </div>
+            <nav style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin" class="sidebar-link">&#128202; Dashboard</a>
+                <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/espacios" class="sidebar-link active">&#128205; Espacios</a>
+                <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
+                <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
+                <a href="/admin/deudas" class="sidebar-link">&#128176; Deudas</a>
+                <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+            </nav>
+        </aside>
+        <main style="flex:1;padding:24px;margin-left:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <div>
+                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Espacios</h1>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Configuraci&oacute;n de espacios, tarifas y permisionarios</p>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary" onclick="toggleView()" id="toggleViewBtn">Vista mapa</button>
+                </div>
+            </div>
 
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-            <h2 class="font-semibold mb-4">Nuevo Espacio</h2>
-            <form id="formEsp" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <input name="ubicacion" placeholder="Dirección" required class="border rounded-xl px-4 py-2">
-                <input name="precio_por_hora" type="number" step="0.5" placeholder="Precio/hora" value="50" class="border rounded-xl px-4 py-2">
-                <button type="submit" class="bg-green-600 text-white py-2 rounded-xl hover:bg-green-700">Crear</button>
-            </form>
-        </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                <input type="text" id="filterCalle" class="search-box" placeholder="Buscar por calle..." oninput="cargar()">
+                <select id="filterPermisionario" class="search-box" onchange="cargar()">
+                    <option value="">Todos los permisionarios</option>
+                </select>
+                <select id="filterEstado" class="search-box" onchange="cargar()">
+                    <option value="">Todos los estados</option>
+                    <option value="disponible">Disponible</option>
+                    <option value="ocupado">Ocupado</option>
+                </select>
+            </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b">
-                    <tr>
-                        <th class="text-left p-4">ID</th>
-                        <th class="text-left p-4">Ubicación</th>
-                        <th class="text-left p-4">Precio/h</th>
-                        <th class="text-left p-4">Estado</th>
-                        <th class="text-left p-4">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaEspacios"></tbody>
-            </table>
-        </div>
+            <div id="tableView">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Calle</th>
+                                    <th>Precio/h</th>
+                                    <th>Permisionario</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaEspacios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mapView" style="display:none;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+                    <div id="mapa" style="width:100%;height:500px;"></div>
+                </div>
+            </div>
+        </main>
     </div>
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        document.getElementById("formEsp").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const data = Object.fromEntries(fd);
-            data.precio_por_hora = parseFloat(data.precio_por_hora);
-            await fetch("/api/espacios", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(data),
-            });
-            e.target.reset();
-        cargar();
+        const token = localStorage.getItem('token');
+        let currentView = 'table';
+        let map = null;
 
-        async function editarEspacio(id) {
-            const ubi = prompt('Nueva ubicación:');
-            if (!ubi) return;
-            const precio = prompt('Nuevo precio por hora (ej: 600):');
-            if (!precio) return;
-            const token = localStorage.getItem('token');
+        function toggleView() {
+            if (currentView === 'table') {
+                currentView = 'map';
+                document.getElementById('tableView').style.display = 'none';
+                document.getElementById('mapView').style.display = 'block';
+                document.getElementById('toggleViewBtn').textContent = 'Vista tabla';
+                setTimeout(initMap, 100);
+            } else {
+                currentView = 'table';
+                document.getElementById('tableView').style.display = 'block';
+                document.getElementById('mapView').style.display = 'none';
+                document.getElementById('toggleViewBtn').textContent = 'Vista mapa';
+            }
+        }
+
+        function initMap() {
+            if (!map) {
+                map = L.map('mapa').setView([-24.7858, -65.4056], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '\u00a9 OpenStreetMap', maxZoom: 19,
+                }).addTo(map);
+            }
+            setTimeout(() => map.invalidateSize(), 200);
+            cargarMapaEspacios();
+        }
+
+        async function cargarMapaEspacios() {
+            if (!map) return;
+            map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+            try {
+                const res = await fetch('/api/espacios', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                const espacios = Array.isArray(data) ? data : [];
+                espacios.forEach(e => {
+                    if (!e.lat || !e.lng) return;
+                    const color = e.disponible ? '#16a34a' : '#dc2626';
+                    const icon = L.divIcon({
+                        html: '<div style="background:' + color + ';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3);"></div>',
+                        className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+                    });
+                    L.marker([e.lat, e.lng], { icon }).addTo(map).bindPopup(
+                        '<b>' + e.ubicacion + '</b><br>Precio/h: $' + e.precio_por_hora + '<br>' + (e.disponible ? 'Disponible' : 'Ocupado')
+                    );
+                });
+            } catch {}
+        }
+
+        async function editarPrecio(id, precioActual) {
+            const precio = prompt('Nuevo precio por hora:', precioActual);
+            if (precio === null) return;
             const res = await fetch('/api/admin/espacios/' + id, {
                 method: 'PUT',
-                headers: {'Content-Type':'application/json','Authorization': 'Bearer ' + token},
-                body: JSON.stringify({ ubicacion: ubi, precio_por_hora: parseFloat(precio) }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ precio_por_hora: parseFloat(precio) })
             });
-            if (res.ok) { cargar(); alert('✅ Espacio actualizado'); }
-            else { alert('❌ Error al actualizar'); }
+            if (res.ok) { cargar(); alert('Precio actualizado'); }
+            else { alert('Error al actualizar precio'); }
+        }
+
+        async function asignarPermisionario(id) {
+            const permId = prompt('ID del permisionario a asignar (vaciar para desasignar):');
+            if (permId === null) return;
+            const body = permId ? { permisionario_id: parseInt(permId) } : { permisionario_id: null };
+            const res = await fetch('/api/admin/espacios/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) { cargar(); alert('Permisionario asignado'); }
+            else { alert('Error al asignar permisionario'); }
         }
 
         async function eliminarEspacio(id) {
-            if (!confirm('¿Eliminar espacio #' + id + '?')) return;
-            const token = localStorage.getItem('token');
+            if (!confirm('\u00bfEliminar espacio #' + id + '?')) return;
             const res = await fetch('/api/admin/espacios/' + id, {
                 method: 'DELETE',
-                headers: {'Authorization': 'Bearer ' + token},
+                headers: { 'Authorization': 'Bearer ' + token }
             });
-            if (res.ok) { cargar(); alert('✅ Espacio eliminado'); }
-            else { alert('❌ Error al eliminar'); }
+            if (res.ok) { cargar(); }
+            else { alert('Error al eliminar'); }
         }
-        });
 
         async function cargar() {
-            const res = await fetch("/api/espacios");
-            const data = await res.json();
-            document.getElementById("tablaEspacios").innerHTML = data.map(e => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-4 font-mono">${e.id}</td>
-                    <td class="p-4">${e.ubicacion}</td>
-                    <td class="p-4">$${e.precio_por_hora}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${e.disponible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${e.disponible ? 'Disponible' : 'Ocupado'}</span></td>
-                    <td class="p-4">
-                        <button onclick="editarEspacio(${e.id})" class="text-blue-600 hover:underline text-xs mr-2">✏️ Editar</button>
-                        <button onclick="eliminarEspacio(${e.id})" class="text-red-600 hover:underline text-xs">🗑️</button>
-                    </td>
-                </tr>
-            `).join("");
+            const calle = document.getElementById('filterCalle').value.trim();
+            const permId = document.getElementById('filterPermisionario').value;
+            const estado = document.getElementById('filterEstado').value;
+
+            try {
+                const res = await fetch('/api/espacios', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                let espacios = Array.isArray(data) ? data : [];
+
+                if (calle) espacios = espacios.filter(e => (e.ubicacion || '').toLowerCase().includes(calle.toLowerCase()));
+                if (permId) espacios = espacios.filter(e => String(e.permisionario_id) === permId);
+                if (estado === 'disponible') espacios = espacios.filter(e => e.disponible);
+                if (estado === 'ocupado') espacios = espacios.filter(e => !e.disponible);
+
+                document.getElementById('tablaEspacios').innerHTML = espacios.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No se encontraron espacios</td></tr>'
+                    : espacios.map(e => `<tr>
+                        <td>${e.id}</td>
+                        <td>${e.ubicacion}</td>
+                        <td>$${e.precio_por_hora}</td>
+                        <td>${e.permisionario_nombre || e.permisionario_id || '-'}</td>
+                        <td>${e.disponible ? '<span class="badge badge-green">Disponible</span>' : '<span class="badge badge-red">Ocupado</span>'}</td>
+                        <td>
+                            <button onclick="editarPrecio(${e.id}, ${e.precio_por_hora})" class="btn-sm" style="background:var(--primary);color:#fff;margin-right:4px;">Precio</button>
+                            <button onclick="asignarPermisionario(${e.id})" class="btn-sm" style="background:#9333ea;color:#fff;margin-right:4px;">Asignar</button>
+                            <button onclick="eliminarEspacio(${e.id})" class="btn-sm" style="background:#dc2626;color:#fff;">Eliminar</button>
+                        </td>
+                    </tr>`).join('');
+
+                const permRes = await fetch('/api/permisionarios', { headers: { 'Authorization': 'Bearer ' + token } });
+                const perms = await permRes.json();
+                const permisosSelect = document.getElementById('filterPermisionario');
+                const currentVal = permisosSelect.value;
+                permisosSelect.innerHTML = '<option value="">Todos los permisionarios</option>' +
+                    (Array.isArray(perms) ? perms : []).map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+                permisosSelect.value = currentVal;
+            } catch {
+                document.getElementById('tablaEspacios').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
+            }
         }
+
         cargar();
     </script>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     </script>
 </body>
 </html>

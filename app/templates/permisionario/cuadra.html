@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cuadra — Permisionario</title>
+    <meta name="theme-color" content="#015cb4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --nav-height: 64px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 300px + 24px);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+
+        .header { margin-bottom: 14px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+
+        #map {
+            width: 100%;
+            height: 260px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            z-index: 1;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+
+        .space-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+        .space-item:active { background: var(--bg-elevated); }
+        .space-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .space-dot.libre { background: var(--success); }
+        .space-dot.ocupado { background: var(--danger); }
+        .space-item .info { flex: 1; min-width: 0; }
+        .space-item .location { font-size: 14px; font-weight: 600; }
+        .space-item .detail { font-size: 12px; color: var(--text-secondary); }
+        .space-item .badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .badge-libre { background: #dcfce7; color: var(--success); }
+        .badge-ocupado { background: #FEF2F2; color: var(--danger); }
+
+        .empty {
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+        .mano-tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 16px;
+            margin: 3px 4px 3px 0;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .bottom-nav a {
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav a.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mi Cuadra</h1>
+        </div>
+
+        <div id="manosInfo" class="card" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);margin-bottom:14px">
+            <p style="font-size:13px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Mis cuadras asignadas</p>
+            <div id="manosList"></div>
+        </div>
+
+        <div id="map"></div>
+
+        <p class="section-title">Espacios</p>
+        <div id="spacesList">
+            <p class="empty">Cargando…</p>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="/permisionario/panel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Panel
+        </a>
+        <a href="/permisionario/qr">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><polyline points="14 14 17 14 17 17 21 17 21 21 14 21"/></svg>
+            Mis QR
+        </a>
+        <a href="/permisionario/cuadra" class="active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Cuadra
+        </a>
+        <a href="/permisionario/ingreso">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ingreso
+        </a>
+        <a href="/permisionario/salida">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Salida
+        </a>
+    </nav>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token || localStorage.getItem('role') !== 'permisionario') {
+            window.location.href = '/permisionario';
+        }
+
+        const SALTA_CENTER = [-24.7883, -65.4106];
+        let map, markers = [];
+        let allSpaces = [];
+        let activeSessions = [];
+
+        async function loadData() {
+            try {
+                const [espRes, actRes, meRes] = await Promise.all([
+                    fetch('/api/permisionario/espacios', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/permisionario/sesiones-activas', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/permisionario/me', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                if (!espRes.ok || !actRes.ok || !meRes.ok) { window.location.href = '/permisionario'; return; }
+                allSpaces = await espRes.json();
+                activeSessions = await actRes.json();
+                const me = await meRes.json();
+                renderManos(me.manos || []);
+                renderMap();
+                renderList();
+            } catch (e) {
+                document.getElementById('spacesList').innerHTML = '<p class="empty">Error al cargar</p>';
+            }
+        }
+
+        function renderManos(manos) {
+            const container = document.getElementById('manosInfo');
+            const list = document.getElementById('manosList');
+            if (!manos.length) { container.style.display = 'none'; return; }
+            container.style.display = 'block';
+            list.innerHTML = manos.map(m => {
+                const label = m.lado === 'par' ? 'Par' : 'Impar';
+                const altura = (m.altura_desde || '?') + ' - ' + (m.altura_hasta || '?');
+                return '<span class="mano-tag">' + m.calle + ' ' + altura + ' (' + label + ')</span>';
+            }).join('');
+        }
+
+        function initMap() {
+            map = L.map('map').setView(SALTA_CENTER, 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        function renderMap() {
+            if (!map) return;
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            const occupiedIds = new Set(activeSessions.map(s => s.espacio_id));
+            const bounds = [];
+
+            allSpaces.forEach(e => {
+                if (!e.lat || !e.lng) return;
+                const isOccupied = occupiedIds.has(e.id) || !e.disponible;
+                const color = isOccupied ? '#dc2626' : '#16a34a';
+                const marker = L.circleMarker([e.lat, e.lng], {
+                    radius: 9,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.85,
+                    weight: 2
+                }).addTo(map);
+
+                const plate = e.sesion_activa ? e.sesion_activa.patente : '';
+                const popup = `<div style="font-family:Manrope,sans-serif;min-width:140px">
+                    <strong>${e.ubicacion}</strong><br>
+                    <span style="color:${isOccupied ? '#dc2626' : '#16a34a'};font-weight:600">${isOccupied ? 'Ocupado' : 'Libre'}</span>
+                    ${plate ? `<br>Patente: <strong>${plate}</strong>` : ''}
+                </div>`;
+                marker.bindPopup(popup);
+                markers.push(marker);
+                bounds.push([e.lat, e.lng]);
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
+            }
+        }
+
+        function renderList() {
+            const occupiedIds = new Set(activeSessions.map(s => s.espacio_id));
+            const list = document.getElementById('spacesList');
+
+            if (!allSpaces.length) {
+                list.innerHTML = '<p class="empty">No hay espacios asignados</p>';
+                return;
+            }
+
+            list.innerHTML = allSpaces.map(e => {
+                const isOccupied = occupiedIds.has(e.id) || !e.disponible;
+                const statusClass = isOccupied ? 'ocupado' : 'libre';
+                const statusText = isOccupied ? 'Ocupado' : 'Libre';
+                const badgeClass = isOccupied ? 'badge-ocupado' : 'badge-libre';
+                const plate = e.sesion_activa ? e.sesion_activa.patente : '';
+                const detail = isOccupied && plate ? `Patente: ${plate}` : `$${e.precio_por_hora}/h`;
+
+                return `
+                    <a href="/permisionario/ingreso" class="space-item">
+                        <div class="space-dot ${statusClass}"></div>
+                        <div class="info">
+                            <p class="location">${e.ubicacion}</p>
+                            <p class="detail">${detail}</p>
+                        </div>
+                        <span class="badge ${badgeClass}">${statusText}</span>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        initMap();
+        loadData();
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>

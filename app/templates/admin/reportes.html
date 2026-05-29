@@ -5,164 +5,278 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Reportes</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
-    <style>
-        :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --radius: 16px;
-        }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
-            }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            .hover\:bg-gray-50:hover { background: var(--card) !important; }
-            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
-            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
-            a { color: #60a5fa !important; }
-        }
-        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .animate-slide-up { animation: slideUp 0.25s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    </style>
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
+            --radius: 16px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #4da3e0;
+                --primary-light: #152238;
+                --primary-dark: #93c5fd;
+                --accent: #f472b6;
+                --bg: #0A1628;
+                --card: #152238;
+                --border: #233352;
+                --text: #F0F4FF;
+                --text-muted: #8B9DC3;
+            }
+        }
+        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; margin:0; }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; color:var(--text-muted); text-decoration:none; font-size:.9rem; font-weight:500; transition:all .15s; }
+        .sidebar-link:hover,.sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        .btn { padding:10px 20px; border-radius:10px; font-weight:600; font-size:.9rem; cursor:pointer; border:none; transition:all .15s; }
+        .btn-primary { background:var(--primary); color:#fff; }
+        .btn-primary:hover { filter:brightness(1.1); }
+        .btn-secondary { background:var(--bg); color:var(--text); border:1px solid var(--border); }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+        .stat-card .stat-number { font-family:'Montserrat',sans-serif; font-size:1.8rem; font-weight:800; }
+        .stat-card .stat-label { color:var(--text-muted); font-size:.85rem; margin-top:4px; }
+        table { width:100%; border-collapse:collapse; font-size:.875rem; }
+        th { background:var(--bg); padding:12px 16px; text-align:left; font-weight:600; color:var(--text-muted); border-bottom:1px solid var(--border); }
+        td { padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text); }
+        tr:hover td { background:var(--primary-light); }
+        .filter-input { padding:10px 14px; border:1px solid var(--border); border-radius:10px; font-size:.9rem; font-family:inherit; background:var(--card); color:var(--text); outline:none; }
+        .filter-input:focus { border-color:var(--primary); }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/admin" class="text-2xl">←</a>
-            <h1 class="text-2xl font-bold">Reportes</h1>
-        </div>
+<body>
+    <div style="display:flex;min-height:100vh;background:var(--bg);">
+        <aside style="width:260px;background:var(--card);border-right:1px solid var(--border);padding:20px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.1rem;">P</div>
+                <div>
+                    <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.95rem;">Estacionamiento</div>
+                    <div style="font-size:.7rem;color:var(--text-muted);">Admin v2.0</div>
+                </div>
+            </div>
+            <nav style="display:flex;flex-direction:column;gap:2px;">
+                <a href="/admin" class="sidebar-link">&#128202; Dashboard</a>
+                <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
+                <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
+                <a href="/admin/reportes" class="sidebar-link active">&#128200; Reportes</a>
+                <a href="/admin/deudas" class="sidebar-link">&#128176; Deudas</a>
+                <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+            </nav>
+        </aside>
+        <main style="flex:1;padding:24px;margin-left:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <div>
+                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Reportes</h1>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Recaudaci&oacute;n, ocupaci&oacute;n y estad&iacute;sticas</p>
+                </div>
+                <button class="btn btn-primary" onclick="exportarCSV()">&#128190; Exportar CSV</button>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 class="font-semibold text-gray-700 mb-2">💰 Recaudación Total</h3>
-                <p class="text-3xl font-bold text-green-600" id="recaudacionTotal">$0</p>
-                <p class="text-xs text-gray-400">De todas las sesiones finalizadas</p>
+            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
+                <label style="font-size:.85rem;font-weight:600;">Desde:</label>
+                <input type="date" id="fechaDesde" class="filter-input" onchange="cargarReportes()">
+                <label style="font-size:.85rem;font-weight:600;">Hasta:</label>
+                <input type="date" id="fechaHasta" class="filter-input" onchange="cargarReportes()">
+                <select id="agrupacion" class="filter-input" onchange="cargarReportes()">
+                    <option value="dia">Por d&iacute;a</option>
+                    <option value="semana">Por semana</option>
+                    <option value="mes">Por mes</option>
+                </select>
             </div>
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 class="font-semibold text-gray-700 mb-2">📊 Ocupación Promedio</h3>
-                <p class="text-3xl font-bold text-blue-600" id="ocupacionPromedio">0%</p>
-                <p class="text-xs text-gray-400">De los espacios registrados</p>
-            </div>
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 class="font-semibold text-gray-700 mb-2">🎯 Tarifa Promedio</h3>
-                <p class="text-3xl font-bold text-purple-600" id="tarifaPromedio">$0</p>
-                <p class="text-xs text-gray-400">Precio por hora promedio</p>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 class="font-semibold mb-4">Sesiones por día (últimos 7)</h3>
-                <canvas id="graficoSesiones"></canvas>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#16a34a;" id="recaudacionTotal">$0</div>
+                    <div class="stat-label">Recaudaci&oacute;n total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--primary);" id="totalSesiones">0</div>
+                    <div class="stat-label">Total sesiones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#9333ea;" id="ocupacionPromedio">0%</div>
+                    <div class="stat-label">Ocupaci&oacute;n promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#eab308;" id="ticketPromedio">$0</div>
+                    <div class="stat-label">Ticket promedio</div>
+                </div>
             </div>
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 class="font-semibold mb-4">Estado de pagos</h3>
-                <canvas id="graficoPagos"></canvas>
-            </div>
-        </div>
 
-        <div class="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 class="font-semibold mb-4">📋 Últimas 10 Sesiones</h3>
-            <div id="ultimasSesiones" class="text-sm"></div>
-        </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
+                    <h3 style="font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:700;margin:0 0 16px;">Recaudaci&oacute;n por per&iacute;odo</h3>
+                    <canvas id="graficoRecaudacion"></canvas>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
+                    <h3 style="font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:700;margin:0 0 16px;">Estado de pagos</h3>
+                    <canvas id="graficoPagos"></canvas>
+                </div>
+            </div>
+
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-family:'Montserrat',sans-serif;">Detalle de recaudaci&oacute;n</div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Per&iacute;odo</th>
+                                <th>Sesiones</th>
+                                <th>Recaudaci&oacute;n</th>
+                                <th>Pagadas</th>
+                                <th>Pendientes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReporte"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        async function cargarReportes() {
-            const res = await fetch("/api/sesiones");
-            const sesiones = await res.json();
-            const resEsp = await fetch("/api/espacios");
-            const espacios = await resEsp.json();
+        const token = localStorage.getItem('token');
+        let chartRecaudacion = null;
+        let chartPagos = null;
 
-            const finalizadas = sesiones.filter(s => s.hora_fin && s.costo_total);
-            const totalRecaudado = finalizadas.reduce((sum, s) => sum + s.costo_total, 0);
-            document.getElementById("recaudacionTotal").textContent = "$" + totalRecaudado;
-
-            const activas = sesiones.filter(s => !s.hora_fin).length;
-            const ocupacion = espacios.length > 0 ? Math.round((activas / espacios.length) * 100) : 0;
-            document.getElementById("ocupacionPromedio").textContent = ocupacion + "%";
-
-            const tarifaProm = espacios.length > 0 ? espacios.reduce((sum, e) => sum + e.precio_por_hora, 0) / espacios.length : 0;
-            document.getElementById("tarifaPromedio").textContent = "$" + tarifaProm.toFixed(1);
-
-            const hoy = new Date();
-            const labels = [];
-            const data = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date(hoy);
-                d.setDate(d.getDate() - i);
-                labels.push(d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric" }));
-                const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                const fin = new Date(inicio);
-                fin.setDate(fin.getDate() + 1);
-                data.push(sesiones.filter(s => {
-                    const si = new Date(s.hora_inicio);
-                    return si >= inicio && si < fin;
-                }).length);
-            }
-
-            new Chart(document.getElementById("graficoSesiones"), {
-                type: "bar",
-                data: { labels, datasets: [{ label: "Sesiones", data, backgroundColor: "#3b82f6" }] },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-
-            const pagados = sesiones.filter(s => s.pagado).length;
-            const noPagados = sesiones.filter(s => !s.pagado && s.hora_fin).length;
-            new Chart(document.getElementById("graficoPagos"), {
-                type: "doughnut",
-                data: {
-                    labels: ["Pagados", "Pendientes"],
-                    datasets: [{ data: [pagados, noPagados], backgroundColor: ["#22c55e", "#eab308"] }]
-                },
-                options: { responsive: true }
-            });
-
-            const ultimas = finalizadas.slice(-10).reverse();
-            document.getElementById("ultimasSesiones").innerHTML = ultimas.length === 0
-                ? '<p class="text-gray-400">Sin sesiones finalizadas</p>'
-                : ultimas.map(s => `
-                    <div class="flex justify-between py-2 border-b last:border-0">
-                        <span>Espacio #${s.espacio_id} · Conductor #${s.conductor_id}</span>
-                        <span class="font-medium">$${s.costo_total} · ${s.pagado ? '✅' : '⏳'}</span>
-                    </div>
-                `).join("");
+        async function exportarCSV() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            window.open('/api/admin/reportes/csv?token=' + token + (desde ? '&desde=' + desde : '') + (hasta ? '&hasta=' + hasta : ''), '_blank');
         }
 
+        async function cargarReportes() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            const agrupacion = document.getElementById('agrupacion').value;
+            const params = new URLSearchParams();
+            if (desde) params.set('desde', desde);
+            if (hasta) params.set('hasta', hasta);
+            params.set('agrupacion', agrupacion);
+
+            try {
+                const res = await fetch('/api/sesiones?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
+                const sesiones = await res.json();
+                const data = Array.isArray(sesiones) ? sesiones : [];
+
+                const finalizadas = data.filter(s => s.hora_fin && s.costo_total);
+                const totalRecaudado = finalizadas.reduce((sum, s) => sum + (s.costo_total || 0), 0);
+                document.getElementById('recaudacionTotal').textContent = '$' + totalRecaudado.toLocaleString('es-AR');
+                document.getElementById('totalSesiones').textContent = data.length;
+                const ticketProm = finalizadas.length > 0 ? totalRecaudado / finalizadas.length : 0;
+                document.getElementById('ticketPromedio').textContent = '$' + Math.round(ticketProm).toLocaleString('es-AR');
+
+                const resEsp = await fetch('/api/espacios', { headers: { 'Authorization': 'Bearer ' + token } });
+                const espacios = await resEsp.json();
+                const activas = data.filter(s => !s.hora_fin).length;
+                const ocupacion = espacios.length > 0 ? Math.round((activas / espacios.length) * 100) : 0;
+                document.getElementById('ocupacionPromedio').textContent = ocupacion + '%';
+
+                const labels = [];
+                const recaudacionData = [];
+                const sesionesData = [];
+                const hoy = new Date();
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(hoy);
+                    d.setDate(d.getDate() - i);
+                    const label = d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' });
+                    labels.push(label);
+                    const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    const fin = new Date(inicio);
+                    fin.setDate(fin.getDate() + 1);
+                    const delDia = data.filter(s => {
+                        const si = new Date(s.hora_inicio);
+                        return si >= inicio && si < fin;
+                    });
+                    sesionesData.push(delDia.length);
+                    recaudacionData.push(delDia.filter(s => s.costo_total).reduce((sum, s) => sum + (s.costo_total || 0), 0));
+                }
+
+                if (chartRecaudacion) chartRecaudacion.destroy();
+                chartRecaudacion = new Chart(document.getElementById('graficoRecaudacion'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: 'Recaudaci\u00f3n ($)', data: recaudacionData, backgroundColor: 'rgba(1,92,180,0.8)', yAxisID: 'y' },
+                            { label: 'Sesiones', data: sesionesData, type: 'line', borderColor: '#ec0f7f', backgroundColor: 'rgba(236,15,127,0.1)', fill: true, yAxisID: 'y1' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, position: 'left' },
+                            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+
+                const pagadas = data.filter(s => s.pagado).length;
+                const pendientes = data.filter(s => !s.pagado && s.hora_fin).length;
+                if (chartPagos) chartPagos.destroy();
+                chartPagos = new Chart(document.getElementById('graficoPagos'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pagadas', 'Pendientes'],
+                        datasets: [{ data: [pagadas, pendientes], backgroundColor: ['#16a34a', '#eab308'] }]
+                    },
+                    options: { responsive: true }
+                });
+
+                // Build table grouped by period
+                const grouped = {};
+                data.forEach(s => {
+                    const d = new Date(s.hora_inicio);
+                    let key;
+                    if (agrupacion === 'mes') key = d.toLocaleDateString('es-AR', { year: 'numeric', month: 'long' });
+                    else if (agrupacion === 'semana') key = 'Semana del ' + d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+                    else key = d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+                    if (!grouped[key]) grouped[key] = { sesiones: 0, recaudacion: 0, pagadas: 0, pendientes: 0 };
+                    grouped[key].sesiones++;
+                    if (s.costo_total) grouped[key].recaudacion += s.costo_total;
+                    if (s.pagado) grouped[key].pagadas++;
+                    else if (s.hora_fin) grouped[key].pendientes++;
+                });
+
+                document.getElementById('tablaReporte').innerHTML = Object.entries(grouped).length === 0
+                    ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Sin datos para el per\u00edodo seleccionado</td></tr>'
+                    : Object.entries(grouped).map(([k, v]) => `<tr>
+                        <td>${k}</td>
+                        <td>${v.sesiones}</td>
+                        <td>$${v.recaudacion.toLocaleString('es-AR')}</td>
+                        <td>${v.pagadas}</td>
+                        <td>${v.pendientes}</td>
+                    </tr>`).join('');
+
+            } catch {
+                document.getElementById('tablaReporte').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Error al cargar reportes</td></tr>';
+            }
+        }
+
+        const hoy = new Date();
+        const hace7 = new Date(hoy);
+        hace7.setDate(hace7.getDate() - 7);
+        document.getElementById('fechaDesde').value = hace7.toISOString().split('T')[0];
+        document.getElementById('fechaHasta').value = hoy.toISOString().split('T')[0];
         cargarReportes();
     </script>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis QR — Permisionario</title>
+    <title>Espacios — Permisionario</title>
     <meta name="theme-color" content="#015cb4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -44,58 +44,105 @@
         }
         .container { max-width: 420px; margin: 0 auto; padding: 16px; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .header .title { font-size: 20px; font-weight: 700; }
+        .header { margin-bottom: 16px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
 
-        .mano-card {
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .filter-btn {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-appearance: none;
+            transition: all 0.15s;
+        }
+        .filter-btn.active, .filter-btn:active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .filter-btn.libre { border-color: var(--success); color: var(--success); }
+        .filter-btn.libre.active { background: var(--success); color: #fff; }
+        .filter-btn.ocupado { border-color: var(--danger); color: var(--danger); }
+        .filter-btn.ocupado.active { background: var(--danger); color: #fff; }
+
+        .spaces-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .space-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px;
+            padding: 14px;
             box-shadow: var(--shadow);
-            margin-bottom: 14px;
-            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .mano-card .mano-info {
-            font-size: 16px;
+        .space-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+        }
+        .space-card.libre::before { background: var(--success); }
+        .space-card.ocupado::before { background: var(--danger); }
+        .space-card .space-num {
+            font-size: 28px;
             font-weight: 700;
+            line-height: 1;
             margin-bottom: 4px;
         }
-        .mano-card .mano-lado {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-        }
-        .mano-card .qr-wrap {
-            background: #fff;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 16px;
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-        .mano-card .qr-wrap img {
-            width: 180px;
-            height: 180px;
-            display: block;
-        }
-        .mano-card .qr-hint {
+        .space-card .space-street {
             font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .space-card .space-status {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .space-card.libre .space-status {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        .space-card.ocupado .space-status {
+            background: #FEF2F2;
+            color: var(--danger);
+        }
+        .space-card .space-plate {
+            font-size: 12px;
+            font-weight: 600;
             color: var(--text-tertiary);
+            margin-top: 4px;
         }
 
         .empty {
             text-align: center;
             color: var(--text-tertiary);
-            font-size: 14px;
             padding: 40px 20px;
+            font-size: 14px;
         }
-        .loading { text-align: center; padding: 40px; color: var(--text-tertiary); }
 
         .bottom-nav {
             position: fixed;
@@ -128,10 +175,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">Mis QR</h1>
+            <h1>Espacios</h1>
         </div>
-        <div id="qrContainer" class="loading">
-            <p>Cargando…</p>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterSpaces('todos')">Todos</button>
+            <button class="filter-btn libre" onclick="filterSpaces('libre')">Libres</button>
+            <button class="filter-btn ocupado" onclick="filterSpaces('ocupado')">Ocupados</button>
+        </div>
+
+        <div id="spacesGrid" class="spaces-grid">
+            <p class="empty">Cargando…</p>
         </div>
     </div>
 
@@ -140,7 +194,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Panel
         </a>
-        <a href="/permisionario/qr" class="active">
+        <a href="/permisionario/qr">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><polyline points="14 14 17 14 17 17 21 17 21 21 14 21"/></svg>
             Mis QR
         </a>
@@ -164,55 +218,56 @@
             window.location.href = '/permisionario';
         }
 
-        async function loadQRs() {
+        let allSpaces = [];
+        let currentFilter = 'todos';
+
+        async function loadSpaces() {
             try {
-                const res = await fetch('/api/permisionario/qr-data', {
+                const res = await fetch('/api/permisionario/espacios', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 if (!res.ok) { window.location.href = '/permisionario'; return; }
-                const data = await res.json();
-
-                const container = document.getElementById('qrContainer');
-
-                if (!data.manos || data.manos.length === 0) {
-                    const generalQR = `
-                        <div class="mano-card">
-                            <p class="mano-info">${data.nombre || 'Permisionario'}</p>
-                            <p class="mano-lado">QR General</p>
-                            <div class="qr-wrap">
-                                <img src="data:image/png;base64,${data.qr_base64}" alt="QR">
-                            </div>
-                            <p class="qr-hint">Los conductores escanean este código para estacionar</p>
-                        </div>
-                    `;
-                    container.innerHTML = generalQR;
-                } else {
-                    container.innerHTML = data.manos.map(mano => {
-                        const qrPayload = JSON.stringify({
-                            permisionario_id: data.permisionario_id,
-                            mano_id: mano.id,
-                            calle: mano.calle,
-                            lado: mano.lado
-                        });
-                        const altText = mano.calle + ' - ' + (mano.lado === 'par' ? 'Lado par' : 'Lado impar');
-                        return `
-                            <div class="mano-card">
-                                <p class="mano-info">${mano.calle}</p>
-                                <p class="mano-lado">Lado ${mano.lado === 'par' ? 'par' : 'impar'} · ${mano.altura_desde ? mano.altura_desde + '-' + mano.altura_hasta : ''}</p>
-                                <div class="qr-wrap">
-                                    <img src="data:image/png;base64,${data.qr_base64}" alt="QR ${altText}">
-                                </div>
-                                <p class="qr-hint">Escaneá para estacionar en ${mano.calle}, lado ${mano.lado === 'par' ? 'par' : 'impar'}</p>
-                            </div>
-                        `;
-                    }).join('');
-                }
+                allSpaces = await res.json();
+                renderSpaces();
             } catch (e) {
-                document.getElementById('qrContainer').innerHTML = '<p class="empty">Error al cargar QR</p>';
+                document.getElementById('spacesGrid').innerHTML = '<p class="empty">Error al cargar</p>';
             }
         }
 
-        loadQRs();
+        function filterSpaces(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderSpaces();
+        }
+
+        function renderSpaces() {
+            let filtered = allSpaces;
+            if (currentFilter === 'libre') filtered = allSpaces.filter(e => e.disponible);
+            if (currentFilter === 'ocupado') filtered = allSpaces.filter(e => !e.disponible);
+
+            const grid = document.getElementById('spacesGrid');
+            if (!filtered.length) {
+                grid.innerHTML = '<p class="empty">No hay espacios</p>';
+                return;
+            }
+            grid.innerHTML = filtered.map(e => {
+                const status = e.disponible ? 'libre' : 'ocupado';
+                const statusText = e.disponible ? 'Libre' : 'Ocupado';
+                const plate = e.sesion_activa ? e.sesion_activa.patente : '';
+                return `
+                    <div class="space-card ${status}">
+                        <p class="space-num">#${e.id}</p>
+                        <p class="space-street">${e.ubicacion}</p>
+                        <span class="space-status">${statusText}</span>
+                        ${plate ? `<p class="space-plate">${plate}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        loadSpaces();
+        setInterval(loadSpaces, 30000);
     </script>
 </body>
 </html>

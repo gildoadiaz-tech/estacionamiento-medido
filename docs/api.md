@@ -10,11 +10,11 @@ Todas las rutas públicas no requieren autenticación. Las rutas protegidas usan
 
 ### `POST /api/auth/login`
 
-Login unificado. Busca en conductores, permisionarios y admins en ese orden.
+Login unificado. Busca en conductores (por DNI), permisionarios (por codigo), gestores y admins (por username).
 
 ```json
 {
-  "username": "pedro",
+  "username": "35123456",
   "password": "1234"
 }
 ```
@@ -25,7 +25,8 @@ Login unificado. Busca en conductores, permisionarios y admins en ese orden.
   "token": "eyJhbGciOiJIUzI1NiIs...",
   "role": "conductor",
   "user_id": 1,
-  "nombre": "Pedro López"
+  "nombre": "Pedro López",
+  "username": "35123456"
 }
 ```
 
@@ -35,6 +36,45 @@ Login unificado. Busca en conductores, permisionarios y admins en ese orden.
   "detail": "Usuario o contraseña incorrectos"
 }
 ```
+**Error 403:**
+```json
+{
+  "detail": "Email no verificado. Verificá tu correo primero."
+}
+```
+
+### `POST /api/auth/register/conductor`
+
+Registro de conductor con auto-checkin por email. Crea Conductor + Vehículo con `email_verified=False`, envía link de verificación por console.
+
+```json
+{
+  "dni": "40123456",
+  "nombre": "Martín",
+  "apellido": "García",
+  "email": "martin@ejemplo.com",
+  "telefono": "3874123456",
+  "password": "1234",
+  "patente": "AB123CD",
+  "tipo_vehiculo": "auto",
+  "marca": "Toyota",
+  "modelo": "Corolla"
+}
+```
+
+**Response 200:**
+```json
+{
+  "message": "Cuenta creada. Revisá tu email para verificar tu dirección de correo.",
+  "email": "martin@ejemplo.com"
+}
+```
+
+### `GET /api/auth/verify-email?token=<uuid>`
+
+Verifica el email mediante link. Marca `email_verified=True` en Conductor y `verified=True` en EmailVerification. Renderiza página HTML de resultado.
+
+**Response:** HTML page (`verify_result.html`) con éxito o error.
 
 ### `GET /api/auth/me`
 
@@ -45,7 +85,7 @@ Verifica token actual. Header: `Authorization: Bearer <token>`.
 {
   "user_id": 1,
   "role": "conductor",
-  "username": "pedro"
+  "username": "35123456"
 }
 ```
 
@@ -53,420 +93,371 @@ Verifica token actual. Header: `Authorization: Bearer <token>`.
 
 ## Conductores
 
-### `GET /api/conductores`
+### `GET /api/conductor/me`
 
-Lista todos los conductores.
-
-### `GET /api/conductores/{id}`
+Perfil del conductor autenticado con vehículos.
 
 ```json
 {
   "id": 1,
-  "nombre": "Pedro López",
+  "dni": "35123456",
+  "nombre": "Pedro",
+  "apellido": "López",
   "email": "pedro@ejemplo.com",
-  "telefono": "1166660101",
-  "patente": "AB123CD",
+  "telefono": "3874345678",
+  "email_verified": true,
   "bloqueado": false,
-  "saldo_deudor": 0.0
+  "saldo_deudor": 0,
+  "exencion": "ninguna",
+  "vehiculos": [
+    {"id": 1, "patente": "AB123CD", "tipo": "auto", "marca": "Toyota", "modelo": "Corolla", "predeterminado": true}
+  ]
 }
 ```
 
-### `PUT /api/conductores/{id}`
+### `PUT /api/conductor/me`
 
-Actualizar nombre, email, teléfono o patente.
+Actualizar perfil del conductor autenticado.
 
 ```json
 {
-  "patente": "AB123CD"
+  "nombre": "Pedro Updated",
+  "telefono": "3874000000"
 }
 ```
 
-### `GET /api/conductores/{id}/status`
+### `GET /api/conductor/sesion-activa`
 
-Estado completo con constantes del sistema.
+Sesión activa del conductor con timer/costo en tiempo real.
 
 ```json
 {
-  "bloqueado": false,
-  "motivo_bloqueo": null,
-  "saldo_deudor": 0.0,
-  "penalizaciones_mes": 0,
-  "max_penalizaciones": 5,
-  "deuda_maxima": 10000.0,
-  "multa_bloqueo": 5000.0
+  "id": 1,
+  "espacio_id": 100,
+  "hora_inicio": "2026-05-29T10:30:00",
+  "ubicacion": "GENERAL GUEMES 150",
+  "vehiculo": {"id": 1, "patente": "AB123CD", "tipo": "auto"},
+  "exencion": "ninguna",
+  "tipo_vehiculo": "auto",
+  "tarifa_por_hora": 600.0,
+  "costo_estimado": 1200.0,
+  "es_gratuito": false,
+  "pago_pendiente": false
 }
 ```
 
-### `GET /api/conductores/{id}/penalizaciones`
+### `POST /api/conductor/checkin`
 
-Historial de penalizaciones del conductor.
+Check-in por espacio_id o permisionario_id. Usa `current_user["id"]` del JWT, no acepta `conductor_id` en body.
 
 ```json
-[
-  {
-    "id": 1,
-    "conductor_id": 1,
-    "reserva_id": 3,
-    "monto": 60.0,
-    "motivo": "No-show: reserva #3 venció...",
-    "fecha": "2026-05-28T15:30:00",
-    "pagada": false
-  }
-]
+{
+  "espacio_id": 100,
+  "vehiculo_id": 1
+}
+```
+o
+```json
+{
+  "permisionario_id": 1
+}
 ```
 
-### `POST /api/conductores/{id}/pagar-multa`
-
-Paga la multa de desbloqueo ($5,000). Reduce `saldo_deudor` y desbloquea.
-
+**Response 200:**
 ```json
 {
   "ok": true,
-  "mensaje": "Multa de $5,000 pagada. Ya podés usar el sistema."
+  "sesion_id": 1,
+  "hora_inicio": "2026-05-29T10:30:00",
+  "espacio_id": 100,
+  "ubicacion": "GENERAL GUEMES 150",
+  "qr_salida": "data:image/png;base64,..."
 }
 ```
+
+### `POST /api/conductor/elegir-pago/{sesion_id}`
+
+Elige método de pago. Calcula costo instantáneo. Para MP devuelve `init_point`.
+
+```json
+{
+  "metodo": "efectivo"
+}
+```
+
+**Response 200 (efectivo):**
+```json
+{
+  "ok": true,
+  "metodo": "efectivo",
+  "costo_total": 1200.0
+}
+```
+
+**Response 200 (MP):**
+```json
+{
+  "ok": true,
+  "metodo": "mercadopago",
+  "costo_total": 1200.0,
+  "init_point": "https://simulated-mp-page/...",
+  "preference_id": "pref_xxx"
+}
+```
+
+### `POST /api/conductor/confirmar-pago-efectivo/{sesion_id}`
+
+Confirma pago en efectivo. Finaliza sesión, libera espacio.
+
+### `GET /api/conductor/pago-mercadopago/{sesion_id}`
+
+Página HTML de pago MP simulado (cuadrícula de QR estilizada).
+
+### `POST /api/conductor/pago-mercadopago/{sesion_id}/confirmar`
+
+Confirma pago MP simulado. Finaliza sesión, libera espacio.
+
+### `GET /api/conductor/pago-mercadopago/{sesion_id}/estado`
+
+Estado del pago MP.
+
+### `GET /api/conductor/historial?page=1&limit=20`
+
+Historial paginado del conductor autenticado.
+
+### `GET /api/conductor/comprobante/{sesion_id}`
+
+Comprobante detallado de una sesión.
+
+### `POST /api/conductor/password`
+
+Cambiar contraseña.
+
+```json
+{
+  "current_password": "1234",
+  "new_password": "5678"
+}
+```
+
+### `POST /api/conductor/pagar-multa`
+
+Pagar deuda pendiente. Resetea `saldo_deudor` a 0 y desbloquea.
+
+```json
+{
+  "monto": 5000.0
+}
+```
+
+### Gestión de vehículos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/conductor/vehiculo` | Agregar vehículo |
+| DELETE | `/api/conductor/vehiculo/{id}` | Eliminar vehículo |
+| PUT | `/api/conductor/vehiculo/{id}/predeterminado` | Marcar como predeterminado |
 
 ---
 
 ## Permisionarios
 
-### `GET /api/permisionarios`
+### `GET /api/permisionario/me`
 
-Lista todos.
+Perfil del permisionario con manos y espacios.
 
-### `POST /api/permisionarios`
+### `GET /api/permisionario/espacios`
 
-Crear.
+Espacios del permisionario con sesión activa (si tiene).
 
----
+### `GET /api/permisionario/sesiones-activas`
 
-## Espacios
+Sesiones activas con timer/costo en tiempo real, exenciones.
 
-### `GET /api/espacios`
+### `POST /api/permisionario/registro-manual`
 
-Todos los espacios.
-
-### `GET /api/espacios/disponibles`
-
-```json
-[
-  {"id": 1, "ubicacion": "Gral. Güemes 150", "precio_por_hora": 600.0, "disponible": true}
-]
-```
-
-### `GET /api/espacios/con-estado`
-
-Espacios con estado actual (libre/ocupado). Incluye datos del conductor si está ocupado.
-
-### `GET /api/espacio/by-location?ubicacion=Güemes`
-
-Buscar espacios por ubicación (LIKE).
-
----
-
-## Sesiones (Check-in / Check-out)
-
-### `POST /api/checkin`
-
-Check-in tradicional por espacio_id.
+Registro manual de vehículo por patente. Crea conductor si no existe.
 
 ```json
 {
-  "espacio_id": 1,
-  "conductor_id": 1
-}
-```
-
-**Response 200:**
-```json
-{
-  "sesion_id": 1,
-  "hora_inicio": "2026-05-28T14:30:00",
-  "qr_salida": "data:image/png;base64,..."
-}
-```
-
-Incluye verificación de bloqueo. Si el conductor está bloqueado, devuelve 400.
-
-### `POST /api/checkin-por-perm`
-
-Check-in escaneando QR de permisionario. Busca el primer espacio disponible en la calle del permisionario.
-
-```json
-{
+  "patente": "ZZ999AA",
   "permisionario_id": 1,
-  "conductor_id": 1
+  "espacio_id": null
 }
 ```
 
-Si es una reserva aprobada (match por conductor + espacio), vincula la sesión a la reserva y aplica tolerancia de 5 min.
+### `POST /api/permisionario/salida`
 
-**Response 200:** igual que `/api/checkin`.
+Procesa salida. Efectivo finaliza inmediato; MP bloquea costo y espera confirmación.
 
-### `POST /api/sesion/{id}/elegir-pago`
-
-Elige método de pago y opcionalmente actualiza patente.
-
-```json
-{
-  "metodo": "efectivo",
-  "patente": "AB123CD"
-}
-```
-
-`metodo` puede ser `"efectivo"` o `"mercadopago"`.
-
-### `POST /api/sesion/{id}/confirmar-pago-efectivo`
-
-Confirma pago en efectivo. Calcula costo con `calcular_costo_estacionamiento`, marca `pagado=True`, `lista_para_salir=True`, suma al `saldo_deudor`.
-
-**Response 200:**
-```json
-{
-  "ok": true,
-  "costo_total": 1200.0,
-  "qr_salida": "data:image/png;base64,...",
-  "mensaje": "Pago en efectivo confirmado"
-}
-```
-
-### `GET /api/sesion/{id}/exit-qr`
-
-Obtiene el QR de salida (solo si `lista_para_salir=True`).
-
-### `POST /api/sesion/{id}/finalizar-por-scan`
-
-Finaliza sesión cuando el conductor escanea el QR de salida. Calcula costo si no estaba calculado.
-
-**Response 200:**
-```json
-{
-  "ok": true,
-  "costo_total": 1200.0,
-  "metodo_pago": "efectivo",
-  "pagado": true
-}
-```
-
-### `GET /api/checkin-qr/{sesion_id}`
-
-QR de check-in de una sesión activa.
-
-### `POST /api/checkout`
-
-Check-out tradicional (por sesion_id).
-
-```json
-{
-  "sesion_id": 1
-}
-```
-
-**Response 200:**
 ```json
 {
   "sesion_id": 1,
-  "costo_total": 1200.0,
-  "link_pago": "https://sandbox.mercadopago.com.ar/..."
+  "metodo_pago": "efectivo"
 }
 ```
 
-### `GET /api/sesiones`
+### `POST /api/permisionario/reportar-deuda`
 
-Todas las sesiones.
+Reporta deuda por salida sin pago.
 
-### `GET /api/sesiones/activas`
+### `GET /api/permisionario/historial`
 
-Solo sesiones activas (sin hora_fin).
+Sesiones del día de hoy.
 
-### `GET /api/sesiones/conductor/{id}`
+### `GET /api/permisionario/qr-data`
 
-Sesiones de un conductor (con datos del espacio).
+Datos para QR del permisionario (base64 + raw URL).
 
-### `GET /api/sesiones/activas/{permisionario_id}`
+### `POST /api/permisionario/confirmar-ingreso/{sesion_id}`
 
-Sesiones activas filtradas por calle del permisionario.
+Confirma ingreso manual (solo metodo_ingreso="aqui").
 
-### `GET /api/sesiones/activa/{conductor_id}`
+---
 
-Sesión activa actual de un conductor (una sola).
+## Gestor / Admin
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| POST | `/api/gestor/permisionario` | gestor, admin | Crear permisionario |
+| GET | `/api/gestor/permisionarios` | gestor, admin | Listar permisionarios |
+| PUT | `/api/gestor/permisionario/{id}` | gestor, admin | Editar permisionario |
+| GET | `/api/gestor/conductores` | gestor, admin | Listar conductores |
+| GET | `/api/gestor/sesiones-vivo` | gestor, admin | Sesiones activas en vivo |
+| GET | `/api/gestor/reportes` | gestor, admin | Estadísticas generales |
+| GET | `/api/gestor/deudas` | gestor, admin | Deudas reportadas |
+| POST | `/api/admin/gestor` | admin | Crear gestor |
+| GET | `/api/admin/gestores` | admin | Listar gestores |
+| DELETE | `/api/admin/gestor/{id}` | admin | Desactivar gestor |
+| POST | `/api/admin/permisionario` | admin | Crear permisionario |
+| GET | `/api/admin/conductores` | admin | Listar conductores |
+| PUT | `/api/admin/conductores/{id}` | admin | Editar conductor |
+| DELETE | `/api/admin/conductores/{id}` | admin | Eliminar conductor |
+| PUT | `/api/admin/permisionarios/{id}` | admin | Editar permisionario |
+| DELETE | `/api/admin/permisionarios/{id}` | admin | Eliminar permisionario |
+| GET | `/api/admin/sesiones-vivo` | admin | Sesiones activas |
+| GET | `/api/admin/reportes` | admin | Reportes |
+| GET | `/api/admin/deudas` | admin | Deudas |
+| GET | `/api/admin/config` | admin | Constantes del sistema |
+| POST | `/api/admin/conductores/{id}/desbloquear` | admin | Desbloquear conductor |
+| POST | `/api/admin/conductores/{id}/suspender?dias=N` | admin | Suspender/desuspender |
+| GET | `/api/admin/conductores/{id}/detalle` | admin | Detalle completo |
+| GET | `/api/admin/conductores/buscar?q=` | admin | Buscar conductores |
+| GET | `/api/admin/conductores/{id}/exportar-csv` | admin | Exportar historial CSV |
+
+---
+
+## Espacios (públicos)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/espacios` | Listar (filtros: calle, disponible, permisionario_id, lat/lng/radio) |
+| GET | `/api/espacios/{id}` | Obtener espacio |
+| POST | `/api/espacios` | Crear espacio |
+| PUT | `/api/admin/espacios/{id}` | Editar espacio |
+| DELETE | `/api/admin/espacios/{id}` | Eliminar espacio |
+| GET | `/api/espacios/disponibles` | Solo disponibles |
+| GET | `/api/espacios/con-estado` | Conteo libre/ocupado |
+| GET | `/api/espacio/by-location?lat=&lng=` | Espacio más cercano |
+
+---
+
+## Búsqueda de estacionamiento
+
+### `POST /api/buscar-estacionamiento`
+
+Búsqueda por texto o GPS. Usa datos IDEMSA reales.
+
+```json
+{
+  "q": "GENERAL GUEMES 150",
+  "lat": null,
+  "lng": null,
+  "radio": 500
+}
+```
+o
+```json
+{
+  "q": null,
+  "lat": -24.7883,
+  "lng": -65.4106,
+  "radio": 400
+}
+```
 
 **Response 200:**
 ```json
 {
-  "id": 1,
-  "espacio_id": 1,
-  "conductor_id": 1,
-  "hora_inicio": "2026-05-28T14:30:00",
-  "hora_fin": null,
-  "costo_total": null,
-  "pagado": false,
-  "metodo_pago": "efectivo",
-  "lista_para_salir": false,
-  "ubicacion": "Gral. Güemes 150",
-  "patente": "AB123CD"
-}
-```
-
-### `GET /api/sesiones/ingresos/{permisionario_id}`
-
-Ingresos semanales del permisionario (solo sesiones pagadas).
-
-```json
-{
-  "total": 7200.0,
-  "por_dia": [
-    {"dia": "2026-05-22", "total": 1200.0, "cantidad": 2},
-    {"dia": "2026-05-23", "total": 600.0, "cantidad": 1}
+  "consulta": "GENERAL GUEMES 150",
+  "destino": {"lat": -24.7869, "lng": -65.4054},
+  "resultados": [...],
+  "bloques": [
+    {"calle": "GENERAL GUEMES", "altura": "150", "total": 10, "disponibles": 8, "distancia_min": 12.5, "lat": -24.7869, "lng": -65.4054}
   ],
-  "cantidad_total": 3
+  "radio": 500
 }
 ```
-
-### `GET /api/sesiones/permisionario/{id}/detalle`
-
-Sesiones activas del permisionario con ubicación y datos del conductor.
-
----
-
-## Mercado Pago
-
-### `POST /api/mercadopago/webhook`
-
-Webhook de notificación de pago. Recibe `POST` de MP, busca la sesión por `external_reference` (sesion_id), calcula costo si no estaba, marca `pagado=True` y `lista_para_salir=True`.
-
----
-
-## Reservas
-
-### `GET /api/reservas`
-
-Todas.
-
-### `GET /api/reservas/conductor/{id}`
-
-De un conductor.
-
-### `GET /api/reservas/permisionario/{id}`
-
-De un permisionario.
-
-### `GET /api/reservas/pendientes/{permisionario_id}`
-
-Pendientes de aprobación de un permisionario (match por calle).
-
-### `POST /api/reservas`
-
-Solicitar reserva.
-
-```json
-{
-  "espacio_id": 1,
-  "conductor_id": 1,
-  "hora_inicio": "2026-05-29T10:00:00",
-  "hora_fin": "2026-05-29T12:00:00"
-}
-```
-
-### `POST /api/reservas/aprobar`
-
-Aprobar o rechazar.
-
-```json
-{
-  "reserva_id": 1,
-  "aprobar": true
-}
-```
-
----
-
-## Penalizaciones (Admin)
-
-### `GET /api/admin/penalizaciones`
-
-Todas las penalizaciones (sin paginar).
-
-### `GET /api/admin/penalizaciones/stats`
-
-```json
-{
-  "total": 5,
-  "monto_total": 300.0,
-  "pendientes": 2,
-  "monto_pendiente": 120.0,
-  "pagadas": 3,
-  "monto_pagado": 180.0
-}
-```
-
-### `POST /api/admin/penalizaciones/{id}/waiver`
-
-Condonar (perdonar) una penalización. Marca `pagada=True` y descuenta del `saldo_deudor` del conductor.
-
-### `GET /api/admin/conductores/bloqueados`
-
-Lista de conductores bloqueados.
-
-### `POST /api/admin/conductores/{id}/desbloquear`
-
-Desbloquea manualmente (solo admin).
-
-### `POST /api/admin/verificar-no-show`
-
-Ejecuta manualmente la verificación de no-show (normalmente corre cada 60s en background).
 
 ---
 
 ## Mapas
 
-### `GET /api/mapa/cercanos?lat=-24.7883&lng=-65.4106&radio=300`
-
-Espacios cercanos en un radio (metros).
-
-```json
-[
-  {
-    "id": 1,
-    "ubicacion": "Gral. Güemes 150",
-    "lat": -24.7885,
-    "lng": -65.41,
-    "precio_por_hora": 600.0,
-    "disponible": true
-  }
-]
-```
-
-### `GET /api/mapa/idemsa-calles`
-
-Calles desde IDEMSA con segmentos y colores para renderizar en el mapa Leaflet.
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/mapa-data` | Calles IDEMSA + centro + espacios |
+| GET | `/api/mapa/cercanos?lat=&lng=&radio=` | Espacios cercanos (público) |
+| GET | `/api/mapa/idemsa-calles` | Calles IDEMSA (segmentos) |
 
 ---
 
-## Páginas HTML (Frontend)
+## Mercado Pago
+
+### `POST /api/mp/webhook`
+
+Webhook de MP. Recibe notificación, busca sesión por `external_reference`, calcula costo, finaliza sesión.
+
+---
+
+## Auth compartido
+
+### `POST /api/auth/cambiar-password`
+
+Cambiar contraseña (cualquier rol autenticado).
+
+---
+
+## Frontend — Páginas HTML
 
 | Ruta | Template | Descripción |
 |------|----------|-------------|
 | `/` | `index.html` | Landing page |
 | `/login` | `auth/login.html` | Login |
-| `/conductor` | `conductor/index.html` | Home conductor |
-| `/conductor/checkin` | `conductor/checkin.html` | Checkin manual |
-| `/conductor/checkin/perm/{id}` | `conductor/checkin_auto.html` | Auto checkin vía QR |
-| `/conductor/checkout/{id}` | `conductor/checkout.html` | Checkout + elegir pago |
-| `/conductor/reservar` | `conductor/reservar.html` | Solicitar reserva |
-| `/conductor/mis-reservas` | `conductor/mis_reservas.html` | Mis reservas |
+| `/registro` | `auth/registro.html` | Registro conductor (2 pasos) |
+| `/conductor` | `conductor/index.html` | Home conductor (sesión activa + timer) |
+| `/conductor/buscar` | `conductor/buscar.html` | Buscar estacionamiento (IDEMSA iframe + GPS) |
+| `/conductor/estacionar` | `conductor/estacionar.html` | Check-in por QR permisionario |
+| `/conductor/checkout/{id}` | `conductor/checkout.html` | Checkout (timer + info + pago) |
+| `/conductor/historial` | `conductor/historial.html` | Historial de sesiones |
 | `/conductor/perfil` | `conductor/perfil.html` | Editar perfil |
-| `/conductor/historial` | `conductor/historial.html` | Historial |
-| `/conductor/mapa` | `conductor/mapa.html` | Mapa interactivo |
-| `/permisionario/{id}/panel` | `permisionario/panel.html` | Dashboard |
-| `/permisionario/{id}/reservas` | `permisionario/reservas.html` | Gestionar reservas |
-| `/permisionario/{id}/qr` | `permisionario/qr.html` | QR de la cuadra |
-| `/permisionario/{id}/mapa` | `permisionario/mapa.html` | Mapa |
+| `/conductor/vehiculos` | `conductor/vehiculos.html` | Gestionar vehículos |
+| `/conductor/pago-mercadopago/{id}` | `conductor/pago_mercadopago.html` | Pago MP simulado |
+| `/permisionario` | `permisionario/index.html` | Home permisionario |
+| `/permisionario/panel` | `permisionario/panel.html` | Dashboard con sesiones activas |
+| `/permisionario/qr` | `permisionario/qr.html` | QR de la cuadra |
+| `/permisionario/espacios` | `permisionario/espacios.html` | Espacios asignados |
+| `/permisionario/cuadra` | `permisionario/cuadra.html` | Mis cuadras asignadas |
+| `/permisionario/ingreso` | `permisionario/ingreso.html` | Registro manual de ingreso |
+| `/permisionario/salida` | `permisionario/salida.html` | Procesar salida |
+| `/permisionario/historial` | `permisionario/historial.html` | Historial del día |
+| `/permisionario/mapa` | `permisionario/mapa.html` | Mapa de espacios |
+| `/permisionario/reservas` | `permisionario/reservas.html` | Gestionar reservas |
+| `/gestor` | `gestor/index.html` | Dashboard gestor |
 | `/admin` | `admin/index.html` | Dashboard admin |
-| `/admin/permisionarios` | `admin/permisionarios.html` | CRUD |
-| `/admin/conductores` | `admin/conductores.html` | CRUD |
-| `/admin/espacios` | `admin/espacios.html` | CRUD |
-| `/admin/sesiones` | `admin/sesiones.html` | Listado |
-| `/admin/reservas` | `admin/reservas.html` | Listado |
+| `/admin/conductores` | `admin/conductores.html` | CRUD conductores |
+| `/admin/permisionarios` | `admin/permisionarios.html` | CRUD permisionarios |
+| `/admin/gestores` | `admin/gestores.html` | CRUD gestores |
+| `/admin/espacios` | `admin/espacios.html` | CRUD espacios |
+| `/admin/sesiones` | `admin/sesiones_vivo.html` | Sesiones activas |
 | `/admin/reportes` | `admin/reportes.html` | Reportes |
-| `/admin/penalizaciones` | `admin/penalizaciones.html` | Penalizaciones |
+| `/admin/deudas` | `admin/deudas.html` | Deudas |

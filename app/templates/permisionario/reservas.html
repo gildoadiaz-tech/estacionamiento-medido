@@ -3,129 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Reservas - {{ permisionario.nombre }}</title>
+    <title>Reservas — Estacionamiento Salta</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#059669">
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #059669;
-            --primary-light: #d1fae5;
-            --primary-dark: #065f46;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
+            --primary: #015cb4;
+            --primary-light: #e7f1ff;
+            --primary-dark: #014a94;
+            --accent: #ec0f7f;
+            --bg: #f5f7fa;
             --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-muted: #64748b;
+            --border: #e0e5ec;
+            --text: #1a1a2e;
+            --text-muted: #686868;
             --radius: 16px;
         }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary: #34d399;
-                --primary-light: #064e3b;
-                --primary-dark: #6ee7b7;
-                --accent: #fbbf24;
-                --bg: #0f172a;
-                --card: #1e293b;
-                --border: #334155;
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
-            }
-            .bg-white, .card-dark { background: var(--card) !important; }
-            .bg-gray-50 { background: var(--bg) !important; }
-            .border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
-            .text-gray-800, .text-gray-700 { color: var(--text) !important; }
-            .text-gray-500, .text-gray-600 { color: var(--text-muted) !important; }
-            .text-gray-400 { color: #64748b !important; }
-            .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
-            .hover\:bg-gray-50:hover { background: var(--card) !important; }
-            .hover\:bg-blue-50:hover { background: #1e3a5f !important; }
-            .hover\:bg-green-50:hover { background: #1a3a2a !important; }
-            a { color: #60a5fa !important; }
-        }
-        .btn-primary { background: var(--primary); color: white; border-radius: 12px; padding: 12px 20px; font-weight: 600; display: inline-block; text-align: center; transition: all 0.2s; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .animate-slide-up { animation: slideUp 0.25s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        body { background: var(--bg); color: var(--text); font-family: 'Manrope', system-ui, -apple-system, sans-serif; }
+        .container { max-width: 420px; margin: 0 auto; padding: 16px; }
+        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .header a { color: var(--primary); text-decoration: none; font-size: 22px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; text-align: center; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state .icon { font-size: 48px; margin-bottom: 8px; }
+        .empty-state .title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .empty-state .desc { font-size: 13px; }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-sm mx-auto p-4">
-        <div class="flex items-center gap-3 mb-6">
-            <a href="/permisionario/{{ permisionario.id }}/panel" class="text-2xl">←</a>
-            <h1 class="text-xl font-bold">Reservas Pendientes</h1>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/permisionario/panel">←</a>
+            <h1>Reservas</h1>
         </div>
-
-        <div id="listaReservas" class="space-y-3">
-            <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
-        </div>
-
-        <h2 class="font-semibold text-gray-700 mt-6 mb-3">Historial de Reservas</h2>
-        <div id="historialReservas" class="space-y-3">
-            <p class="text-gray-400 text-sm text-center py-4">Cargando...</p>
+        <div class="card empty-state">
+            <div class="icon">📅</div>
+            <div class="title">Sin reservas pendientes</div>
+            <div class="desc">Las reservas aparecerán aquí cuando los conductores las soliciten</div>
         </div>
     </div>
-
-    <script>
-        async function cargar() {
-            const permId = {{ permisionario.id }};
-
-            const res = await fetch(`/api/reservas/pendientes/${permId}`);
-            const reservas = await res.json();
-            const container = document.getElementById("listaReservas");
-
-            if (reservas.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">✅ No hay reservas pendientes</div>';
-            } else {
-                container.innerHTML = reservas.map(r => `
-                    <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <p class="font-semibold">Reserva #${r.id}</p>
-                                <p class="text-xs text-gray-500">Espacio #${r.espacio_id} · Conductor #${r.conductor_id}</p>
-                                <p class="text-xs text-gray-400">${new Date(r.hora_inicio).toLocaleString()} → ${new Date(r.hora_fin).toLocaleString()}</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="aprobar(${r.id}, true)" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-green-700">✅ Aprobar</button>
-                            <button onclick="aprobar(${r.id}, false)" class="flex-1 bg-red-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-red-700">❌ Rechazar</button>
-                        </div>
-                    </div>
-                `).join("");
-            }
-
-            const res2 = await fetch(`/api/reservas/permisionario/${permId}`);
-            const historial = await res2.json();
-            const histContainer = document.getElementById("historialReservas");
-            if (historial.length === 0) {
-                histContainer.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Sin historial</p>';
-            } else {
-                const estadoColors = { aprobada: "bg-green-100 text-green-700", rechazada: "bg-red-100 text-red-700" };
-                histContainer.innerHTML = historial.filter(r => r.estado !== 'pendiente').map(r => `
-                    <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-sm">
-                        <div class="flex justify-between">
-                            <span>Reserva #${r.id} · Espacio #${r.espacio_id}</span>
-                            <span class="text-xs px-2 py-1 rounded-full ${estadoColors[r.estado] || ''}">${r.estado}</span>
-                        </div>
-                    </div>
-                `).join("");
-            }
-        }
-
-        async function aprobar(id, ok) {
-            await fetch("/api/reservas/aprobar", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ reserva_id: id, aprobar: ok }),
-            });
-            cargar();
-        }
-
-        cargar();
-    </script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});

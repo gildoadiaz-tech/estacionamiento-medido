@@ -79,12 +79,23 @@ async def crear_preferencia_pago(
                 timeout=15,
             )
             data = resp.json()
-            return {
-                "init_point": data.get("init_point") or data.get("sandbox_init_point", ""),
-                "preference_id": data.get("id", ""),
-            }
-        except Exception as e:
-            return {"init_point": "", "preference_id": "", "error": str(e)}
+            init_point = data.get("init_point") or data.get("sandbox_init_point", "")
+            preference_id = data.get("id", "")
+            if init_point:
+                return {
+                    "init_point": init_point,
+                    "preference_id": preference_id,
+                }
+        except Exception:
+            pass
+
+    # Fallback: simulated Mercado Pago
+    sim_id = f"SIM_{external_reference}" if external_reference else f"SIM_{os.urandom(4).hex()}"
+    return {
+        "init_point": f"{BASE_URL}/conductor/pago-mercadopago/{external_reference}",
+        "preference_id": sim_id,
+        "simulated": True,
+    }
 
 
 async def procesar_pago_webhook(payment_id: str) -> dict:

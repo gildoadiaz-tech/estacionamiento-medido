@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Permisionarios</title>
+    <title>Admin - Gestores</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#015cb4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,7 +46,6 @@
         .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.75rem; font-weight:600; }
         .badge-green { background:#bbf7d0; color:#166534; }
         .badge-red { background:#fecaca; color:#991b1b; }
-        .badge-yellow { background:#fef3c7; color:#92400e; }
         .btn { padding:10px 20px; border-radius:10px; font-weight:600; font-size:.9rem; cursor:pointer; border:none; transition:all .15s; }
         .btn-primary { background:var(--primary); color:#fff; }
         .btn-primary:hover { filter:brightness(1.1); }
@@ -58,6 +57,10 @@
         .modal-box h3 { font-family:'Montserrat',sans-serif; font-size:1.2rem; font-weight:700; margin-bottom:16px; }
         .modal-input { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; font-size:.9rem; font-family:inherit; background:var(--bg); color:var(--text); outline:none; margin-bottom:12px; }
         .modal-input:focus { border-color:var(--primary); }
+        .checkbox-group { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+        .checkbox-group label { display:flex; align-items:center; gap:6px; font-size:.85rem; cursor:pointer; padding:6px 12px; border:1px solid var(--border); border-radius:8px; transition:all .15s; }
+        .checkbox-group label:has(input:checked) { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+        .checkbox-group input { margin:0; }
     </style>
 </head>
 <body>
@@ -73,8 +76,8 @@
             <nav style="display:flex;flex-direction:column;gap:2px;">
                 <a href="/admin" class="sidebar-link">&#128202; Dashboard</a>
                 <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
-                <a href="/admin/permisionarios" class="sidebar-link active">&#128100; Permisionarios</a>
-                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
+                <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
+                <a href="/admin/gestores" class="sidebar-link active">&#128101; Gestores</a>
                 <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
                 <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
                 <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
@@ -86,10 +89,10 @@
         <main style="flex:1;padding:24px;margin-left:260px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
                 <div>
-                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Permisionarios</h1>
-                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Gesti&oacute;n de permisionarios y manos asignadas</p>
+                    <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Gestores</h1>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Administraci&oacute;n de cuentas de gestor</p>
                 </div>
-                <button class="btn btn-primary" onclick="openModal()">+ Nuevo Permisionario</button>
+                <button class="btn btn-primary" onclick="openModal()">+Nuevo Gestor</button>
             </div>
 
             <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
@@ -97,35 +100,39 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>C&oacute;digo</th>
+                                <th>ID</th>
                                 <th>Nombre</th>
-                                <th>DNI</th>
-                                <th>Manos asignadas</th>
+                                <th>Email</th>
+                                <th>Permisos</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tablaPermisionarios"></tbody>
+                        <tbody id="tablaGestores"></tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
 
-    <div class="modal-overlay" id="modalPermisionario">
+    <div class="modal-overlay" id="modalGestor">
         <div class="modal-box">
-            <h3 id="modalTitle">Crear Permisionario</h3>
-            <form id="formPerm" onsubmit="guardarPermisionario(event)">
-                <input type="hidden" id="permId" name="id" value="">
+            <h3>Crear Gestor</h3>
+            <form id="formGestor" onsubmit="crearGestor(event)">
                 <input name="nombre" placeholder="Nombre completo" required class="modal-input">
                 <input name="email" type="email" placeholder="Email" required class="modal-input">
-                <input name="dni" placeholder="DNI" required class="modal-input">
-                <input name="telefono" placeholder="Tel&eacute;fono" class="modal-input">
-                <input name="calle" placeholder="Calle asignada" required class="modal-input">
-                <input name="manos" type="number" placeholder="Cantidad de manos" min="1" value="1" class="modal-input">
+                <input name="password" type="password" placeholder="Contrase&ntilde;a" required class="modal-input">
+                <p style="font-size:.85rem;font-weight:600;margin:8px 0 4px;">Permisos:</p>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="permisos" value="permisionarios"> Permisionarios</label>
+                    <label><input type="checkbox" name="permisos" value="conductores"> Conductores</label>
+                    <label><input type="checkbox" name="permisos" value="sesiones"> Sesiones</label>
+                    <label><input type="checkbox" name="permisos" value="reportes"> Reportes</label>
+                    <label><input type="checkbox" name="permisos" value="deudas"> Deudas</label>
+                </div>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="submit" class="btn btn-primary">Crear</button>
                 </div>
             </form>
         </div>
@@ -134,33 +141,30 @@
     <script>
         const token = localStorage.getItem('token');
 
-        function openModal(id) {
-            document.getElementById('permId').value = id || '';
-            document.getElementById('modalTitle').textContent = id ? 'Editar Permisionario' : 'Crear Permisionario';
-            document.getElementById('modalPermisionario').classList.add('show');
-        }
-        function closeModal() { document.getElementById('modalPermisionario').classList.remove('show'); }
+        function openModal() { document.getElementById('modalGestor').classList.add('show'); }
+        function closeModal() { document.getElementById('modalGestor').classList.remove('show'); }
 
-        async function guardarPermisionario(e) {
+        async function crearGestor(e) {
             e.preventDefault();
             const fd = new FormData(e.target);
-            const data = Object.fromEntries(fd);
-            data.manos = parseInt(data.manos) || 1;
-            const id = data.id;
-            delete data.id;
-            const url = id ? '/api/admin/permisionarios/' + id : '/api/permisionarios';
-            const method = id ? 'PUT' : 'POST';
-            const res = await fetch(url, {
-                method,
+            const permisos = fd.getAll('permisos');
+            const data = {
+                nombre: fd.get('nombre'),
+                email: fd.get('email'),
+                password: fd.get('password'),
+                permisos: permisos
+            };
+            const res = await fetch('/api/admin/gestores', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify(data)
             });
-            if (res.ok) { e.target.reset(); closeModal(); cargar(); alert(id ? 'Permisionario actualizado' : 'Permisionario creado'); }
-            else { alert('Error al guardar permisionario'); }
+            if (res.ok) { e.target.reset(); closeModal(); cargar(); alert('Gestor creado exitosamente'); }
+            else { const err = await res.json(); alert(err.detail || 'Error al crear gestor'); }
         }
 
         async function toggleActivo(id, activo) {
-            const res = await fetch('/api/admin/permisionarios/' + id, {
+            const res = await fetch('/api/admin/gestores/' + id, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ activo: !activo })
@@ -169,9 +173,9 @@
             else { alert('Error al cambiar estado'); }
         }
 
-        async function eliminarPermisionario(id) {
-            if (!confirm('\u00bfEliminar permisionario #' + id + '?')) return;
-            const res = await fetch('/api/admin/permisionarios/' + id, {
+        async function eliminarGestor(id) {
+            if (!confirm('\u00bfEliminar gestor #' + id + '?')) return;
+            const res = await fetch('/api/admin/gestores/' + id, {
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + token }
             });
@@ -181,25 +185,24 @@
 
         async function cargar() {
             try {
-                const res = await fetch('/api/permisionarios', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/gestores', { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
-                const permisionarios = Array.isArray(data) ? data : [];
-                document.getElementById('tablaPermisionarios').innerHTML = permisionarios.length === 0
-                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No hay permisionarios</td></tr>'
-                    : permisionarios.map(p => `<tr>
-                        <td style="font-family:monospace;">${p.codigo || 'PER-' + String(p.id).padStart(4, '0')}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.dni || '-'}</td>
-                        <td>${p.manos || p.cantidad_manos || 1}</td>
-                        <td>${p.activo !== false ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>'}</td>
+                const gestores = Array.isArray(data) ? data : [];
+                document.getElementById('tablaGestores').innerHTML = gestores.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No hay gestores</td></tr>'
+                    : gestores.map(g => `<tr>
+                        <td>${g.id}</td>
+                        <td>${g.nombre}</td>
+                        <td>${g.email}</td>
+                        <td>${(g.permisos || []).map(p => '<span class="badge badge-green">' + p + '</span> ').join('') || '<span style="color:var(--text-muted);">Sin permisos</span>'}</td>
+                        <td>${g.activo !== false ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>'}</td>
                         <td>
-                            <button onclick="openModal(${p.id})" class="btn-sm" style="background:var(--primary);color:#fff;margin-right:4px;">Editar</button>
-                            <button onclick="toggleActivo(${p.id}, ${p.activo !== false})" class="btn-sm" style="background:${p.activo !== false ? '#dc2626' : '#16a34a'};color:#fff;margin-right:4px;">${p.activo !== false ? 'Desactivar' : 'Activar'}</button>
-                            <button onclick="eliminarPermisionario(${p.id})" class="btn-sm" style="background:#dc2626;color:#fff;">Eliminar</button>
+                            <button onclick="toggleActivo(${g.id}, ${g.activo !== false})" class="btn-sm" style="background:${g.activo !== false ? '#dc2626' : '#16a34a'};color:#fff;margin-right:4px;">${g.activo !== false ? 'Desactivar' : 'Activar'}</button>
+                            <button onclick="eliminarGestor(${g.id})" class="btn-sm" style="background:#dc2626;color:#fff;">Eliminar</button>
                         </td>
                     </tr>`).join('');
             } catch {
-                document.getElementById('tablaPermisionarios').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
+                document.getElementById('tablaGestores').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
             }
         }
 

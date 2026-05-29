@@ -5,117 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Buscar estacionamiento</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <meta name="theme-color" content="#015cb4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --uber-green: #06C167;
-            --bg-primary: #000;
-            --bg-card: #1C1C1E;
-            --bg-elevated: #2C2C2E;
-            --text-primary: #FFF;
-            --text-secondary: #98989F;
-            --text-tertiary: #636366;
-            --border: #3A3A3C;
-            --radius: 14px;
+            --primary: #015cb4;
+            --primary-dark: #014a94;
+            --primary-light: #e7f1ff;
+            --accent: #ec0f7f;
+            --accent-light: #fce7f3;
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #eef2f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #455a72;
+            --text-tertiary: #686868;
+            --border: #e0e5ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
             --nav-height: 72px;
         }
-        .bloque-card {
-            background: var(--bg-card); border:1px solid var(--border);
-            border-radius:var(--radius); padding:14px; margin-bottom:10px;
-        }
-        .bloque-header {
-            display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
-        }
-        .bloque-calle { font-weight:600; font-size:15px; }
-        .bloque-altura { font-size:13px; color:var(--text-secondary); }
-        .bloque-count { font-size:13px; }
-        .bloque-count .libre { color:var(--uber-green); font-weight:600; }
-        .bloque-count .total { color:var(--text-tertiary); }
-        .bloque-dist { font-size:12px; color:var(--text-tertiary); margin-top:4px; }
-        .bloque-expand {
-            display:inline-block; font-size:12px; color:var(--uber-green);
-            cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
-        }
-        .bloque-detalles { display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
-        .bloque-detalles.mostrar { display:block; }
-        .btn-gmaps {
-            background:var(--uber-green); color:#000; border:none;
-            border-radius:10px; padding:10px 16px; font-weight:600;
-            font-size:13px; cursor:pointer; font-family:inherit;
-            -webkit-appearance:none; flex:1;
-        }
-        .btn-gmaps.small { padding:6px 12px; font-size:12px; }
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: var(--bg-primary); color: var(--text-primary);
-            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Manrope', 'Montserrat', system-ui, sans-serif;
             min-height: 100dvh;
             padding-bottom: calc(var(--nav-height) + 16px);
             -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
         }
         .container { max-width: 420px; margin: 0 auto; padding: 16px; }
-        .header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
-        .header a { color:var(--uber-green); text-decoration:none; font-size:20px; font-weight:600; }
-        .header h1 { font-size:20px; font-weight:700; }
-
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header a { color: var(--primary); text-decoration: none; font-size: 20px; font-weight: 600; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #014a94 100%);
+            border-radius: var(--radius);
+            padding: 32px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .hero .icon { font-size: 48px; margin-bottom: 8px; }
+        .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .hero p { font-size: 14px; opacity: 0.85; margin-bottom: 20px; }
+        .btn-gps {
+            width: 100%;
+            background: #fff;
+            color: var(--primary);
+            border: none;
+            border-radius: var(--radius);
+            padding: 18px;
+            font-size: 17px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            -webkit-appearance: none;
+            transition: transform 0.1s;
+        }
+        .btn-gps:active { transform: scale(0.97); }
+        .btn-gps svg { width: 24px; height: 24px; }
+        .search-toggle {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .search-toggle button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: underline;
+            -webkit-appearance: none;
+        }
         .search-box {
-            display:flex; gap:8px; margin-bottom:16px;
+            display: none;
+            gap: 8px;
+            margin-bottom: 16px;
         }
+        .search-box.show { display: flex; }
         .search-box input {
-            flex:1; background:var(--bg-card); border:1px solid var(--border);
-            border-radius:12px; padding:14px; color:var(--text-primary);
-            font-size:16px; font-family:inherit; outline:none;
-            -webkit-appearance:none;
+            flex: 1; background: #fff; border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px; color: var(--text-primary);
+            font-size: 16px; font-family: inherit; outline: none; -webkit-appearance: none;
         }
-        .search-box input:focus { border-color:var(--uber-green); }
+        .search-box input:focus { border-color: var(--primary); }
         .search-box button {
-            background:var(--uber-green); color:#000; border:none;
-            border-radius:12px; padding:14px 20px; font-weight:700;
-            font-size:15px; cursor:pointer; font-family:inherit;
-            -webkit-appearance:none;
+            background: var(--accent); color: #fff; border: none;
+            border-radius: var(--radius); padding: 14px 20px; font-weight: 700;
+            font-size: 15px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
         }
-
-        #mapa { width:100%; height:300px; border-radius:var(--radius); margin-bottom:16px; display:none; }
-
+        #mapa { width: 100%; height: 300px; border-radius: var(--radius); margin-bottom: 16px; }
+        .bloque-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+        }
+        .bloque-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .bloque-calle { font-weight: 600; font-size: 15px; }
+        .bloque-altura { font-size: 13px; color: var(--text-secondary); }
+        .bloque-count { font-size: 13px; }
+        .bloque-count .libre { color: var(--primary); font-weight: 600; }
+        .bloque-count .total { color: var(--text-tertiary); }
+        .bloque-dist { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+        .bloque-expand {
+            display: inline-block; font-size: 12px; color: var(--primary);
+            cursor: pointer; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+        }
+        .bloque-detalles { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+        .bloque-detalles.mostrar { display: block; }
+        .btn-gmaps {
+            background: var(--primary); color: #000; border: none;
+            border-radius: 10px; padding: 10px 16px; font-weight: 600;
+            font-size: 13px; cursor: pointer; font-family: inherit; -webkit-appearance: none; flex: 1;
+        }
         .result-item {
-            background:var(--bg-card); border:1px solid var(--border);
-            border-radius:var(--radius); padding:16px; margin-bottom:8px;
-            display:flex; justify-content:space-between; align-items:center;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .result-item .info { flex:1; }
-        .result-item .calle { font-weight:600; font-size:15px; }
-        .result-item .dist { font-size:13px; color:var(--text-secondary); margin-top:2px; }
-        .result-item .estado { font-size:12px; margin-top:4px; }
-        .result-item .precio { font-weight:700; color:var(--uber-green); font-size:15px; }
+        .result-item .info { flex: 1; }
+        .result-item .calle { font-weight: 600; font-size: 15px; }
+        .result-item .dist { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .result-item .estado { font-size: 12px; margin-top: 4px; }
+        .result-item .precio { font-weight: 700; color: var(--primary); font-size: 15px; }
         .result-item button {
-            background:var(--uber-green); color:#000; border:none;
-            border-radius:10px; padding:10px 16px; font-weight:600;
-            font-size:13px; cursor:pointer; font-family:inherit;
-            -webkit-appearance:none;
+            background: var(--primary); color: #000; border: none;
+            border-radius: 10px; padding: 10px 16px; font-weight: 600;
+            font-size: 13px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
         }
-        .result-item button:disabled { opacity:0.4; cursor:default; }
-
-        .no-results { text-align:center; color:var(--text-tertiary); font-size:14px; padding:40px 0; }
-        .error { text-align:center; color:#FF453A; font-size:14px; padding:20px 0; }
-
-        .bottom-nav {
-            position:fixed; bottom:0; left:0; right:0;
-            height:var(--nav-height);
-            background:var(--bg-primary); border-top:1px solid var(--border);
-            display:flex; z-index:100;
-            padding-bottom:env(safe-area-inset-bottom,0);
-        }
-        .bottom-nav a {
-            flex:1; display:flex; flex-direction:column; align-items:center;
-            justify-content:center; text-decoration:none;
-            color:var(--text-secondary); font-size:11px; font-weight:500; gap:2px;
-            -webkit-tap-highlight-color:transparent;
-        }
-        .bottom-nav a.active { color:var(--uber-green); }
-        .bottom-nav a .nav-icon { font-size:22px; line-height:1; }
-        .spinner { text-align:center; padding:30px; color:var(--text-tertiary); }
+        .result-item button:disabled { opacity: 0.4; cursor: default; }
+        .no-results { text-align: center; color: var(--text-tertiary); font-size: 14px; padding: 40px 20px; }
+        .error { text-align: center; color: var(--danger); font-size: 14px; padding: 20px; }
+        .spinner { text-align: center; padding: 30px; color: var(--text-tertiary); }
+        .radio-nota { font-size: 12px; color: var(--text-tertiary); text-align: center; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -125,185 +159,113 @@
             <h1>Buscar estacionamiento</h1>
         </div>
 
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Ej: Mitre 350, Salta" autocomplete="off"
-                   onkeydown="if(event.key==='Enter') buscar()">
+        <div class="hero">
+            <div class="icon">📍</div>
+            <h2>¿Dónde querés estacionar?</h2>
+            <p>Usá tu ubicación o buscá una calle</p>
+            <button class="btn-gps" onclick="buscarPorGPS()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8z"/></svg>
+                Buscar ahora
+            </button>
+        </div>
+
+        <div class="search-toggle">
+            <button onclick="toggleBusqueda()">O escribir una calle</button>
+        </div>
+
+        <div class="search-box" id="searchBox">
+            <input type="text" id="searchInput" placeholder="Ej: Mitre 350" autocomplete="off" onkeydown="if(event.key==='Enter')buscar()">
             <button onclick="buscar()">Buscar</button>
         </div>
 
-        <div id="mapa"></div>
+        <div id="mapa">
+            <iframe src="https://idemsa.municipalidadsalta.gob.ar/visor/maps/estacionamiento_mar25.html" width="100%" height="600" style="border:none;border-radius:var(--radius)"></iframe>
+        </div>
         <div id="resultados"></div>
     </div>
 
-    <nav class="bottom-nav">
-        <a href="/conductor">
-            <span class="nav-icon">🏠</span><span>Inicio</span>
-        </a>
-        <a href="/conductor/mapa">
-            <span class="nav-icon">🗺️</span><span>Mapa</span>
-        </a>
-        <a href="/conductor/buscar" class="active">
-            <span class="nav-icon">🔍</span><span>Buscar</span>
-        </a>
-        <a href="/conductor/perfil">
-            <span class="nav-icon">👤</span><span>Perfil</span>
-        </a>
+    <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
+        <a href="/conductor" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio</a>
+        <a href="/conductor/buscar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--primary);font-size:11px;font-weight:600;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar</a>
+        <a href="/conductor/estacionar" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px"><div style="width:48px;height:48px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 4px 12px rgba(1,92,180,0.3);color:#fff;font-size:20px;font-weight:700">P</div><span style="font-size:11px;color:var(--primary);font-weight:600">Estacionar</span></a>
+        <a href="/conductor/historial" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial</a>
+        <a href="/conductor/perfil" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-tertiary);font-size:11px;padding:6px 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
     </nav>
 
     <script>
-        const CONDUCTOR_ID = parseInt(localStorage.getItem('conductor_id') || '1');
-        let map = null, markersLayer = null, destMarker = null;
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login'; }
+
+        async function api(url, opts = {}) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = 'Bearer ' + token;
+            return fetch(url, opts);
+        }
+
+        function toggleBusqueda() {
+            const box = document.getElementById('searchBox');
+            box.classList.toggle('show');
+            if (box.classList.contains('show')) document.getElementById('searchInput').focus();
+        }
 
         async function buscar() {
             const q = document.getElementById('searchInput').value.trim();
             if (!q) return;
-
-            document.getElementById('resultados').innerHTML = '<div class="spinner">🔍 Buscando...</div>';
-
+            document.getElementById('resultados').innerHTML = '<div class="spinner">Buscando...</div>';
             try {
-                const res = await fetch(`/api/buscar-estacionamiento?q=${encodeURIComponent(q)}`);
+                const res = await api('/api/buscar-estacionamiento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q }) });
                 const data = await res.json();
-
-                if (data.error) {
-                    document.getElementById('resultados').innerHTML = `<div class="error">❌ ${data.error}</div>`;
-                    return;
-                }
-
-                mostrarMapa(data);
+                if (data.error) { document.getElementById('resultados').innerHTML = '<div class="error">' + data.error + '</div>'; return; }
                 mostrarResultados(data);
-            } catch (e) {
-                document.getElementById('resultados').innerHTML = '<div class="error">❌ Error de conexión</div>';
-            }
-        }
-
-        function mostrarMapa(data) {
-            const el = document.getElementById('mapa');
-            el.style.display = 'block';
-
-            if (!map) {
-                map = L.map('mapa').setView([data.destino.lat, data.destino.lng], 16);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap', maxZoom: 19,
-                }).addTo(map);
-                markersLayer = L.layerGroup().addTo(map);
-            } else {
-                map.setView([data.destino.lat, data.destino.lng], 16);
-                markersLayer.clearLayers();
-            }
-
-            // Marker destino
-            if (destMarker) map.removeLayer(destMarker);
-            destMarker = L.marker([data.destino.lat, data.destino.lng], {
-                icon: L.divIcon({
-                    html: '<div style="background:#FF453A;width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff">📍</div>',
-                    className: '', iconSize: [24,24], iconAnchor: [12,12],
-                })
-            }).addTo(map).bindPopup(`<b>${data.consulta}</b>`);
-
-            // Markers resultados
-            data.resultados.forEach(r => {
-                if (!r.lat || !r.lng) return;
-                const color = r.disponible ? '#06C167' : '#FF453A';
-                const icon = L.divIcon({
-                    html: `<div style="background:${color};width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">🅿</div>`,
-                    className: '', iconSize: [18,18], iconAnchor: [9,9],
-                });
-                const mk = L.marker([r.lat, r.lng], { icon }).addTo(markersLayer);
-                mk.bindPopup(`<b>${r.calle}</b><br>${r.disponible ? '✅ Disponible' : '❌ Ocupado'}<br>$${r.precio_por_hora}/h · ${r.distancia}m`);
-            });
+            } catch { document.getElementById('resultados').innerHTML = '<div class="error">Error de conexion</div>'; }
         }
 
         function mostrarResultados(data) {
             const el = document.getElementById('resultados');
-            if (!data.resultados.length) {
-                el.innerHTML = '<div class="no-results">No se encontraron espacios cerca</div>';
-                return;
-            }
-
-            // Bloques (agrupados por calle+altura)
-            let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">' +
-                       data.resultados.length + ' espacios encontrados</div>';
-
+            if (!data.resultados.length) { el.innerHTML = '<div class="no-results">No se encontraron espacios disponibles en esta zona</div>'; return; }
+            let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">' + data.resultados.length + ' espacios encontrados</div>';
             data.bloques.forEach(b => {
-                const espacios = data.resultados.filter(r =>
-                    r.calle === b.calle && r.altura === b.altura
-                );
-                html += `
-                    <div class="bloque-card">
-                        <div class="bloque-header">
-                            <div>
-                                <div class="bloque-calle">${b.calle}</div>
-                                <div class="bloque-altura">${b.altura ? 'Altura ' + b.altura : ''}</div>
-                            </div>
-                            <div class="bloque-count">
-                                <span class="libre">${b.disponibles}</span><span class="total">/${b.total} libres</span>
-                            </div>
-                        </div>
-                        <div class="bloque-dist">${Math.round(b.distancia_min)}m del destino</div>
-                        <div style="margin-top:8px;display:flex;gap:8px">
-                            <button onclick="abrirGMaps(${b.lat},${b.lng})" class="btn-gmaps">🗺 Navegar</button>
-                            <div class="bloque-expand" onclick="toggleDetalles(this)">Ver espacios ▾</div>
-                        </div>
-                        <div class="bloque-detalles">
-                            ${espacios.map(r => `
-                                <div class="result-item" style="margin-bottom:6px">
-                                    <div class="info">
-                                        <div class="dist">${r.distancia}m</div>
-                                        <div class="estado" style="color:${r.disponible ? 'var(--uber-green)' : '#FF453A'}">
-                                            ${r.disponible ? '✅ Disponible' : '❌ Ocupado'}
-                                        </div>
-                                    </div>
-                                    <div style="text-align:right">
-                                        <div class="precio">$${r.precio_por_hora}/h</div>
-                                        <div style="display:flex;gap:4px;margin-top:4px">
-                                            <button onclick="abrirGMaps(${r.lat},${r.lng})" class="btn-gmaps" style="padding:6px 10px;font-size:12px">🗺</button>
-                                            ${r.disponible ? `<button onclick="estacionarAqui(${r.espacio_id})" class="btn-gmaps" style="padding:6px 10px;font-size:12px;background:var(--uber-green);color:#000">🅿️</button>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+                const espacios = data.resultados.filter(r => r.calle === b.calle && r.altura === b.altura);
+                html += '<div class="bloque-card"><div class="bloque-header"><div><div class="bloque-calle">' + b.calle + '</div><div class="bloque-altura">' + (b.altura ? 'Altura ' + b.altura : '') + '</div></div><div class="bloque-count"><span class="libre">' + b.disponibles + '</span><span class="total">/' + b.total + ' libres</span></div></div><div class="bloque-dist">' + Math.round(b.distancia_min) + 'm' + (data.consulta !== 'Mi ubicacion' ? ' del destino' : '') + '</div><div style="margin-top:8px;display:flex;gap:8px"><button onclick="abrirGMaps(' + b.lat + ',' + b.lng + ')" class="btn-gmaps">Navegar</button><div class="bloque-expand" onclick="toggleDetalles(this)">Ver espacios</div></div><div class="bloque-detalles">' + espacios.map(r => '<div class="result-item" style="margin-bottom:6px"><div class="info"><div class="dist">' + r.distancia + 'm</div><div class="estado" style="color:' + (r.disponible ? 'var(--primary)' : '#dc2626') + '">' + (r.disponible ? 'Disponible' : 'Ocupado') + '</div></div><div style="text-align:right"><div class="precio">$' + r.precio_por_hora + '/h</div><div style="display:flex;gap:4px;margin-top:4px"><button onclick="abrirGMaps(' + r.lat + ',' + r.lng + ')" class="btn-gmaps" style="padding:6px 10px;font-size:12px">Mapa</button>' + (r.disponible ? '<button onclick="estacionarAqui(' + r.espacio_id + ')" class="btn-gmaps" style="padding:6px 10px;font-size:12px;background:var(--accent)">P</button>' : '') + '</div></div></div>').join('') + '</div></div>';
             });
-
             el.innerHTML = html;
         }
 
         function toggleDetalles(el) {
-            const detalles = el.parentElement.parentElement.querySelector('.bloque-detalles');
-            detalles.classList.toggle('mostrar');
-            el.textContent = detalles.classList.contains('mostrar') ? 'Ocultar espacios ▴' : 'Ver espacios ▾';
+            const d = el.parentElement.parentElement.querySelector('.bloque-detalles');
+            d.classList.toggle('mostrar');
+            el.textContent = d.classList.contains('mostrar') ? 'Ocultar' : 'Ver espacios';
         }
 
-        function abrirGMaps(lat, lng) {
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-            window.open(url, '_blank');
-        }
+        function abrirGMaps(lat, lng) { window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving', '_blank'); }
 
         async function estacionarAqui(espacioId) {
-            if (!CONDUCTOR_ID) { alert('No hay conductor seleccionado'); return; }
             try {
-                const res = await fetch('/api/checkin', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({espacio_id: espacioId, conductor_id: CONDUCTOR_ID})
-                });
+                const res = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ espacio_id: espacioId }) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Error');
-                window.location.href = `/conductor/checkout/${data.sesion_id}`;
-            } catch(e) { alert('Error: ' + e.message); }
+                window.location.href = '/conductor/checkout/' + data.sesion_id;
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // Auto-buscar si viene con query param
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('q')) {
-            document.getElementById('searchInput').value = params.get('q');
-            buscar();
+        function buscarPorGPS() {
+            if (!navigator.geolocation) { alert('GPS no disponible'); return; }
+            document.getElementById('resultados').innerHTML = '<div class="spinner">Obteniendo ubicación...</div>';
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                document.getElementById('resultados').innerHTML = '<div class="spinner">Buscando en un radio de 4 cuadras...</div>';
+                try {
+                    const res = await api('/api/buscar-estacionamiento', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: lat, lng: lng, radio: 400 }) });
+                    const data = await res.json();
+                    if (data.error) { document.getElementById('resultados').innerHTML = '<div class="error">' + data.error + '</div>'; return; }
+                    mostrarResultados(data);
+                } catch { document.getElementById('resultados').innerHTML = '<div class="error">Error de conexion</div>'; }
+            }, () => { document.getElementById('resultados').innerHTML = '<div class="error">No se pudo obtener la ubicación. Activá el GPS.</div>'; }, { enableHighAccuracy: true, timeout: 10000 });
         }
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('q')) { document.getElementById('searchInput').value = params.get('q'); toggleBusqueda(); buscar(); }
     </script>
-    <script>
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
-    </script>
+    <script>navigator.serviceWorker&&navigator.serviceWorker.register('/sw.js')</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum, Index
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum, Text, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import enum
@@ -6,49 +6,227 @@ import enum
 from app.database import Base
 
 
-class EstadoReserva(str, enum.Enum):
-    pendiente = "pendiente"
-    aprobada = "aprobada"
-    rechazada = "rechazada"
+class TipoVehiculo(str, enum.Enum):
+    auto = "auto"
+    camioneta = "camioneta"
+    moto = "moto"
+    bicicleta = "bicicleta"
 
 
-class Permisionario(Base):
-    __tablename__ = "permisionarios"
+class ExencionTipo(str, enum.Enum):
+    ninguna = "ninguna"
+    discapacidad = "discapacidad"
+    frentista = "frentista"
+    veterano_malvinas = "veterano_malvinas"
 
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    telefono = Column(String)
-    username = Column(String, unique=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    calle = Column(String, nullable=False, index=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    espacios = relationship("Espacio", back_populates="permisionario")
+class MetodoPago(str, enum.Enum):
+    efectivo = "efectivo"
+    mercadopago = "mercadopago"
+
+
+class MetodoIngreso(str, enum.Enum):
+    qr = "qr"
+    aqui = "aqui"
+    manual = "manual"
+
+
+class EstadoSesion(str, enum.Enum):
+    activa = "activa"
+    finalizada = "finalizada"
+    deuda = "deuda"
+
+
+class LadoMano(str, enum.Enum):
+    par = "par"
+    impar = "impar"
 
 
 class Conductor(Base):
     __tablename__ = "conductores"
 
     id = Column(Integer, primary_key=True, index=True)
+    dni = Column(String, unique=True, nullable=False, index=True)
     nombre = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    telefono = Column(String)
-    username = Column(String, unique=True, nullable=False)
+    apellido = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    telefono = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
-    patente = Column(String, nullable=True)
+    email_verified = Column(Boolean, default=False)
     bloqueado = Column(Boolean, default=False)
     bloqueado_hasta = Column(DateTime, nullable=True)
     saldo_deudor = Column(Float, default=0.0)
+    exencion = Column(Enum(ExencionTipo), default=ExencionTipo.ninguna)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    vehiculos = relationship("Vehiculo", back_populates="conductor", cascade="all, delete-orphan")
     sesiones = relationship("SesionEstacionamiento", back_populates="conductor")
-    reservas = relationship("Reserva", back_populates="conductor")
-    penalizaciones = relationship("Penalizacion", back_populates="conductor")
-    patentes_secundarias = relationship("PatenteSecundaria", back_populates="conductor", cascade="all, delete-orphan")
-    favoritos = relationship("Favorito", back_populates="conductor", cascade="all, delete-orphan")
+    deudas = relationship("Deuda", back_populates="conductor")
+
+
+class Vehiculo(Base):
+    __tablename__ = "vehiculos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
+    patente = Column(String, nullable=False, index=True)
+    tipo = Column(Enum(TipoVehiculo), default=TipoVehiculo.auto)
+    marca = Column(String, nullable=True)
+    modelo = Column(String, nullable=True)
+    anio = Column(Integer, nullable=True)
+    predeterminado = Column(Boolean, default=False)
+
+    conductor = relationship("Conductor", back_populates="vehiculos")
+    sesiones = relationship("SesionEstacionamiento", back_populates="vehiculo")
+
+
+class Permisionario(Base):
+    __tablename__ = "permisionarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String, unique=True, nullable=False, index=True)
+    nombre = Column(String, nullable=False)
+    apellido = Column(String, nullable=False)
+    dni = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    telefono = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    manos = relationship("Mano", back_populates="permisionario", cascade="all, delete-orphan")
+
+
+class Mano(Base):
+    __tablename__ = "manos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=False, index=True)
+    calle = Column(String, nullable=False, index=True)
+    altura_desde = Column(Integer, nullable=True)
+    altura_hasta = Column(Integer, nullable=True)
+    lado = Column(Enum(LadoMano), default=LadoMano.par)
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
+
+    permisionario = relationship("Permisionario", back_populates="manos")
+    espacios = relationship("Espacio", back_populates="mano")
+
+
+class Espacio(Base):
+    __tablename__ = "espacios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mano_id = Column(Integer, ForeignKey("manos.id"), nullable=True, index=True)
+    numero = Column(Integer, nullable=True)
+    ubicacion = Column(String, nullable=False, index=True)
+    precio_por_hora = Column(Float, default=600.0)
+    disponible = Column(Boolean, default=True, index=True)
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
+    tipo = Column(String, nullable=True, index=True)
+    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=True, index=True)
+
+    mano = relationship("Mano", back_populates="espacios")
+    permisionario = relationship("Permisionario")
+    sesiones = relationship("SesionEstacionamiento", back_populates="espacio")
+
+
+class SesionEstacionamiento(Base):
+    __tablename__ = "sesiones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
+    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
+    vehiculo_id = Column(Integer, ForeignKey("vehiculos.id"), nullable=True, index=True)
+    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=True, index=True)
+    hora_inicio = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    hora_fin = Column(DateTime, nullable=True, index=True)
+    costo_total = Column(Float, nullable=True)
+    pagado = Column(Boolean, default=False)
+    metodo_pago = Column(Enum(MetodoPago), nullable=True)
+    metodo_ingreso = Column(Enum(MetodoIngreso), default=MetodoIngreso.qr)
+    exencion = Column(Enum(ExencionTipo), default=ExencionTipo.ninguna)
+    estado = Column(Enum(EstadoSesion), default=EstadoSesion.activa, index=True)
+    pago_id = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    espacio = relationship("Espacio", back_populates="sesiones")
+    conductor = relationship("Conductor", back_populates="sesiones")
+    vehiculo = relationship("Vehiculo", back_populates="sesiones")
+    permisionario = relationship("Permisionario")
+    pago = relationship("Pago", back_populates="sesion", uselist=False)
+
+
+class Pago(Base):
+    __tablename__ = "pagos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sesion_id = Column(Integer, ForeignKey("sesiones.id"), nullable=False, index=True)
+    monto = Column(Float, nullable=False)
+    metodo = Column(Enum(MetodoPago), nullable=False)
+    mp_preference_id = Column(String, nullable=True)
+    mp_status = Column(String, nullable=True)
+    confirmado = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    sesion = relationship("SesionEstacionamiento", back_populates="pago")
+
+
+class Deuda(Base):
+    __tablename__ = "deudas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
+    sesion_id = Column(Integer, ForeignKey("sesiones.id"), nullable=True)
+    monto = Column(Float, nullable=False)
+    pagada = Column(Boolean, default=False, index=True)
+    reported_by = Column(Integer, ForeignKey("permisionarios.id"), nullable=True)
+    motivo = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    conductor = relationship("Conductor", back_populates="deudas")
+
+
+class Penalizacion(Base):
+    __tablename__ = "penalizaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
+    monto = Column(Float, nullable=False)
+    motivo = Column(String, nullable=False)
+    fecha = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    pagada = Column(Boolean, default=False)
+    resuelta_por = Column(Integer, nullable=True)
+    resuelta_en = Column(DateTime, nullable=True)
+
+
+class EmailVerification(Base):
+    __tablename__ = "email_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, nullable=False, index=True)
+    code = Column(String, nullable=False)
+    verified = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Gestor(Base):
+    __tablename__ = "gestores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    apellido = Column(String, nullable=True)
+    dni = Column(String, unique=True, nullable=True)
+    email = Column(String, unique=True, nullable=False)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    permisos = Column(String, default="permisionarios,conductores,sesiones,reportes")
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Admin(Base):
@@ -58,97 +236,3 @@ class Admin(Base):
     nombre = Column(String, nullable=False)
     username = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-
-
-class Espacio(Base):
-    __tablename__ = "espacios"
-
-    id = Column(Integer, primary_key=True, index=True)
-    ubicacion = Column(String, nullable=False, index=True)
-    precio_por_hora = Column(Float, default=600.0)
-    disponible = Column(Boolean, default=True, index=True)
-    lat = Column(Float, nullable=True)
-    lng = Column(Float, nullable=True)
-    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=True, index=True)
-    tipo = Column(String, nullable=True, index=True)
-
-    sesiones = relationship("SesionEstacionamiento", back_populates="espacio")
-    reservas = relationship("Reserva", back_populates="espacio")
-    permisionario = relationship("Permisionario", back_populates="espacios")
-
-
-class SesionEstacionamiento(Base):
-    __tablename__ = "sesiones"
-
-    id = Column(Integer, primary_key=True, index=True)
-    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
-    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
-    hora_inicio = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    hora_fin = Column(DateTime, nullable=True, index=True)
-    costo_total = Column(Float, nullable=True)
-    pagado = Column(Boolean, default=False)
-    pago_id = Column(String, nullable=True)
-    metodo_pago = Column(String, nullable=True)
-    lista_para_salir = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-    espacio = relationship("Espacio", back_populates="sesiones")
-    conductor = relationship("Conductor", back_populates="sesiones")
-
-
-class Reserva(Base):
-    __tablename__ = "reservas"
-
-    id = Column(Integer, primary_key=True, index=True)
-    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
-    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
-    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=True, index=True)
-    hora_inicio = Column(DateTime, nullable=False, index=True)
-    hora_fin = Column(DateTime, nullable=False, index=True)
-    estado = Column(Enum(EstadoReserva), default=EstadoReserva.pendiente, index=True)
-    creada_en = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    checkin_time = Column(DateTime, nullable=True)
-    usada = Column(Boolean, default=False)
-    resuelta_por = Column(Integer, nullable=True)
-
-    espacio = relationship("Espacio", back_populates="reservas")
-    conductor = relationship("Conductor", back_populates="reservas")
-
-
-class Penalizacion(Base):
-    __tablename__ = "penalizaciones"
-
-    id = Column(Integer, primary_key=True, index=True)
-    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
-    reserva_id = Column(Integer, ForeignKey("reservas.id"), nullable=True)
-    monto = Column(Float, nullable=False)
-    motivo = Column(String, nullable=False)
-    fecha = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    pagada = Column(Boolean, default=False)
-    resuelta_por = Column(Integer, nullable=True)
-    resuelta_en = Column(DateTime, nullable=True)
-
-    conductor = relationship("Conductor", back_populates="penalizaciones")
-
-
-class PatenteSecundaria(Base):
-    __tablename__ = "patentes_secundarias"
-
-    id = Column(Integer, primary_key=True, index=True)
-    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
-    patente = Column(String, nullable=False)
-
-    conductor = relationship("Conductor", back_populates="patentes_secundarias")
-
-
-class Favorito(Base):
-    __tablename__ = "favoritos_conductor"
-
-    id = Column(Integer, primary_key=True, index=True)
-    conductor_id = Column(Integer, ForeignKey("conductores.id"), nullable=False, index=True)
-    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False)
-    nombre = Column(String, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-    conductor = relationship("Conductor", back_populates="favoritos")
-    espacio = relationship("Espacio")
