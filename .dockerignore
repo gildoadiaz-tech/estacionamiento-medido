@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+venv
+*.db
+*.db-shm
+*.db-wal
+.env
+mobile-app
+docs
+*.md
+.dockerignore
+Dockerfile
+docker-compose.yml

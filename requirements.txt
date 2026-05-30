@@ -4,11 +4,10 @@ qrcode[pil]
 sqlalchemy[asyncio]
 aiosqlite
 asyncpg
+psycopg2-binary
 pydantic
 httpx
 python-multipart
 jinja2
 aiofiles
 python-jose[cryptography]
-passlib[bcrypt]
-bcrypt
