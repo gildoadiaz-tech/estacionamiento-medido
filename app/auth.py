@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -11,11 +12,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password[:72])
+    pre = hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.hash(pre)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    pre = hashlib.sha256(plain.encode()).hexdigest()
+    return pwd_context.verify(pre, hashed)
 
 
 def create_token(data: dict) -> str:
