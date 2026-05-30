@@ -112,21 +112,32 @@ docker compose up -d      # Crea todo de nuevo con seed automático
 
 ---
 
-## Ejecutar localmente (desarrollo)
+## Ejecutar localmente (desarrollo con SQLite)
+
+### Requisitos
+
+- Python 3.11+
+- Git
+
+### Instalación y ejecución
 
 ```bash
+# Clonar el repositorio
 git clone https://github.com/gildoadiaz-tech/estacionamiento-medido.git
 cd estacionamiento-medido
+
+# Crear entorno virtual e instalar dependencias
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate       # Linux/Mac
+# venv\Scripts\activate        # Windows
 pip install -r requirements.txt
+
+# Crear base de datos con datos de prueba
 python seed.py
+
+# Iniciar el servidor
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-
-Abrir **http://localhost:8000**
-
-> En modo local usa SQLite en `/tmp/estacionamiento.db`. Para producción con PostgreSQL, usar Docker.
 
 ---
 
