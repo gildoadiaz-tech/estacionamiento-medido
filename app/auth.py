@@ -1,24 +1,24 @@
-import hashlib
+import hashlib, os, base64
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-from passlib.context import CryptContext
-import os
 
 SECRET_KEY = os.getenv("JWT_SECRET", "estacionamiento-salta-secret-key-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(password: str) -> str:
-    pre = hashlib.sha256(password.encode()).hexdigest()
-    return pwd_context.hash(pre)
+    salt = os.urandom(16)
+    key = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
+    return base64.b64encode(salt + key).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    pre = hashlib.sha256(plain.encode()).hexdigest()
-    return pwd_context.verify(pre, hashed)
+    raw = base64.b64decode(hashed)
+    salt = raw[:16]
+    stored_key = raw[16:]
+    key = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, 100000)
+    return key == stored_key
 
 
 def create_token(data: dict) -> str:
