@@ -1,6 +1,6 @@
 # Estacionamiento Medido v2.0 — Salta
 
-Sistema completo de estacionamiento medido inteligente con 4 roles (conductor, permisionario, gestor, admin), búsqueda GPS con datos oficiales IDEMSA, pagos con Mercado Pago (split 80/20), sesiones en vivo con timer+costo, self-checkout con código de salida, y PWA offline.
+Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, permisionario, admin), búsqueda GPS con datos oficiales IDEMSA, pagos con Mercado Pago (split 80/20), sesiones en vivo con timer+costo, self-checkout con código de salida, mapa de calor, y PWA offline.
 
 ---
 
@@ -18,7 +18,7 @@ Plataforma web + móvil que digitaliza el estacionamiento medido:
 
 - **Conductor** busca dónde estacionar, escanea QR del permisionario, ve timer y costo en vivo, finaliza con self-checkout (código de 4 dígitos) o pago Mercado Pago
 - **Permisionario** gestiona sesiones, procesa salidas, genera QR imprimible para conductores sin smartphone, recibe 80% del cobro
-- **Gestor/Admin** supervisa, reporta, administra permisionarios y conductores
+- **Admin** supervisa, reporta, administra permisionarios y conductores, mapa de calor en vivo
 
 ### Track elegido: Estacionamiento Medido
 
@@ -37,11 +37,12 @@ Cumplimiento de Ordenanza N.º 12.170:
 |------|-----------|
 | Backend | Python 3.12 + FastAPI + SQLAlchemy async |
 | Base de datos | PostgreSQL (producción) / SQLite (desarrollo local) |
-| Autenticación | JWT (python-jose) + PBKDF2-HMAC-SHA256 |
+| Autenticación | JWT (python-jose) + PBKDF2-HMAC-SHA256 + cookies |
 | Frontend | Jinja2 templates + CSS vanilla (mobile-first) |
-| Mapas | IDEMSA GIS embed + Leaflet + OSM |
+| Mapas | Leaflet + Leaflet.heat (mapa de calor) + OSM |
 | QR | qrcode (PIL) server-side + self-checkout con código de salida |
 | Pagos | Mercado Pago (split 80/20 con collector_id) |
+| Seguridad | Rate limiting (slowapi), CORS, HMAC password verify, webhook signature |
 | PWA | Service Worker (network-first API, cache-first static) |
 | Deploy | Docker Compose (app + PostgreSQL) |
 
@@ -77,7 +78,7 @@ La app arranca en **http://localhost:8000**.
 | Variable | Default | Descripción |
 |----------|---------|-------------|
 | `DATABASE_URL` | PostgreSQL interno | URL de conexión (auto-configurada en compose) |
-| `JWT_SECRET` | `estacionamiento-salta-secret-key-2024` | Secreto para firmar tokens JWT |
+| `JWT_SECRET` | Aleatorio (solo dev) | Secreto para firmar tokens JWT (obligatorio en producción) |
 | `BASE_URL` | `http://localhost:8000` | URL base para QR y links |
 | `MP_ACCESS_TOKEN` | vacío | Token de acceso Mercado Pago |
 | `APP_PORT` | `8000` | Puerto donde escucha la app |
@@ -134,6 +135,7 @@ pip install -r requirements.txt
 
 # Crear base de datos con datos de prueba
 python seed.py
+python seed_datos.py
 
 # Iniciar el servidor
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -143,37 +145,34 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ## Usuarios de prueba
 
-### Conductores (login por DNI)
+> Todos los usuarios usan la misma contraseña: **`demo1234`**
 
-| DNI | Contraseña | Datos |
-|-----|-----------|-------|
-| `35123456` | `1234` | Pedro López — Auto (Toyota Corolla) + Moto (Honda CG 150), sin exención |
-| `36234567` | `1234` | Ana Martínez — Camioneta (Ford Ranger), sin exención |
-| `30111222` | `1234` | Carlos Ruiz — Auto (Chevrolet Corsa), **Oblea Discapacidad** |
-| `29444555` | `1234` | Lucía Fernández — Auto (VW Gol), **Frentista** |
-| `20999888` | `1234` | Roberto Gómez — Auto (Fiat Cronos), **Veterano Malvinas** |
-| `37555666` | `1234` | Eva Torres — **Bicicleta** (Venzo Urban), sin exención |
+### Conductor (login por DNI)
 
-### Permisionarios (login por código)
+| DNI | Datos |
+|-----|-------|
+| `87654321` | Pedro López — Auto (Toyota Corolla) + Moto (Honda CG 150), sin exención |
+| `36234567` | Ana Martínez — Camioneta (Ford Ranger), sin exención |
+| `30111222` | Carlos Ruiz — Auto (Chevrolet Corsa), **Oblea Discapacidad** |
+| `29444555` | Lucía Fernández — Auto (VW Gol), **Frentista** |
+| `20999888` | Roberto Gómez — Auto (Fiat Cronos), **Veterano Malvinas** |
+| `37555666` | Eva Torres — **Bicicleta** (Venzo Urban), sin exención |
 
-| Código | Contraseña |
-|--------|-----------|
-| `PER30456789` | `1234` — Juan Pérez (Gral. Güemes 100-200) |
-| `PER28345678` | `1234` — María García (Caseros 1100-1200) |
+### Permisionario (login por código)
 
-### Gestor
-
-| Usuario | Contraseña |
-|---------|-----------|
-| `gestor1` | `gestor123` |
+| Código | Datos |
+|--------|-------|
+| `PERM001` | Juan Pérez (Gral. Güemes 100-200) |
+| `PERM002` | María García (Caseros 1100-1200) |
 
 ### Admin
 
 | Usuario | Contraseña |
 |---------|-----------|
-| `admin` | `admin123` |
+| `admin` | `demo1234` |
 
-> Los usuarios se crean automáticamente al iniciar la app si la base de datos está vacía.
+> La página principal tiene un **Modo Demo** con botones que inician sesión automáticamente.  
+> Los datos ficticios se crean con `python seed_datos.py` (30 sesiones, 26 pagos, 3 deudas, mapa de calor).
 
 ---
 
@@ -196,11 +195,32 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 3. QR imprimible para conductores sin smartphone
 4. Reportes financieros, historial
 
-### Gestor/Admin
+### Admin (dashboard)
 
 1. Dashboard con estadísticas y finanzas
 2. CRUD permisionarios (CVU, Collector ID de MP)
 3. CRUD conductores, sesiones en vivo, reportes, deudas
+4. Mapa de calor de sesiones (Leaflet.heat)
+
+### Modo Demo
+
+La página principal incluye 3 botones de **Modo Demo** que inician sesión automáticamente sin registro:
+- **Conductor** → DNI: 87654321
+- **Permisionario** → Código: PERM001
+- **Admin** → Usuario: admin
+
+---
+
+## Seguridad
+
+- **JWT** con secreto aleatorio en producción (obligatorio configurar `JWT_SECRET`)
+- **PBKDF2-HMAC-SHA256** con 100K iteraciones para passwords (sin bcrypt/passlib)
+- **Rate limiting**: 20 intentos de login por minuto por IP
+- **CORS**: allow all origins (`*`)
+- **Auth middleware**: rutas protegidas (`/conductor`, `/permisionario`, `/admin`) redirigen a `/login` sin cookie válida
+- **Webhook signature** verification para Mercado Pago
+- **Self-checkout** con código de 4 dígitos (`secrets.randbelow`)
+- **Permisos** basados en roles (conductor, permisionario, admin)
 
 ---
 
@@ -222,43 +242,32 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 estacionamiento/
 ├── app/
-│   ├── main.py              # FastAPI app, endpoints, lógica de negocio
-│   ├── models.py            # Modelos SQLAlchemy
+│   ├── main.py              # FastAPI app, endpoints, lógica de negocio, auth middleware
+│   ├── models.py            # Modelos SQLAlchemy (sin Gestor)
 │   ├── schemas.py           # Pydantic schemas
 │   ├── database.py          # Conexión async (SQLite o PostgreSQL)
-│   ├── auth.py              # JWT + PBKDF2 hashing
-│   ├── auth_routes.py       # Login, registro, verify
-│   ├── deps.py              # Dependencias FastAPI
+│   ├── auth.py              # JWT + PBKDF2-HMAC-SHA256 + HMAC compare
+│   ├── auth_routes.py       # Login (3 roles), registro, verify
+│   ├── deps.py              # Dependencias FastAPI (get_current_user, require_role, auth middleware)
 │   ├── qr_utils.py          # Generación QR (PIL)
-│   ├── mercado_pago.py       # Integración MP (split con collector_id)
+│   ├── mercado_pago.py       # Integración MP (split 80/20 con collector_id)
 │   ├── mapa_data.py         # Calles del centro (Leaflet)
 │   ├── idemsa_data.py       # Sincronización IDEMSA (604 segmentos)
-│   ├── static/              # JS, CSS, manifest, service worker
-│   └── templates/           # Jinja2 templates (4 roles)
+│   ├── static/              # manifest, icons, service worker
+│   └── templates/           # Jinja2 templates (3 roles)
 │       ├── auth/             # Login, registro, verify
-│       ├── conductor/        # Buscar, estacionar, checkout, historial, perfil
-│       ├── permisionario/    # Panel, QR, salida, historial
-│       ├── gestor/           # Dashboard
-│       └── admin/            # Dashboard, CRUDs, reportes, permisionarios
+│       ├── conductor/       # Buscar, estacionar, checkout, historial, perfil
+│       ├── permisionario/   # Panel, QR, salida, historial
+│       └── admin/           # Dashboard, CRUDs, reportes, sesiones vivo (mapa de calor)
 ├── Dockerfile
 ├── docker-compose.yml
-├── seed.py                  # Datos de prueba
+├── seed.py                  # Datos base de prueba
+├── seed_datos.py            # Datos ficticios de demo (sesiones, pagos, deudas)
 ├── requirements.txt
 └── README.md
 ```
 
 ---
-
-## Configuración
-
-### Variables de entorno
-
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `DATABASE_URL` | SQLite `/tmp` | URL de PostgreSQL para producción |
-| `JWT_SECRET` | `estacionamiento-salta-secret-key-2024` | Secreto JWT |
-| `MP_ACCESS_TOKEN` | vacío | Token de acceso Mercado Pago Sandbox |
-| `BASE_URL` | `http://localhost:8000` | URL base para QR y links |
 
 ## Licencia
 
