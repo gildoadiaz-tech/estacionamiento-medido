@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional
 
@@ -14,6 +14,20 @@ class ConductorRegistro(BaseModel):
     tipo_vehiculo: str = "auto"
     marca: Optional[str] = None
     modelo: Optional[str] = None
+
+    @field_validator('password')
+    @classmethod
+    def password_min_length(cls, v):
+        if len(v) < 6:
+            raise ValueError('La contrasena debe tener al menos 6 caracteres')
+        return v
+
+    @field_validator('dni')
+    @classmethod
+    def dni_must_be_numeric(cls, v):
+        if not v.isdigit() or len(v) < 7:
+            raise ValueError('DNI invalido')
+        return v
 
 
 class EmailVerifyRequest(BaseModel):
@@ -69,6 +83,13 @@ class ConductorUpdate(BaseModel):
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def password_min_length(cls, v):
+        if len(v) < 6:
+            raise ValueError('La contrasena debe tener al menos 6 caracteres')
+        return v
 
 
 class PermisionarioCreate(BaseModel):

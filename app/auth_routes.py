@@ -1,4 +1,4 @@
-import uuid
+import uuid, logging
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -6,12 +6,15 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.models import Conductor, Permisionario, Admin, Gestor, EmailVerification, Vehiculo
 from app.auth import verify_password, create_token, decode_token, hash_password
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 templates = Jinja2Templates(directory="app/templates")
 
 
@@ -34,7 +37,8 @@ class RegisterConductorRequest(BaseModel):
 
 
 @router.post("/login")
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_db)):
     login_map = [
         (Conductor, "conductor", Conductor.dni),
         (Permisionario, "permisionario", Permisionario.codigo),
@@ -109,7 +113,7 @@ async def register_conductor(data: RegisterConductorRequest, db: AsyncSession = 
 
     base = "http://localhost:8000"
     link = f"{base}/api/auth/verify-email?token={token}"
-    print(f"\n{'='*60}\n[VERIFICATION] {data.email}\n{link}\n{'='*60}\n")
+    logging.info(f"Verification link for {data.email}: {link}")
     return {"message": "Cuenta creada. Revisá tu email para verificar tu dirección de correo.", "email": data.email}
 
 

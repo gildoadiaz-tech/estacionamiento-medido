@@ -1,12 +1,16 @@
-import csv, io, httpx, random, math
+import csv, io, httpx, random, math, secrets
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 
 from app.database import init_db, get_db, async_session
@@ -109,6 +113,8 @@ def _get_espacios():
 
 
 async def ensure_test_users():
+    if os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL"):
+        return
     try:
         from app.database import init_db
         await init_db()
@@ -196,6 +202,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("BASE_URL", "http://localhost:8000")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/api/health")
@@ -881,7 +899,7 @@ async def conductor_checkin(data: CheckInRequest, current_user=Depends(get_curre
         except ValueError:
             pass
 
-    codigo_salida = str(random.randint(1000, 9999))
+    codigo_salida = str(secrets.randbelow(9000) + 1000)
     sesion = SesionEstacionamiento(
         espacio_id=espacio_id,
         conductor_id=conductor_id,
@@ -1805,7 +1823,7 @@ async def gestor_create_permisionario(data: PermisionarioCreate, current_user=De
         email=data.email,
         telefono=data.telefono,
         cvu=data.cvu,
-        password_hash=hash_password(data.dni[-4:]),
+        password_hash=hash_password(secrets.token_hex(4)),
         activo=True,
     )
     db.add(perm)
@@ -2004,7 +2022,7 @@ async def admin_create_permisionario(data: PermisionarioCreate, current_user=Dep
     perm = Permisionario(
         codigo=codigo, nombre=data.nombre, apellido=data.apellido,
         dni=data.dni, email=data.email, telefono=data.telefono, cvu=data.cvu,
-        password_hash=hash_password(data.dni[-4:]), activo=True,
+        password_hash=hash_password(secrets.token_hex(4)), activo=True,
     )
     db.add(perm)
     await db.flush()
@@ -2562,7 +2580,7 @@ async def buscar_estacionamiento(
 # ═══════════════════════════════════════════════════════
 
 @app.post("/api/espacios", response_model=EspacioOut)
-async def crear_espacio(data: EspacioCreate, db: AsyncSession = Depends(get_db)):
+async def crear_espacio(data: EspacioCreate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     esp = Espacio(**data.model_dump())
     db.add(esp)
     await db.commit()
@@ -2598,11 +2616,16 @@ async def admin_eliminar_espacio(espacio_id: int, current_user=Depends(require_r
 
 @app.post("/api/mp/webhook")
 async def mercadopago_webhook(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.mercado_pago import procesar_pago_webhook
+    from app.mercado_pago import procesar_pago_webhook, verificar_firma_webhook
+    signature = request.headers.get("x-signature", "")
+    request_id = request.headers.get("x-request-id", "")
     try:
         body = await request.json()
     except Exception:
         body = {}
+
+    if not verificar_firma_webhook(request_id, str(body), signature):
+        raise HTTPException(403, "Invalid webhook signature")
 
     payment_id = body.get("data", {}).get("id")
     if not payment_id:
@@ -2683,7 +2706,7 @@ async def pago_pending(request: Request):
 # ═══════════════════════════════════════════════════════
 
 @app.get("/api/sesiones")
-async def listar_sesiones(db: AsyncSession = Depends(get_db)):
+async def listar_sesiones(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).order_by(SesionEstacionamiento.hora_inicio.desc())
     )
@@ -2708,7 +2731,7 @@ async def listar_sesiones(db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/api/sesiones/activas")
-async def sesiones_activas(db: AsyncSession = Depends(get_db)):
+async def sesiones_activas(current_user=Depends(require_role("admin", "gestor", "permisionario")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).where(SesionEstacionamiento.estado == EstadoSesion.activa)
     )
@@ -2732,13 +2755,13 @@ async def sesiones_activas(db: AsyncSession = Depends(get_db)):
 # ═══════════════════════════════════════════════════════
 
 @app.get("/api/permisionarios", response_model=list[PermisionarioOut])
-async def listar_permisionarios(db: AsyncSession = Depends(get_db)):
+async def listar_permisionarios(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Permisionario))
     return result.scalars().all()
 
 
 @app.post("/api/permisionarios", response_model=PermisionarioOut)
-async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depends(get_db)):
+async def crear_permisionario(data: PermisionarioCreate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(Permisionario).where(Permisionario.dni == data.dni))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Ya existe un permisionario con ese DNI")
@@ -2746,7 +2769,7 @@ async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depe
     perm = Permisionario(
         codigo=codigo, nombre=data.nombre, apellido=data.apellido,
         dni=data.dni, email=data.email, telefono=data.telefono, cvu=data.cvu,
-        password_hash=hash_password(data.dni[-4:]), activo=True,
+        password_hash=hash_password(secrets.token_hex(4)), activo=True,
     )
     db.add(perm)
     await db.flush()
@@ -2764,7 +2787,7 @@ async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depe
 
 
 @app.get("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
-async def obtener_permisionario(perm_id: int, db: AsyncSession = Depends(get_db)):
+async def obtener_permisionario(perm_id: int, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     perm = await db.get(Permisionario, perm_id)
     if not perm:
         raise HTTPException(404)
@@ -2772,7 +2795,7 @@ async def obtener_permisionario(perm_id: int, db: AsyncSession = Depends(get_db)
 
 
 @app.put("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
-async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, db: AsyncSession = Depends(get_db)):
+async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     perm = await db.get(Permisionario, perm_id)
     if not perm:
         raise HTTPException(404)
@@ -2784,13 +2807,13 @@ async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, db: 
 
 
 @app.get("/api/conductores", response_model=list[ConductorOut])
-async def listar_conductores(db: AsyncSession = Depends(get_db)):
+async def listar_conductores(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Conductor))
     return result.scalars().all()
 
 
 @app.get("/api/conductores/{conductor_id}", response_model=ConductorOut)
-async def obtener_conductor(conductor_id: int, db: AsyncSession = Depends(get_db)):
+async def obtener_conductor(conductor_id: int, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     cond = await db.get(Conductor, conductor_id)
     if not cond:
         raise HTTPException(404, "Conductor no encontrado")

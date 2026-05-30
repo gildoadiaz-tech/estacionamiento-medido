@@ -1,8 +1,14 @@
-import hashlib, os, base64
+import hashlib, os, base64, hmac, secrets, logging
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 
-SECRET_KEY = os.getenv("JWT_SECRET", "estacionamiento-salta-secret-key-2024")
+logger = logging.getLogger("estacionamiento")
+
+_jwt_secret = os.getenv("JWT_SECRET")
+if not _jwt_secret:
+    _jwt_secret = secrets.token_hex(32)
+    logger.warning("JWT_SECRET no configurado. Usando secreto aleatorio. Configure JWT_SECRET en produccion.")
+SECRET_KEY = _jwt_secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
@@ -14,11 +20,14 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    raw = base64.b64decode(hashed)
-    salt = raw[:16]
-    stored_key = raw[16:]
-    key = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, 100000)
-    return key == stored_key
+    try:
+        raw = base64.b64decode(hashed)
+        salt = raw[:16]
+        stored_key = raw[16:]
+        key = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, 100000)
+        return hmac.compare_digest(key, stored_key)
+    except Exception:
+        return False
 
 
 def create_token(data: dict) -> str:
