@@ -167,14 +167,35 @@ class Pago(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sesion_id = Column(Integer, ForeignKey("sesiones.id"), nullable=False, index=True)
-    monto = Column(Float, nullable=False)
+    monto = Column(Float, nullable=False, comment="Lo que realmente pagó el conductor")
+    monto_original = Column(Float, nullable=True, comment="Precio sin descuento MP")
     metodo = Column(Enum(MetodoPago), nullable=False)
+    comision_municipio = Column(Float, default=0.0, comment="Lo que recibe el municipio (20% de monto_original, 0 si MP)")
+    comision_permisionario = Column(Float, default=0.0, comment="Lo que recibe el permisionario (80% de monto_original)")
+    cuota_liquidada = Column(Boolean, default=False, comment="Si ya se liquidó la cuota al municipio")
     mp_preference_id = Column(String, nullable=True)
     mp_status = Column(String, nullable=True)
     confirmado = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     sesion = relationship("SesionEstacionamiento", back_populates="pago")
+
+
+class CuotaPermisionario(Base):
+    __tablename__ = "cuotas_permisionario"
+
+    id = Column(Integer, primary_key=True, index=True)
+    permisionario_id = Column(Integer, ForeignKey("permisionarios.id"), nullable=False, index=True)
+    periodo_inicio = Column(DateTime, nullable=False)
+    periodo_fin = Column(DateTime, nullable=False)
+    total_recaudado = Column(Float, default=0.0, comment="Suma de monto_original de todos los pagos")
+    total_efectivo = Column(Float, default=0.0)
+    total_mp = Column(Float, default=0.0)
+    monto_cuota = Column(Float, default=0.0, comment="20% de total_recaudado, pero sin contar lo subsidiado en MP")
+    pagada = Column(Boolean, default=False)
+    fecha_vencimiento = Column(DateTime, nullable=True)
+    fecha_pago = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Deuda(Base):

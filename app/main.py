@@ -13,7 +13,7 @@ from app.database import init_db, get_db, async_session
 from app.models import (
     Conductor, Permisionario, Admin, Gestor, Espacio, Mano,
     SesionEstacionamiento, Pago, Deuda, Penalizacion,
-    EmailVerification, Vehiculo,
+    EmailVerification, Vehiculo, CuotaPermisionario,
     EstadoSesion, MetodoPago, MetodoIngreso, TipoVehiculo, LadoMano,
 )
 from app.schemas import *
@@ -860,28 +860,37 @@ async def conductor_elegir_pago(sesion_id: int, body: ElegirPagoRequest, current
     sesion.metodo_pago = MetodoPago.efectivo if body.metodo == "efectivo" else MetodoPago.mercadopago
 
     ahora = now_naive()
-    costo_total, _, _, _ = await calcular_costo_con_pendientes(
+    monto_original, _, _, _ = await calcular_costo_con_pendientes(
         sesion, sesion.conductor_id, ahora, db
     )
 
     if body.metodo == "mercadopago":
-        costo_total = round(costo_total * (1 - MP_DESCUENTO), 2)
+        costo_final = round(monto_original * (1 - MP_DESCUENTO), 2)
+        comision_municipio = 0.0  # municipio absorbe el descuento
+        comision_permisionario = round(monto_original * 0.8, 2)
+    else:
+        costo_final = monto_original
+        comision_municipio = round(monto_original * 0.2, 2)
+        comision_permisionario = round(monto_original * 0.8, 2)
 
-    sesion.costo_total = costo_total
+    sesion.costo_total = costo_final
 
     pago = Pago(
         sesion_id=sesion.id,
-        monto=costo_total,
+        monto=costo_final,
+        monto_original=monto_original,
         metodo=sesion.metodo_pago,
+        comision_municipio=comision_municipio,
+        comision_permisionario=comision_permisionario,
         confirmado=False,
     )
 
-    resp = {"ok": True, "metodo": body.metodo, "costo_total": costo_total, "descuento_mp": MP_DESCUENTO if body.metodo == "mercadopago" else 0}
+    resp = {"ok": True, "metodo": body.metodo, "costo_total": costo_final, "monto_original": monto_original, "descuento_mp": MP_DESCUENTO if body.metodo == "mercadopago" else 0}
 
     if body.metodo == "mercadopago":
         cond = await db.get(Conductor, sesion.conductor_id)
         mp_result = await crear_preferencia_pago(
-            monto=costo_total,
+            monto=costo_final,
             concepto=f"Estacionamiento #{sesion.id}",
             conductor_email=cond.email if cond else "conductor@email.com",
             notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mp/webhook",
@@ -1891,11 +1900,115 @@ async def admin_reportes(current_user=Depends(require_role("admin")), db: AsyncS
     deuda_total = float(r6.scalar() or 0)
     r7 = await db.execute(select(func.count(Vehiculo.id)))
     total_vehiculos = r7.scalar() or 0
+
+    r8 = await db.execute(select(func.coalesce(func.sum(Pago.comision_municipio), 0)).where(Pago.confirmado == True))
+    comision_municipio = float(r8.scalar() or 0)
+    r9 = await db.execute(select(func.coalesce(func.sum(Pago.comision_permisionario), 0)).where(Pago.confirmado == True))
+    comision_permisionario = float(r9.scalar() or 0)
+    r10 = await db.execute(select(func.coalesce(func.sum(Pago.monto_original), 0)).where(Pago.confirmado == True))
+    total_bruto = float(r10.scalar() or 0)
+
     return {
         "total_sesiones": total_sesiones, "total_recaudado": total_recaudado,
         "sesiones_activas": activas, "total_conductores": total_conductores,
         "total_permisionarios": total_permisionarios, "total_vehiculos": total_vehiculos,
         "deuda_total": deuda_total,
+        "finanzas": {
+            "total_bruto": total_bruto,
+            "total_neto": total_recaudado,
+            "comision_municipio": comision_municipio,
+            "comision_permisionario": comision_permisionario,
+        },
+    }
+
+
+@app.get("/api/admin/finanzas")
+async def admin_finanzas(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Permisionario))
+    permisionarios = result.scalars().all()
+    data = []
+    for p in permisionarios:
+        r1 = await db.execute(
+            select(func.coalesce(func.sum(Pago.monto_original), 0))
+            .where(Pago.confirmado == True)
+            .where(Pago.sesion_id == SesionEstacionamiento.id)
+            .where(SesionEstacionamiento.permisionario_id == p.id)
+        )
+        total_bruto = float(r1.scalar() or 0)
+        r2 = await db.execute(
+            select(func.coalesce(func.sum(Pago.monto), 0))
+            .where(Pago.confirmado == True)
+            .where(Pago.sesion_id == SesionEstacionamiento.id)
+            .where(SesionEstacionamiento.permisionario_id == p.id)
+        )
+        total_neto = float(r2.scalar() or 0)
+        r3 = await db.execute(
+            select(func.coalesce(func.sum(Pago.comision_municipio), 0))
+            .where(Pago.confirmado == True)
+            .where(Pago.sesion_id == SesionEstacionamiento.id)
+            .where(SesionEstacionamiento.permisionario_id == p.id)
+        )
+        comision_municipio = float(r3.scalar() or 0)
+        r4 = await db.execute(
+            select(func.coalesce(func.sum(Pago.comision_permisionario), 0))
+            .where(Pago.confirmado == True)
+            .where(Pago.sesion_id == SesionEstacionamiento.id)
+            .where(SesionEstacionamiento.permisionario_id == p.id)
+        )
+        comision_permisionario = float(r4.scalar() or 0)
+        r5 = await db.execute(
+            select(func.count(Pago.id))
+            .where(Pago.confirmado == True)
+            .where(Pago.sesion_id == SesionEstacionamiento.id)
+            .where(SesionEstacionamiento.permisionario_id == p.id)
+        )
+        total_pagos = r5.scalar() or 0
+        data.append({
+            "permisionario_id": p.id,
+            "nombre": f"{p.nombre} {p.apellido}",
+            "codigo": p.codigo,
+            "total_pagos": total_pagos,
+            "total_bruto": total_bruto,
+            "total_neto": total_neto,
+            "comision_municipio": comision_municipio,
+            "comision_permisionario": comision_permisionario,
+            "cuota_pendiente": round(comision_municipio, 2),
+        })
+    return data
+
+
+@app.get("/api/permisionario/finanzas")
+async def permisionario_finanzas(current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user["role"] != "permisionario":
+        raise HTTPException(403, "Solo permisionarios")
+    pid = current_user["id"]
+    r1 = await db.execute(
+        select(func.coalesce(func.sum(Pago.monto_original), 0))
+        .where(Pago.confirmado == True)
+        .where(Pago.sesion_id == SesionEstacionamiento.id)
+        .where(SesionEstacionamiento.permisionario_id == pid)
+    )
+    total_bruto = float(r1.scalar() or 0)
+    r2 = await db.execute(
+        select(func.coalesce(func.sum(Pago.monto), 0))
+        .where(Pago.confirmado == True)
+        .where(Pago.sesion_id == SesionEstacionamiento.id)
+        .where(SesionEstacionamiento.permisionario_id == pid)
+    )
+    total_neto = float(r2.scalar() or 0)
+    r3 = await db.execute(
+        select(func.count(Pago.id))
+        .where(Pago.confirmado == True)
+        .where(Pago.sesion_id == SesionEstacionamiento.id)
+        .where(SesionEstacionamiento.permisionario_id == pid)
+    )
+    total_pagos = r3.scalar() or 0
+    return {
+        "total_pagos": total_pagos,
+        "total_recaudado_bruto": total_bruto,
+        "total_recaudado_neto": total_neto,
+        "comision_municipio_estimada": round(total_bruto * 0.2, 2),
+        "ingreso_permisionario": round(total_bruto * 0.8, 2),
     }
 
 
