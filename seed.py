@@ -1,6 +1,6 @@
 import asyncio
 from app.database import init_db, async_session, engine
-from app.models import Conductor, Permisionario, Admin, Gestor, Mano, Vehiculo, ExencionTipo, TipoVehiculo
+from app.models import Conductor, Permisionario, Admin, Mano, Vehiculo, ExencionTipo, TipoVehiculo
 from app.auth import hash_password
 from sqlalchemy import select, text
 
@@ -21,15 +21,6 @@ async def seed():
 
         admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("demo1234"))
         db.add(admin)
-
-        gestor = Gestor(
-            nombre="Carlos", apellido="Méndez",
-            dni="12345678", email="gestor@municipalidad.gob.ar",
-            username="gestor1", password_hash=hash_password("demo1234"),
-            permisos="permisionarios,conductores,sesiones,reportes,deudas",
-        )
-        db.add(gestor)
-        await db.flush()
 
         juan = Permisionario(
             codigo="PERM001", nombre="Juan", apellido="Pérez",
@@ -140,7 +131,6 @@ async def seed():
         print("  PERM001 / demo1234 — Juan Pérez (Gral. Güemes par+impar)")
         print("  PERM002 / demo1234 — María García (Caseros 1100-1200 par)")
         print()
-        print("GESTOR: gestor1 / demo1234 — Carlos Méndez")
         print("ADMIN: admin / demo1234")
         print("========================================")
 

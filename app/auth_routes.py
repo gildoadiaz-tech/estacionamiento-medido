@@ -10,7 +10,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.database import get_db
-from app.models import Conductor, Permisionario, Admin, Gestor, EmailVerification, Vehiculo
+from app.models import Conductor, Permisionario, Admin, EmailVerification, Vehiculo
 from app.auth import verify_password, create_token, decode_token, hash_password
 
 router = APIRouter()
@@ -42,7 +42,6 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
     login_map = [
         (Conductor, "conductor", Conductor.dni),
         (Permisionario, "permisionario", Permisionario.codigo),
-        (Gestor, "gestor", Gestor.username),
         (Admin, "admin", Admin.username),
     ]
     for model, role, id_field in login_map:

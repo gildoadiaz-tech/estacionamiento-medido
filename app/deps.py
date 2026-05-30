@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.database import get_db
 from app.auth import decode_token
-from app.models import Conductor, Permisionario, Admin, Gestor
+from app.models import Conductor, Permisionario, Admin
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
@@ -21,7 +21,6 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     models = {
         "conductor": Conductor,
         "permisionario": Permisionario,
-        "gestor": Gestor,
         "admin": Admin,
     }
     model = models.get(role)

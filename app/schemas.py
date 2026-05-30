@@ -196,28 +196,6 @@ class SelfCheckoutRequest(BaseModel):
     metodo: str = "efectivo"
 
 
-class GestorCreate(BaseModel):
-    nombre: str
-    apellido: Optional[str] = None
-    dni: Optional[str] = None
-    email: str
-    password: str
-    permisos: str = "permisionarios,conductores,sesiones,reportes"
-
-
-class GestorOut(BaseModel):
-    id: int
-    nombre: str
-    apellido: Optional[str] = None
-    dni: Optional[str] = None
-    email: str
-    username: str
-    permisos: str
-    activo: bool = True
-
-    model_config = {"from_attributes": True}
-
-
 class SesionOut(BaseModel):
     id: int
     espacio_id: int

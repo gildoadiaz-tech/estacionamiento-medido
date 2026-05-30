@@ -15,7 +15,7 @@ import os
 
 from app.database import init_db, get_db, async_session
 from app.models import (
-    Conductor, Permisionario, Admin, Gestor, Espacio, Mano,
+    Conductor, Permisionario, Admin, Espacio, Mano,
     SesionEstacionamiento, Pago, Deuda, Penalizacion,
     EmailVerification, Vehiculo, CuotaPermisionario,
     EstadoSesion, MetodoPago, MetodoIngreso, TipoVehiculo, LadoMano, ExencionTipo,
@@ -127,15 +127,6 @@ async def ensure_test_users():
 
         admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("demo1234"))
         db.add(admin)
-
-        gestor = Gestor(
-            nombre="Carlos", apellido="Méndez",
-            dni="12345678", email="gestor@municipalidad.gob.ar",
-            username="gestor1", password_hash=hash_password("demo1234"),
-            permisos="permisionarios,conductores,sesiones,reportes,deudas",
-        )
-        db.add(gestor)
-        await db.flush()
 
         juan = Permisionario(
             codigo="PERM001", nombre="Juan", apellido="Pérez",
@@ -604,7 +595,7 @@ async def admin_permisionarios_page(request: Request):
 
 @app.get("/admin/permisionarios/{perm_id}/qr", response_class=HTMLResponse)
 async def admin_permisionario_qr_page(request: Request, perm_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user["role"] not in ("admin", "gestor"):
+    if current_user["role"] not in ("admin",):
         raise HTTPException(403)
     perm = await db.get(Permisionario, perm_id)
     if not perm:
@@ -623,9 +614,7 @@ async def admin_permisionario_qr_page(request: Request, perm_id: int, current_us
     })
 
 
-@app.get("/admin/gestores", response_class=HTMLResponse)
-async def admin_gestores_page(request: Request):
-    return templates.TemplateResponse(request, "admin/gestores.html", {})
+
 
 
 @app.get("/admin/espacios", response_class=HTMLResponse)
@@ -1784,7 +1773,7 @@ async def permisionario_qr_data(current_user=Depends(get_current_user), db: Asyn
 
 @app.get("/api/admin/permisionarios/{perm_id}/qr")
 async def admin_permisionario_qr(perm_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user["role"] not in ("admin", "gestor"):
+    if current_user["role"] not in ("admin",):
         raise HTTPException(403)
     perm = await db.get(Permisionario, perm_id)
     if not perm:
@@ -1828,189 +1817,9 @@ async def reservas_aprobar(body: dict = None, db: AsyncSession = Depends(get_db)
 # API: GESTOR
 # ═══════════════════════════════════════════════════════
 
-@app.post("/api/gestor/permisionario")
-async def gestor_create_permisionario(data: PermisionarioCreate, current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(Permisionario).where(Permisionario.dni == data.dni))
-    if existing.scalar_one_or_none():
-        raise HTTPException(400, "Ya existe un permisionario con ese DNI")
-    existing_email = await db.execute(select(Permisionario).where(Permisionario.email == data.email))
-    if existing_email.scalar_one_or_none():
-        raise HTTPException(400, "Ya existe un permisionario con ese email")
-    codigo = f"PER{data.dni}"
-    perm = Permisionario(
-        codigo=codigo,
-        nombre=data.nombre,
-        apellido=data.apellido,
-        dni=data.dni,
-        email=data.email,
-        telefono=data.telefono,
-        cvu=data.cvu,
-        password_hash=hash_password(secrets.token_hex(4)),
-        activo=True,
-    )
-    db.add(perm)
-    await db.flush()
-    for i, calle in enumerate(data.calles):
-        lado = data.lados[i] if i < len(data.lados) else "par"
-        from app.models import LadoMano
-        try:
-            lado_enum = LadoMano(lado)
-        except ValueError:
-            lado_enum = LadoMano.par
-        mano = Mano(
-            permisionario_id=perm.id,
-            calle=calle,
-            lado=lado_enum,
-        )
-        db.add(mano)
-    await db.commit()
-    await db.refresh(perm)
-    return {"ok": True, "id": perm.id, "codigo": perm.codigo}
-
-
-@app.get("/api/gestor/permisionarios")
-async def gestor_list_permisionarios(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Permisionario).order_by(Permisionario.id.desc()))
-    permlist = result.scalars().all()
-    data = []
-    for p in permlist:
-        manos_result = await db.execute(select(Mano).where(Mano.permisionario_id == p.id))
-        manos = manos_result.scalars().all()
-        data.append({
-            "id": p.id, "codigo": p.codigo, "nombre": p.nombre, "apellido": p.apellido,
-            "dni": p.dni, "email": p.email, "telefono": p.telefono, "activo": p.activo,
-            "manos": [
-                {"id": m.id, "calle": m.calle, "lado": m.lado.value if hasattr(m.lado, 'value') else m.lado,
-                 "altura_desde": m.altura_desde, "altura_hasta": m.altura_hasta}
-                for m in manos
-            ],
-        })
-    return data
-
-
-@app.put("/api/gestor/permisionario/{perm_id}")
-async def gestor_update_permisionario(perm_id: int, data: PermisionarioUpdate, current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    perm = await db.get(Permisionario, perm_id)
-    if not perm:
-        raise HTTPException(404)
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(perm, field, value)
-    await db.commit()
-    await db.refresh(perm)
-    return {"ok": True, "id": perm.id}
-
-
-@app.get("/api/gestor/conductores")
-async def gestor_list_conductores(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Conductor).order_by(Conductor.id.desc()).limit(200))
-    conductores = result.scalars().all()
-    data = []
-    for c in conductores:
-        veh_result = await db.execute(select(Vehiculo).where(Vehiculo.conductor_id == c.id))
-        vehiculos = veh_result.scalars().all()
-        data.append({
-            "id": c.id, "dni": c.dni, "nombre": c.nombre, "apellido": c.apellido,
-            "email": c.email, "telefono": c.telefono,
-            "email_verified": c.email_verified, "bloqueado": c.bloqueado,
-            "saldo_deudor": c.saldo_deudor or 0,
-            "vehiculos": [
-                {"id": v.id, "patente": v.patente, "tipo": v.tipo.value if hasattr(v.tipo, 'value') else v.tipo}
-                for v in vehiculos
-            ],
-        })
-    return data
-
-
-@app.get("/api/gestor/sesiones-vivo")
-async def gestor_sesiones_vivo(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    return await admin_sesiones_vivo(current_user=current_user, db=db)
-
-
-@app.get("/api/gestor/reportes")
-async def gestor_reportes(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    r1 = await db.execute(select(func.count(SesionEstacionamiento.id)))
-    total_sesiones = r1.scalar() or 0
-    r2 = await db.execute(select(func.coalesce(func.sum(SesionEstacionamiento.costo_total), 0)))
-    total_recaudado = float(r2.scalar() or 0)
-    r3 = await db.execute(select(func.count(SesionEstacionamiento.id)).where(SesionEstacionamiento.estado == EstadoSesion.activa))
-    activas = r3.scalar() or 0
-    r4 = await db.execute(select(func.count(Conductor.id)))
-    total_conductores = r4.scalar() or 0
-    r5 = await db.execute(select(func.count(Permisionario.id)))
-    total_permisionarios = r5.scalar() or 0
-    r6 = await db.execute(select(func.coalesce(func.sum(Deuda.monto), 0)).where(Deuda.pagada == False))
-    deuda_total = float(r6.scalar() or 0)
-    return {
-        "total_sesiones": total_sesiones, "total_recaudado": total_recaudado,
-        "sesiones_activas": activas, "total_conductores": total_conductores,
-        "total_permisionarios": total_permisionarios, "deuda_total": deuda_total,
-    }
-
-
-@app.get("/api/gestor/deudas")
-async def gestor_deudas(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Deuda).order_by(Deuda.created_at.desc()).limit(200))
-    deudas = result.scalars().all()
-    data = []
-    for d in deudas:
-        cond = await db.get(Conductor, d.conductor_id)
-        data.append({
-            "id": d.id, "conductor_id": d.conductor_id,
-            "conductor_nombre": f"{cond.nombre} {cond.apellido}" if cond else "",
-            "sesion_id": d.sesion_id, "monto": d.monto,
-            "pagada": d.pagada, "motivo": d.motivo,
-            "created_at": d.created_at.isoformat(),
-        })
-    return data
-
-
 # ═══════════════════════════════════════════════════════
 # API: ADMIN
 # ═══════════════════════════════════════════════════════
-
-@app.post("/api/admin/gestor")
-async def admin_create_gestor(data: GestorCreate, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(Gestor).where(Gestor.username == data.email))
-    if existing.scalar_one_or_none():
-        raise HTTPException(400, "Ya existe un gestor con ese email/username")
-    gestor = Gestor(
-        nombre=data.nombre,
-        apellido=data.apellido or "",
-        dni=data.dni,
-        email=data.email,
-        username=data.email,
-        password_hash=hash_password(data.password),
-        permisos=data.permisos,
-        activo=True,
-    )
-    db.add(gestor)
-    await db.commit()
-    await db.refresh(gestor)
-    return {"ok": True, "id": gestor.id, "username": gestor.username}
-
-
-@app.get("/api/admin/gestores")
-async def admin_list_gestores(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Gestor).order_by(Gestor.id.desc()))
-    return [
-        {
-            "id": g.id, "nombre": g.nombre, "apellido": g.apellido,
-            "dni": g.dni, "email": g.email, "username": g.username,
-            "permisos": g.permisos, "activo": g.activo,
-        }
-        for g in result.scalars().all()
-    ]
-
-
-@app.delete("/api/admin/gestor/{gestor_id}")
-async def admin_deactivate_gestor(gestor_id: int, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
-    gestor = await db.get(Gestor, gestor_id)
-    if not gestor:
-        raise HTTPException(404)
-    gestor.activo = False
-    await db.commit()
-    return {"ok": True}
-
 
 @app.post("/api/admin/permisionario")
 async def admin_create_permisionario(data: PermisionarioCreate, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
@@ -2109,7 +1918,7 @@ async def admin_delete_permisionario(perm_id: int, current_user=Depends(require_
 
 
 @app.get("/api/admin/sesiones-vivo")
-async def admin_sesiones_vivo(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def admin_sesiones_vivo(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).order_by(SesionEstacionamiento.hora_inicio.desc()).limit(200)
     )
@@ -2176,7 +1985,7 @@ async def admin_reportes(current_user=Depends(require_role("admin")), db: AsyncS
 
 
 @app.get("/api/admin/finanzas")
-async def admin_finanzas(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def admin_finanzas(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Permisionario))
     permisionarios = result.scalars().all()
     data = []
@@ -2586,7 +2395,7 @@ async def buscar_estacionamiento(
 # ═══════════════════════════════════════════════════════
 
 @app.post("/api/espacios", response_model=EspacioOut)
-async def crear_espacio(data: EspacioCreate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def crear_espacio(data: EspacioCreate, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     esp = Espacio(**data.model_dump())
     db.add(esp)
     await db.commit()
@@ -2712,7 +2521,7 @@ async def pago_pending(request: Request):
 # ═══════════════════════════════════════════════════════
 
 @app.get("/api/sesiones")
-async def listar_sesiones(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def listar_sesiones(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).order_by(SesionEstacionamiento.hora_inicio.desc())
     )
@@ -2737,7 +2546,7 @@ async def listar_sesiones(current_user=Depends(require_role("admin", "gestor")),
 
 
 @app.get("/api/sesiones/activas")
-async def sesiones_activas(current_user=Depends(require_role("admin", "gestor", "permisionario")), db: AsyncSession = Depends(get_db)):
+async def sesiones_activas(current_user=Depends(require_role("admin", "permisionario")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SesionEstacionamiento).where(SesionEstacionamiento.estado == EstadoSesion.activa)
     )
@@ -2761,13 +2570,13 @@ async def sesiones_activas(current_user=Depends(require_role("admin", "gestor", 
 # ═══════════════════════════════════════════════════════
 
 @app.get("/api/permisionarios", response_model=list[PermisionarioOut])
-async def listar_permisionarios(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def listar_permisionarios(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Permisionario))
     return result.scalars().all()
 
 
 @app.post("/api/permisionarios", response_model=PermisionarioOut)
-async def crear_permisionario(data: PermisionarioCreate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def crear_permisionario(data: PermisionarioCreate, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(Permisionario).where(Permisionario.dni == data.dni))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Ya existe un permisionario con ese DNI")
@@ -2793,7 +2602,7 @@ async def crear_permisionario(data: PermisionarioCreate, current_user=Depends(re
 
 
 @app.get("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
-async def obtener_permisionario(perm_id: int, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def obtener_permisionario(perm_id: int, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     perm = await db.get(Permisionario, perm_id)
     if not perm:
         raise HTTPException(404)
@@ -2801,7 +2610,7 @@ async def obtener_permisionario(perm_id: int, current_user=Depends(require_role(
 
 
 @app.put("/api/permisionarios/{perm_id}", response_model=PermisionarioOut)
-async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     perm = await db.get(Permisionario, perm_id)
     if not perm:
         raise HTTPException(404)
@@ -2813,13 +2622,13 @@ async def actualizar_permisionario(perm_id: int, data: PermisionarioUpdate, curr
 
 
 @app.get("/api/conductores", response_model=list[ConductorOut])
-async def listar_conductores(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def listar_conductores(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Conductor))
     return result.scalars().all()
 
 
 @app.get("/api/conductores/{conductor_id}", response_model=ConductorOut)
-async def obtener_conductor(conductor_id: int, current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
+async def obtener_conductor(conductor_id: int, current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
     cond = await db.get(Conductor, conductor_id)
     if not cond:
         raise HTTPException(404, "Conductor no encontrado")
@@ -2828,7 +2637,7 @@ async def obtener_conductor(conductor_id: int, current_user=Depends(require_role
 
 @app.post("/api/auth/cambiar-password")
 async def cambiar_password(body: PasswordChangeRequest, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    models_map = {"conductor": Conductor, "permisionario": Permisionario, "admin": Admin, "gestor": Gestor}
+    models_map = {"conductor": Conductor, "permisionario": Permisionario, "admin": Admin, }
     model = models_map.get(current_user["role"])
     if not model:
         raise HTTPException(400, "Rol no soportado")

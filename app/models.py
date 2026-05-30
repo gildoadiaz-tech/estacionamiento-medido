@@ -240,21 +240,6 @@ class EmailVerification(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-class Gestor(Base):
-    __tablename__ = "gestores"
-
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False)
-    apellido = Column(String, nullable=True)
-    dni = Column(String, unique=True, nullable=True)
-    email = Column(String, unique=True, nullable=False)
-    username = Column(String, unique=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    permisos = Column(String, default="permisionarios,conductores,sesiones,reportes")
-    activo = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-
 class Admin(Base):
     __tablename__ = "admins"
 

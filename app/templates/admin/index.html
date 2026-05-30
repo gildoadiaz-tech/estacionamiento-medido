@@ -67,7 +67,6 @@
                 <a href="/admin" class="sidebar-link active">&#128202; Dashboard</a>
                 <a href="/admin/conductores" class="sidebar-link">&#128663; Conductores</a>
                 <a href="/admin/permisionarios" class="sidebar-link">&#128100; Permisionarios</a>
-                <a href="/admin/gestores" class="sidebar-link">&#128101; Gestores</a>
                 <a href="/admin/espacios" class="sidebar-link">&#128205; Espacios</a>
                 <a href="/admin/sesiones-vivo" class="sidebar-link">&#127759; Sesiones vivo</a>
                 <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
@@ -90,10 +89,6 @@
                 <div class="stat-card">
                     <div class="stat-number" style="color:#16a34a;" id="totalConductores">-</div>
                     <div class="stat-label">Conductores</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" style="color:#9333ea;" id="totalGestores">-</div>
-                    <div class="stat-label">Gestores</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" style="color:#eab308;" id="totalSesiones">-</div>
@@ -120,10 +115,6 @@
                         <a href="/admin/permisionarios" class="quick-link" style="color:var(--text);">
                             <span style="font-size:1.3rem;">&#128100;</span>
                             <div><div style="font-weight:600;">Permisionarios</div><div style="font-size:.8rem;color:var(--text-muted);">Altas, bajas y modificaciones</div></div>
-                        </a>
-                        <a href="/admin/gestores" class="quick-link" style="color:var(--text);">
-                            <span style="font-size:1.3rem;">&#128101;</span>
-                            <div><div style="font-weight:600;">Gestores</div><div style="font-size:.8rem;color:var(--text-muted);">Administraci&oacute;n de gestores</div></div>
                         </a>
                         <a href="/admin/espacios" class="quick-link" style="color:var(--text);">
                             <span style="font-size:1.3rem;">&#128205;</span>
@@ -158,7 +149,6 @@
             const endpoints = [
                 ['/api/permisionarios', 'totalPermisionarios'],
                 ['/api/conductores', 'totalConductores'],
-                ['/api/gestores', 'totalGestores'],
                 ['/api/sesiones/activas', 'totalSesiones'],
                 ['/api/espacios', 'totalEspacios'],
             ];
