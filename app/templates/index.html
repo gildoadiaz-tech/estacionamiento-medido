@@ -124,22 +124,22 @@
             <button class="demo-btn" onclick="demoLogin('conductor', this)">
                 <span class="demo-icon">&#x1F697;</span>
                 <span class="demo-role">Conductor</span>
-                <span class="demo-creds">DNI: 35123456 / 1234</span>
+                <span class="demo-creds">DNI: 87654321 / demo1234</span>
             </button>
             <button class="demo-btn" onclick="demoLogin('permisionario', this)">
                 <span class="demo-icon">&#x1F17F;&#xFE0F;</span>
                 <span class="demo-role">Permisionario</span>
-                <span class="demo-creds">C&oacute;digo: PER30456789 / 1234</span>
+                <span class="demo-creds">C&oacute;digo: PERM001 / demo1234</span>
             </button>
             <button class="demo-btn" onclick="demoLogin('gestor', this)">
                 <span class="demo-icon">&#x1F4CA;</span>
                 <span class="demo-role">Gestor</span>
-                <span class="demo-creds">Usuario: gestor1 / gestor123</span>
+                <span class="demo-creds">Usuario: gestor1 / demo1234</span>
             </button>
             <button class="demo-btn" onclick="demoLogin('admin', this)">
                 <span class="demo-icon">&#x2699;&#xFE0F;</span>
                 <span class="demo-role">Administrador</span>
-                <span class="demo-creds">Usuario: admin / admin123</span>
+                <span class="demo-creds">Usuario: admin / demo1234</span>
             </button>
         </div>
         <p class="demo-info">Datos ficticios &middot; No se realizan transacciones reales</p>
@@ -270,10 +270,10 @@
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
         const DEMO_CREDS = {
-            conductor: { username: '35123456', password: '1234' },
-            permisionario: { username: 'PER30456789', password: '1234' },
-            gestor: { username: 'gestor1', password: 'gestor123' },
-            admin: { username: 'admin', password: 'admin123' },
+            conductor: { username: '87654321', password: 'demo1234' },
+            permisionario: { username: 'PERM001', password: 'demo1234' },
+            gestor: { username: 'gestor1', password: 'demo1234' },
+            admin: { username: 'admin', password: 'demo1234' },
         };
         const DEMO_REDIRECTS = { conductor: '/conductor', permisionario: '/permisionario/panel', gestor: '/gestor', admin: '/admin' };
         const DEMO_LABELS = { conductor: 'Conductor', permisionario: 'Permisionario', gestor: 'Gestor', admin: 'Administrador' };

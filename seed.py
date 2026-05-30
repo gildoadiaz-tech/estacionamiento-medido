@@ -19,27 +19,27 @@ async def seed():
             print("Datos ya existen, omitiendo seed.")
             return
 
-        admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123"))
+        admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("demo1234"))
         db.add(admin)
 
         gestor = Gestor(
             nombre="Carlos", apellido="Méndez",
             dni="12345678", email="gestor@municipalidad.gob.ar",
-            username="gestor1", password_hash=hash_password("gestor123"),
+            username="gestor1", password_hash=hash_password("demo1234"),
             permisos="permisionarios,conductores,sesiones,reportes,deudas",
         )
         db.add(gestor)
         await db.flush()
 
         juan = Permisionario(
-            codigo="PER30456789", nombre="Juan", apellido="Pérez",
+            codigo="PERM001", nombre="Juan", apellido="Pérez",
             dni="30456789", email="juan@ejemplo.com", telefono="3874123456",
-            password_hash=hash_password("1234"),
+            password_hash=hash_password("demo1234"),
         )
         maria = Permisionario(
-            codigo="PER28345678", nombre="María", apellido="García",
+            codigo="PERM002", nombre="María", apellido="García",
             dni="28345678", email="maria@ejemplo.com", telefono="3874234567",
-            password_hash=hash_password("1234"),
+            password_hash=hash_password("demo1234"),
         )
         db.add_all([juan, maria])
         await db.flush()
@@ -52,44 +52,44 @@ async def seed():
 
         # Conductor normal con auto y moto
         pedro = Conductor(
-            dni="35123456", nombre="Pedro", apellido="López",
+            dni="87654321", nombre="Pedro", apellido="López",
             email="pedro@ejemplo.com", telefono="3874345678",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.ninguna,
         )
         # Conductora con camioneta
         ana = Conductor(
             dni="36234567", nombre="Ana", apellido="Martínez",
             email="ana@ejemplo.com", telefono="3874456789",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.ninguna,
         )
         # Conductor con oblea de discapacidad
         carlos = Conductor(
             dni="30111222", nombre="Carlos", apellido="Ruiz",
             email="carlos.disc@ejemplo.com", telefono="3874567890",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.discapacidad,
         )
         # Conductora frentista
         lucia = Conductor(
             dni="29444555", nombre="Lucía", apellido="Fernández",
             email="lucia.frentista@ejemplo.com", telefono="3874678901",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.frentista,
         )
         # Conductor veterano de Malvinas
         roberto = Conductor(
             dni="20999888", nombre="Roberto", apellido="Gómez",
             email="roberto.veterano@ejemplo.com", telefono="3874789012",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.veterano_malvinas,
         )
         # Conductora con bicicleta
         eva = Conductor(
             dni="37555666", nombre="Eva", apellido="Torres",
             email="eva.bici@ejemplo.com", telefono="3874890123",
-            password_hash=hash_password("1234"), email_verified=True,
+            password_hash=hash_password("demo1234"), email_verified=True,
             exencion=ExencionTipo.ninguna,
         )
         db.add_all([pedro, ana, carlos, lucia, roberto, eva])
@@ -113,12 +113,12 @@ async def seed():
         print("========================================")
         print()
         print("CONDUCTORES:")
-        print("  35123456 / 1234 — Pedro López (auto+_controller, sin exención)")
-        print("  36234567 / 1234 — Ana Martínez (camioneta, sin exención)")
-        print("  30111222 / 1234 — Carlos Ruiz (auto, OBLEA DISCAPACIDAD)")
-        print("  29444555 / 1234 — Lucía Fernández (auto, FRENTISTA)")
-        print("  20999888 / 1234 — Roberto Gómez (auto, VETERANO MALVINAS)")
-        print("  37555666 / 1234 — Eva Torres (BICICLETA, sin exención)")
+        print("  87654321 / demo1234 — Pedro López (auto+moto, sin exención)")
+        print("  36234567 / demo1234 — Ana Martínez (camioneta, sin exención)")
+        print("  30111222 / demo1234 — Carlos Ruiz (auto, OBLEA DISCAPACIDAD)")
+        print("  29444555 / demo1234 — Lucía Fernández (auto, FRENTISTA)")
+        print("  20999888 / demo1234 — Roberto Gómez (auto, VETERANO MALVINAS)")
+        print("  37555666 / demo1234 — Eva Torres (BICICLETA, sin exención)")
         print()
         print("PRECIOS:")
         print("  Auto/Camioneta: $700/h")
@@ -137,11 +137,11 @@ async def seed():
         print("  Nocturno fuera de zona → horas pendientes (próxima sesión)")
         print()
         print("PERMISIONARIOS:")
-        print("  PER30456789 / 1234 — Juan Pérez (Gral. Güemes par+impar)")
-        print("  PER28345678 / 1234 — María García (Caseros 1100-1200 par)")
+        print("  PERM001 / demo1234 — Juan Pérez (Gral. Güemes par+impar)")
+        print("  PERM002 / demo1234 — María García (Caseros 1100-1200 par)")
         print()
-        print("GESTOR: gestor1 / gestor123 — Carlos Méndez")
-        print("ADMIN: admin / admin123")
+        print("GESTOR: gestor1 / demo1234 — Carlos Méndez")
+        print("ADMIN: admin / demo1234")
         print("========================================")
 
 

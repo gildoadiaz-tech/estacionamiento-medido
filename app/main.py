@@ -125,27 +125,27 @@ async def ensure_test_users():
         if existing.scalars().first():
             return
 
-        admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123"))
+        admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("demo1234"))
         db.add(admin)
 
         gestor = Gestor(
             nombre="Carlos", apellido="Méndez",
             dni="12345678", email="gestor@municipalidad.gob.ar",
-            username="gestor1", password_hash=hash_password("gestor123"),
+            username="gestor1", password_hash=hash_password("demo1234"),
             permisos="permisionarios,conductores,sesiones,reportes,deudas",
         )
         db.add(gestor)
         await db.flush()
 
         juan = Permisionario(
-            codigo="PER30456789", nombre="Juan", apellido="Pérez",
+            codigo="PERM001", nombre="Juan", apellido="Pérez",
             dni="30456789", email="juan@ejemplo.com", telefono="3874123456",
-            password_hash=hash_password("1234"),
+            password_hash=hash_password("demo1234"),
         )
         maria = Permisionario(
-            codigo="PER28345678", nombre="María", apellido="García",
+            codigo="PERM002", nombre="María", apellido="García",
             dni="28345678", email="maria@ejemplo.com", telefono="3874234567",
-            password_hash=hash_password("1234"),
+            password_hash=hash_password("demo1234"),
         )
         db.add_all([juan, maria])
         await db.flush()
@@ -159,12 +159,12 @@ async def ensure_test_users():
         await db.flush()
 
         conductores = [
-            Conductor(dni="35123456", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
-            Conductor(dni="36234567", nombre="Ana", apellido="Martínez", email="ana@ejemplo.com", telefono="3874456789", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
-            Conductor(dni="30111222", nombre="Carlos", apellido="Ruiz", email="carlos.disc@ejemplo.com", telefono="3874567890", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.discapacidad),
-            Conductor(dni="29444555", nombre="Lucía", apellido="Fernández", email="lucia.frentista@ejemplo.com", telefono="3874678901", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.frentista),
-            Conductor(dni="20999888", nombre="Roberto", apellido="Gómez", email="roberto.veterano@ejemplo.com", telefono="3874789012", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.veterano_malvinas),
-            Conductor(dni="37555666", nombre="Eva", apellido="Torres", email="eva.bici@ejemplo.com", telefono="3874890123", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+            Conductor(dni="87654321", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+            Conductor(dni="36234567", nombre="Ana", apellido="Martínez", email="ana@ejemplo.com", telefono="3874456789", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+            Conductor(dni="30111222", nombre="Carlos", apellido="Ruiz", email="carlos.disc@ejemplo.com", telefono="3874567890", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.discapacidad),
+            Conductor(dni="29444555", nombre="Lucía", apellido="Fernández", email="lucia.frentista@ejemplo.com", telefono="3874678901", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.frentista),
+            Conductor(dni="20999888", nombre="Roberto", apellido="Gómez", email="roberto.veterano@ejemplo.com", telefono="3874789012", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.veterano_malvinas),
+            Conductor(dni="37555666", nombre="Eva", apellido="Torres", email="eva.bici@ejemplo.com", telefono="3874890123", password_hash=hash_password("demo1234"), email_verified=True, exencion=ExencionTipo.ninguna),
         ]
         db.add_all(conductores)
         await db.flush()
