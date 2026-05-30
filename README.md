@@ -1,6 +1,6 @@
 # Estacionamiento Medido v2.0 — Salta
 
-Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, permisionario, admin), búsqueda GPS con datos oficiales IDEMSA, pagos con Mercado Pago (split 80/20), sesiones en vivo con timer+costo, self-checkout con código de salida, mapa de calor, y PWA offline.
+Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, permisionario, admin), búsqueda GPS con datos oficiales IDEMSA, pagos con Mercado Pago (split 80/20), sesiones en vivo con timer+costo, QR de salida gestionado por permisionario, mapa de calor, y PWA offline.
 
 ---
 
@@ -16,8 +16,8 @@ La Municipalidad de Salta regula el estacionamiento medido en el centro de la ci
 
 Plataforma web + móvil que digitaliza el estacionamiento medido:
 
-- **Conductor** busca dónde estacionar, escanea QR del permisionario, ve timer y costo en vivo, finaliza con self-checkout (código de 4 dígitos) o pago Mercado Pago
-- **Permisionario** gestiona sesiones, procesa salidas, genera QR imprimible para conductores sin smartphone, recibe 80% del cobro
+- **Conductor** busca dónde estacionar, escanea QR del permisionario, ve timer y costo en vivo, espera a que el permisionario procese la salida (o paga con Mercado Pago si aplica)
+- **Permisionario** gestiona sesiones, procesa salidas, genera QR de entrada y de salida por sesión activa, QR imprimible para conductores sin smartphone, recibe 80% del cobro
 - **Admin** supervisa, reporta, administra permisionarios y conductores, mapa de calor en vivo
 
 ### Track elegido: Estacionamiento Medido
@@ -40,7 +40,7 @@ Cumplimiento de Ordenanza N.º 12.170:
 | Autenticación | JWT (python-jose) + PBKDF2-HMAC-SHA256 + cookies |
 | Frontend | Jinja2 templates + CSS vanilla (mobile-first) |
 | Mapas | Leaflet + Leaflet.heat (mapa de calor) + OSM |
-| QR | qrcode (PIL) server-side + self-checkout con código de salida |
+| QR | qrcode (PIL) server-side + QR de salida generado por permisionario |
 | Pagos | Mercado Pago (split 80/20 con collector_id) |
 | Seguridad | Rate limiting (slowapi), CORS, HMAC password verify, webhook signature |
 | PWA | Service Worker (network-first API, cache-first static) |
@@ -184,16 +184,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 2. Login por DNI + contraseña
 3. Buscar estacionamiento (texto o GPS) → botón "Navegar" (redirige a Google Maps)
 4. Escanea QR del permisionario → check-in automático
-5. Ve timer + costo en vivo + código de salida de 4 dígitos + QR de salida descargable
-6. Finaliza con self-checkout (ingresa código de salida) o permisionario procesa salida
-7. Elige pago: efectivo (paga al permisionario) o Mercado Pago (split 80/20)
+5. Ve timer + costo en vivo, espera a que el permisionario finalice la sesión
+6. Paga con Mercado Pago (si el permisionario seleccionó ese método) o en efectivo al permisionario
 
 ### Permisionario (mobile + desktop)
 
 1. Panel de sesiones activas con timer y costo en tiempo real
 2. Procesar salidas (efectivo o Mercado Pago)
-3. QR imprimible para conductores sin smartphone
-4. Reportes financieros, historial
+3. QR de salida por sesión activa (el permisionario genera y muestra el QR)
+4. QR imprimible para conductores sin smartphone
+5. Reportes financieros, historial
 
 ### Admin (dashboard)
 
@@ -219,7 +219,7 @@ La página principal incluye 3 botones de **Modo Demo** que inician sesión auto
 - **CORS**: allow all origins (`*`)
 - **Auth middleware**: rutas protegidas (`/conductor`, `/permisionario`, `/admin`) redirigen a `/login` sin cookie válida
 - **Webhook signature** verification para Mercado Pago
-- **Self-checkout** con código de 4 dígitos (`secrets.randbelow`)
+- **Código de salida** generado por permisionario (el conductor ya no hace self-checkout)
 - **Permisos** basados en roles (conductor, permisionario, admin)
 
 ---
