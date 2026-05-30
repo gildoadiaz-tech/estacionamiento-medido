@@ -120,6 +120,24 @@
                 </div>
             </div>
 
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px;">
+                <h2 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:700;margin:0 0 16px;">Finanzas</h2>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <div class="stat-card">
+                        <div class="stat-number" style="color:#16a34a;font-size:1.3rem;" id="gestorFinanzasPermisionario">$0</div>
+                        <div class="stat-label">Comisi&oacute;n permisionarios</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" style="color:var(--primary);font-size:1.3rem;" id="gestorFinanzasMunicipio">$0</div>
+                        <div class="stat-label">Comisi&oacute;n municipio</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" style="color:#9333ea;font-size:1.3rem;" id="gestorFinanzasTotal">$0</div>
+                        <div class="stat-label">Total recaudado</div>
+                    </div>
+                </div>
+            </div>
+
             <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
                 <h2 style="font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:700;margin:0 0 16px;">Actividad reciente</h2>
                 <div style="overflow-x:auto;">
@@ -217,8 +235,24 @@
             }
         }
 
+        async function cargarFinanzas() {
+            try {
+                const res = await fetch('/api/admin/finanzas', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!res.ok) return;
+                const data = await res.json();
+                const arr = Array.isArray(data) ? data : [];
+                const totalPermisionario = arr.reduce((s, p) => s + (p.comision_permisionario || 0), 0);
+                const totalMunicipio = arr.reduce((s, p) => s + (p.comision_municipio || 0), 0);
+                const totalBruto = arr.reduce((s, p) => s + (p.total_bruto || 0), 0);
+                document.getElementById('gestorFinanzasPermisionario').textContent = '$' + Math.round(totalPermisionario).toLocaleString('es-AR');
+                document.getElementById('gestorFinanzasMunicipio').textContent = '$' + Math.round(totalMunicipio).toLocaleString('es-AR');
+                document.getElementById('gestorFinanzasTotal').textContent = '$' + Math.round(totalBruto).toLocaleString('es-AR');
+            } catch {}
+        }
+
         cargarStats();
         cargarActividad();
+        cargarFinanzas();
     </script>
     <script>
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

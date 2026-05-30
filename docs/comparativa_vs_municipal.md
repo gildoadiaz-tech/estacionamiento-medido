@@ -78,3 +78,26 @@
 - **QR**: Generación dinámica por permisionario y por sesión
 - **Mobile**: React Native / Expo con WebView y escáner QR nativo
 - **PWA**: Service worker con manifest.json para instalación en el celular
+
+## Cumplimiento normativo (Ordenanza N.º 12.170)
+
+| Requisito | Estado |
+|---|---|
+| **Precios**: $700 auto/camioneta, $300 moto | ✅ Implementado |
+| **Bicicleta gratis** | ✅ Implementado |
+| **Exenciones**: discapacidad, frentista, veterano Malvinas | ✅ Implementado |
+| **Horario diurno**: L-V 7-21, S 7-14 | ✅ Implementado |
+| **Horario nocturno**: 22-5, solo en zonas habilitadas (Balcarce, Güemes, Alvarado) | ✅ Implementado |
+| **20 % descuento pago digital** (Mercado Pago) | ✅ Implementado |
+| **Feriados**: sin cobro diurno | ✅ Implementado (lista 2026) |
+| **Registro 100 % digital** (sin talonarios) | ✅ Implementado |
+| **Mercado Pago integrado** (transferencia, débito, crédito) | ✅ Implementado |
+| **Pago en efectivo con registro digital** | ✅ Implementado |
+| **Bloqueo por deuda** ($10 000) | ✅ Implementado |
+| **Post-pago**: pago al final del tiempo usado | ✅ Implementado |
+| **Permisionario como agente activo** | ✅ Implementado |
+| **Fraccionamiento 15 min desde 2da hora** | ❌ No implementado (calcula por minuto exacto) |
+| **Tolerancia 5 min** | ❌ No implementado |
+| **Ticket válido multi-cuadra** | ❌ No aplica (modelo post-pago) |
+| **Flujo del dinero** (split 20/80 municipio/permisionario) | ❌ No implementado |
+| **Permisionario sin smartphone** | ❌ No implementado (asume dispositivo)

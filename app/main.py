@@ -30,6 +30,7 @@ PRECIO_MOTO = 300.0
 HORARIO_CIERRE = 21
 HORARIO_CIERRE_SAB = 14
 DEUDA_MAXIMA = 10000.0
+TOLERANCIA_MINUTOS = 5
 
 ZONAS_NOCTURNAS = ["BALCARCE", "GÜEMES", "GUEMES", "ALVARADO"]
 MP_DESCUENTO = 0.20  # 20% off for Mercado Pago
@@ -161,6 +162,8 @@ def calcular_costo_estacionamiento(inicio: datetime, fin: datetime, tipo_vehicul
         return 0.0, 0.0
     precio_hora = PRECIO_MOTO if tipo_vehiculo == "moto" else PRECIO_AUTO
     if inicio >= fin:
+        return 0.0, 0.0
+    if (fin - inicio).total_seconds() / 60 <= TOLERANCIA_MINUTOS:
         return 0.0, 0.0
     zona_nocturna = es_zona_nocturna(ubicacion)
     total = 0.0
@@ -1923,7 +1926,7 @@ async def admin_reportes(current_user=Depends(require_role("admin")), db: AsyncS
 
 
 @app.get("/api/admin/finanzas")
-async def admin_finanzas(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
+async def admin_finanzas(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Permisionario))
     permisionarios = result.scalars().all()
     data = []

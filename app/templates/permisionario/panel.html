@@ -244,6 +244,26 @@
             </div>
         </div>
 
+        <p class="section-title">Finanzas</p>
+        <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card" style="border-left: 3px solid var(--success);">
+                <p class="value green" id="finanzasComision">$—</p>
+                <p class="label">Tú comisión (80%)</p>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid var(--primary);">
+                <p class="value blue" id="finanzasMunicipio">$—</p>
+                <p class="label">Comisión municipio (20%)</p>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid var(--warning);">
+                <p class="value orange" id="finanzasTotal">$—</p>
+                <p class="label">Total recaudado</p>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #9333ea;">
+                <p class="value" style="color:#9333ea;" id="finanzasCuotas">—</p>
+                <p class="label">Cuotas pendientes</p>
+            </div>
+        </div>
+
         <p class="section-title">Acciones rápidas</p>
         <div class="quick-actions">
             <a href="/permisionario/cuadra">
@@ -350,7 +370,7 @@
                         const tipo = (s.vehiculo && s.vehiculo.tipo) || s.tipo_vehiculo || 'auto';
                         const exencion = s.exencion || 'ninguna';
                         const esGratis = exencion !== 'ninguna' || tipo === 'bicicleta';
-                        const tarifa = tipo === 'moto' ? 100 : (tipo === 'bicicleta' ? 0 : 600);
+                        const tarifa = tipo === 'moto' ? 300 : (tipo === 'bicicleta' ? 0 : 700);
                         const EXENCION_LABELS = { discapacidad: 'Discapacidad', frentista: 'Frentista', veterano_malvinas: 'Veterano Malvinas' };
                         return `
                         <div class="session-item">
@@ -409,7 +429,20 @@
             });
         }
 
+        async function loadFinanzas() {
+            try {
+                const res = await fetch('/api/permisionario/finanzas', { headers: headers() });
+                if (!res.ok) return;
+                const f = await res.json();
+                document.getElementById('finanzasComision').textContent = '$' + Math.round(f.comision_permisionario || 0).toLocaleString('es-AR');
+                document.getElementById('finanzasMunicipio').textContent = '$' + Math.round(f.comision_municipio || 0).toLocaleString('es-AR');
+                document.getElementById('finanzasTotal').textContent = '$' + Math.round(f.total_recaudado || 0).toLocaleString('es-AR');
+                document.getElementById('finanzasCuotas').textContent = f.cuotas_pendientes || 0;
+            } catch {}
+        }
+
         loadDashboard();
+        loadFinanzas();
         setInterval(loadDashboard, 30000);
     </script>
 </body>
