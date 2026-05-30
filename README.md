@@ -7,6 +7,8 @@ Sistema completo de estacionamiento medido inteligente con 3 roles (conductor, p
 ## Equipo
 
 - **Gildo Díaz** — [@gildoadiaz-tech](https://github.com/gildoadiaz-tech)
+- **Ariel Lamas**
+- **Antonio Chocobar**
 
 ## Problema
 
