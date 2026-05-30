@@ -1906,27 +1906,7 @@ async def gestor_list_conductores(current_user=Depends(require_role("gestor", "a
 
 @app.get("/api/gestor/sesiones-vivo")
 async def gestor_sesiones_vivo(current_user=Depends(require_role("gestor", "admin")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(SesionEstacionamiento).where(SesionEstacionamiento.estado == EstadoSesion.activa)
-    )
-    sesiones = result.scalars().all()
-    data = []
-    for s in sesiones:
-        esp = await db.get(Espacio, s.espacio_id)
-        cond = await db.get(Conductor, s.conductor_id)
-        veh = await db.get(Vehiculo, s.vehiculo_id) if s.vehiculo_id else None
-        data.append({
-            "id": s.id, "lat": esp.lat if esp else None, "lng": esp.lng if esp else None,
-            "ubicacion": esp.ubicacion if esp else "",
-            "conductor": f"{cond.nombre} {cond.apellido}" if cond else "",
-            "patente": veh.patente if veh else "",
-            "tipo_vehiculo": veh.tipo.value if veh and hasattr(veh.tipo, 'value') else "",
-            "hora_inicio": s.hora_inicio.isoformat(),
-            "metodo_ingreso": s.metodo_ingreso.value if s.metodo_ingreso else "",
-            "metodo_pago": s.metodo_pago.value if s.metodo_pago else "",
-            "estado": s.estado.value,
-        })
-    return data
+    return await admin_sesiones_vivo(current_user=current_user, db=db)
 
 
 @app.get("/api/gestor/reportes")
@@ -2112,9 +2092,9 @@ async def admin_delete_permisionario(perm_id: int, current_user=Depends(require_
 
 
 @app.get("/api/admin/sesiones-vivo")
-async def admin_sesiones_vivo(current_user=Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):
+async def admin_sesiones_vivo(current_user=Depends(require_role("admin", "gestor")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(SesionEstacionamiento).where(SesionEstacionamiento.estado == EstadoSesion.activa)
+        select(SesionEstacionamiento).order_by(SesionEstacionamiento.hora_inicio.desc()).limit(200)
     )
     sesiones = result.scalars().all()
     data = []
@@ -2127,11 +2107,15 @@ async def admin_sesiones_vivo(current_user=Depends(require_role("admin")), db: A
             "ubicacion": esp.ubicacion if esp else "",
             "conductor": f"{cond.nombre} {cond.apellido}" if cond else "",
             "patente": veh.patente if veh else "",
-            "tipo_vehiculo": veh.tipo.value if veh and hasattr(veh.tipo, 'value') else "",
-            "hora_inicio": s.hora_inicio.isoformat(),
+            "tipo_vehiculo": veh.tipo.value if veh and hasattr(veh.tipo, "value") else "",
+            "hora_inicio": s.hora_inicio.isoformat() if s.hora_inicio else None,
+            "hora_fin": s.hora_fin.isoformat() if s.hora_fin else None,
             "metodo_ingreso": s.metodo_ingreso.value if s.metodo_ingreso else "",
             "metodo_pago": s.metodo_pago.value if s.metodo_pago else "",
             "estado": s.estado.value,
+            "pagado": s.pagado,
+            "costo_total": s.costo_total,
+            "exencion": s.exencion.value if s.exencion else "",
         })
     return data
 

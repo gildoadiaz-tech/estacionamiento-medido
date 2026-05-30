@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <style>
         :root {
             --primary: #015cb4;
@@ -50,9 +50,19 @@
         .badge-green { background:#bbf7d0; color:#166534; }
         .badge-red { background:#fecaca; color:#991b1b; }
         .badge-yellow { background:#fef3c7; color:#92400e; }
-        .badge-orange { background:#fed7aa; color:#9a3412; }
+        .badge-blue { background:#dbeafe; color:#1e40af; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity:1; } 50% { opacity:.5; } }
+        .map-toggle { display:flex; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+        .map-toggle button { padding:8px 16px; border:none; background:var(--card); color:var(--text-muted); font-size:.85rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:inherit; }
+        .map-toggle button.active { background:var(--primary); color:#fff; }
+        .map-toggle button:hover:not(.active) { background:var(--primary-light); }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+        .stat-num { font-family:'Montserrat',sans-serif; font-size:1.8rem; font-weight:800; }
+        .stat-label { font-size:.75rem; color:var(--text-muted); margin-top:2px; }
+        .legend { display:flex; flex-wrap:wrap; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted); }
+        .legend-item { display:flex; align-items:center; gap:5px; }
+        .legend-dot { width:12px; height:12px; border-radius:50%; }
     </style>
 </head>
 <body>
@@ -82,34 +92,50 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
                 <div>
                     <h1 style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin:0;">Sesiones en Vivo</h1>
-                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Mapa en tiempo real de estacionamientos activos</p>
+                    <p style="color:var(--text-muted);font-size:.85rem;margin:4px 0 0;">Mapa de calor y sesiones en tiempo real</p>
                 </div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <span class="pulse" id="liveIndicator" style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
-                    <span style="font-size:.85rem;color:var(--text-muted);" id="lastUpdate">Actualizando...</span>
+                <div style="display:flex;align-items:center;gap:16px;">
+                    <div class="map-toggle">
+                        <button id="btnHeat" class="active" onclick="setView('heat')">&#128293; Calor</button>
+                        <button id="btnMarkers" onclick="setView('markers')">&#128205; Marcadores</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="pulse" id="liveIndicator" style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                        <span style="font-size:.85rem;color:var(--text-muted);" id="lastUpdate">Actualizando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                <div class="stat-card">
+                    <div class="stat-num" style="color:var(--primary);" id="countActive">0</div>
+                    <div class="stat-label">Activas ahora</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:#16a34a;" id="countTotal">0</div>
+                    <div class="stat-label">Total sesiones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:#ec0f7f;" id="countRecaudado">$0</div>
+                    <div class="stat-label">Recaudado</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="color:#dc2626;" id="countDeuda">0</div>
+                    <div class="stat-label">Con deuda</div>
                 </div>
             </div>
 
             <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);">
-                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
-                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:var(--primary);" id="countActive">0</div>
-                        <div style="font-size:.75rem;color:var(--text-muted);">Activas</div>
+                <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                    <div class="legend">
+                        <div class="legend-item"><div class="legend-dot" style="background:#015cb4;"></div> Activa</div>
+                        <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div> Pagada</div>
+                        <div class="legend-item"><div class="legend-dot" style="background:#eab308;"></div> Pendiente</div>
+                        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Deuda</div>
                     </div>
-                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
-                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#16a34a;" id="countPaid">0</div>
-                        <div style="font-size:.75rem;color:var(--text-muted);">Pagadas</div>
-                    </div>
-                    <div style="padding:16px;text-align:center;border-right:1px solid var(--border);">
-                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#eab308;" id="countPending">0</div>
-                        <div style="font-size:.75rem;color:var(--text-muted);">Pendientes</div>
-                    </div>
-                    <div style="padding:16px;text-align:center;">
-                        <div style="font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:800;color:#dc2626;" id="countDebt">0</div>
-                        <div style="font-size:.75rem;color:var(--text-muted);">Con deuda</div>
-                    </div>
+                    <span style="font-size:.8rem;color:var(--text-muted);">Intensidad = densidad de sesiones</span>
                 </div>
-                <div id="mapa" style="width:100%;height:400px;"></div>
+                <div id="mapa" style="width:100%;height:420px;"></div>
             </div>
 
             <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
@@ -122,6 +148,7 @@
                                 <th>Patente</th>
                                 <th>Ubicaci&oacute;n</th>
                                 <th>Inicio</th>
+                                <th>Fin</th>
                                 <th>Estado</th>
                                 <th>Monto</th>
                             </tr>
@@ -135,47 +162,87 @@
 
     <script>
         const token = localStorage.getItem('token');
-        const map = L.map('mapa').setView([-24.7858, -65.4056], 16);
+        const map = L.map('mapa').setView([-24.7883, -65.4106], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '\u00a9 OpenStreetMap', maxZoom: 19,
         }).addTo(map);
 
-        const markerColors = {
-            active: '#015cb4',
-            paid: '#16a34a',
-            pending: '#eab308',
-            debt: '#dc2626'
-        };
+        let heatLayer = null;
+        let markerLayer = L.layerGroup().addTo(map);
+        let currentView = 'heat';
 
         const markerIcons = {
-            active: L.divIcon({ html: '<div style="background:#015cb4;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
-            paid: L.divIcon({ html: '<div style="background:#16a34a;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
-            pending: L.divIcon({ html: '<div style="background:#eab308;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
-            debt: L.divIcon({ html: '<div style="background:#dc2626;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">P</div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
+            activa: L.divIcon({ html: '<div style="background:#015cb4;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>', className: '', iconSize: [14, 14], iconAnchor: [7, 7] }),
+            finalizada: L.divIcon({ html: '<div style="background:#16a34a;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>', className: '', iconSize: [12, 12], iconAnchor: [6, 6] }),
+            deuda: L.divIcon({ html: '<div style="background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>', className: '', iconSize: [14, 14], iconAnchor: [7, 7] }),
         };
 
-        let markers = [];
-
         function getStatus(s) {
-            if (s.tiene_deuda) return 'debt';
-            if (!s.hora_fin && s.pagado) return 'paid';
-            if (!s.hora_fin && !s.pagado) return 'pending';
-            return 'active';
+            if (s.estado === 'deuda') return 'deuda';
+            if (s.estado === 'activa') return 'activa';
+            if (s.pagado) return 'finalizada';
+            return 'pendiente';
         }
 
-        function getStatusBadge(status) {
-            switch (status) {
-                case 'paid': return '<span class="badge badge-green">Pagada</span>';
-                case 'pending': return '<span class="badge badge-yellow">Pendiente</span>';
-                case 'debt': return '<span class="badge badge-red">Con deuda</span>';
-                default: return '<span class="badge" style="background:var(--primary-light);color:var(--primary);">Activa</span>';
+        function getStatusBadge(status, s) {
+            if (status === 'deuda') return '<span class="badge badge-red">Deuda</span>';
+            if (status === 'activa') return '<span class="badge badge-blue">Activa</span>';
+            if (status === 'finalizada') return '<span class="badge badge-green">Pagada</span>';
+            return '<span class="badge badge-yellow">Pendiente</span>';
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.getElementById('btnHeat').className = view === 'heat' ? 'active' : '';
+            document.getElementById('btnMarkers').className = view === 'markers' ? 'active' : '';
+            renderMap(lastData);
+        }
+
+        let lastData = [];
+
+        function renderMap(sesiones) {
+            if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+            markerLayer.clearLayers();
+
+            if (currentView === 'heat') {
+                const heatPoints = [];
+                sesiones.forEach(s => {
+                    if (s.lat && s.lng) {
+                        const intensity = s.estado === 'activa' ? 0.9 : s.estado === 'deuda' ? 0.5 : 0.3;
+                        heatPoints.push([s.lat, s.lng, intensity]);
+                    }
+                });
+                if (heatPoints.length > 0) {
+                    heatLayer = L.heatLayer(heatPoints, {
+                        radius: 35, blur: 25, maxZoom: 18,
+                        gradient: {0.2: '#eab308', 0.4: '#f97316', 0.6: '#ef4444', 0.8: '#dc2626', 1.0: '#7c2d12'}
+                    }).addTo(map);
+                }
+            } else {
+                sesiones.forEach(s => {
+                    const status = getStatus(s);
+                    if (s.lat && s.lng) {
+                        const icon = markerIcons[status] || markerIcons.activa;
+                        const marker = L.marker([s.lat, s.lng], { icon }).addTo(markerLayer);
+                        const popup = `<div style="font-size:13px;max-width:200px;">
+                            <b>${s.conductor || 'Conductor'}</b><br>
+                            ${s.patente ? '&#128663; ' + s.patente + '<br>' : ''}
+                            &#128205; ${s.ubicacion || '-'}<br>
+                            &#128336; ${s.hora_inicio ? new Date(s.hora_inicio).toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}) : '-'}
+                            ${s.hora_fin ? ' &rarr; ' + new Date(s.hora_fin).toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}) : ''}<br>
+                            <span style="color:${status === 'finalizada' ? '#16a34a' : status === 'deuda' ? '#dc2626' : '#015cb4'};">
+                            ${status === 'finalizada' ? '&#9989; Pagada' : status === 'deuda' ? '&#128680; Deuda' : status === 'activa' ? '&#128308; Activa' : '&#9203; Pendiente'}
+                            </span>
+                            ${s.costo_total != null ? '<br>&#128176; $' + s.costo_total.toLocaleString('es-AR') : ''}
+                        </div>`;
+                        marker.bindPopup(popup);
+                    }
+                });
             }
         }
 
         async function cargar() {
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            let activeCount = 0, paidCount = 0, pendingCount = 0, debtCount = 0;
+            let activeCount = 0, totalCount = 0, recaudado = 0, debtCount = 0;
 
             try {
                 const res = await fetch('/api/admin/sesiones-vivo', {
@@ -183,50 +250,44 @@
                 });
                 const data = await res.json();
                 const sesiones = Array.isArray(data) ? data : [];
+                lastData = sesiones;
 
                 document.getElementById('tablaSesiones').innerHTML = sesiones.length === 0
-                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No hay sesiones activas</td></tr>'
-                    : sesiones.map(s => {
+                    ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No hay sesiones</td></tr>'
+                    : sesiones.slice(0, 50).map(s => {
                         const status = getStatus(s);
-                        if (status === 'debt') debtCount++;
-                        else if (status === 'paid') paidCount++;
-                        else if (status === 'pending') pendingCount++;
-                        else activeCount++;
-
-                        if (s.lat && s.lng) {
-                            const marker = L.marker([s.lat, s.lng], { icon: markerIcons[status] }).addTo(map).bindPopup(
-                                '<div style="font-size:14px;"><b>' + (s.conductor || 'Conductor') + '</b><br>' +
-                                (s.patente ? '🚗 ' + s.patente + '<br>' : '') +
-                                '📍 ' + (s.ubicacion || '-') + '<br>' +
-                                '🕐 ' + (s.hora_inicio || '-') + '<br>' +
-                                '<span style="font-size:12px;color:' + (status === 'paid' ? 'green' : status === 'debt' ? 'red' : 'orange') + ';">' +
-                                (status === 'paid' ? '✅ Pagado' : status === 'debt' ? '🚫 Con deuda' : '⏳ Pendiente') +
-                                '</span></div>'
-                            );
-                            markers.push(marker);
-                        }
+                        if (status === 'activa') activeCount++;
+                        if (status === 'deuda') debtCount++;
+                        if (s.costo_total) recaudado += s.costo_total;
+                        totalCount++;
 
                         return `<tr>
                             <td>${s.conductor || 'Conductor #' + (s.conductor_id || '')}</td>
                             <td>${s.patente || '-'}</td>
-                            <td>${s.ubicacion || 'Espacio #' + (s.espacio_id || '')}</td>
+                            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.ubicacion || '-'}</td>
                             <td>${s.hora_inicio ? new Date(s.hora_inicio).toLocaleString('es-AR') : '-'}</td>
+                            <td>${s.hora_fin ? new Date(s.hora_fin).toLocaleString('es-AR') : '&#128308; En curso'}</td>
                             <td>${getStatusBadge(status)}</td>
-                            <td>$${(s.costo_total || 0).toLocaleString('es-AR')}</td>
+                            <td>${s.costo_total != null ? '$' + s.costo_total.toLocaleString('es-AR') : '-'}</td>
                         </tr>`;
                     }).join('');
 
-                activeCount = paidCount + pendingCount + activeCount;
                 document.getElementById('countActive').textContent = activeCount;
-                document.getElementById('countPaid').textContent = paidCount;
-                document.getElementById('countPending').textContent = pendingCount;
-                document.getElementById('countDebt').textContent = debtCount;
-            } catch {
-                document.getElementById('tablaSesiones').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
+                document.getElementById('countTotal').textContent = totalCount;
+                document.getElementById('countRecaudado').textContent = '$' + Math.round(recaudado).toLocaleString('es-AR');
+                document.getElementById('countDeuda').textContent = debtCount;
+
+                renderMap(sesiones);
+
+                if (sesiones.length > 0) {
+                    const bounds = L.latLngBounds(sesiones.filter(s => s.lat && s.lng).map(s => [s.lat, s.lng]));
+                    if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+                }
+            } catch (err) {
+                document.getElementById('tablaSesiones').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Error al cargar datos</td></tr>';
             }
 
-            const now = new Date();
-            document.getElementById('lastUpdate').textContent = 'Actualizado: ' + now.toLocaleTimeString('es-AR');
+            document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
         }
 
         cargar();
