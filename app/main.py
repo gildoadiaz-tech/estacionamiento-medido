@@ -83,17 +83,17 @@ app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
 async def health():
     import sys
     from app.database import DATABASE_URL as DB_URL
-    db_type = "sqlite (/tmp - ephemeral)"
-    if DB_URL:
-        db_type = "postgresql (persistent)"
-    elif os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL"):
-        db_type = "postgresql env var set (not connected - check URL format)"
+    db_type = "unknown"
+    if "postgresql" in (DB_URL or ""):
+        db_type = "postgresql"
+    elif "sqlite" in (DB_URL or ""):
+        db_type = "sqlite"
+    if not os.getenv("DATABASE_URL") and not os.getenv("POSTGRES_URL"):
+        db_type += " (/tmp - ephemeral)"
     return {
         "status": "ok",
         "python": sys.version,
         "database": db_type,
-        "DATABASE_URL": "set" if os.getenv("DATABASE_URL") else "not set",
-        "POSTGRES_URL": "set" if os.getenv("POSTGRES_URL") else "not set",
     }
 
 app.include_router(auth_router, prefix="/api/auth")
