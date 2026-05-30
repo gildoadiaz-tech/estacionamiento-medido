@@ -197,13 +197,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
 
+_seeded = False
 
-@app.on_event("startup")
-async def startup_seed():
-    try:
-        await ensure_test_users()
-    except Exception as e:
-        print(f"[STARTUP] Seed failed: {e}")
+
+@app.middleware("http")
+async def seed_middleware(request, call_next):
+    global _seeded
+    if not _seeded:
+        try:
+            await ensure_test_users()
+            _seeded = True
+        except Exception as e:
+            print(f"[MIDDLEWARE] Seed failed: {e}")
+    return await call_next(request)
 
 
 @app.get("/api/health")
