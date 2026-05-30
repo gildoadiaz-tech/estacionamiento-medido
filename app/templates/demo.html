@@ -170,7 +170,7 @@
                     <li>Historial de sesiones</li>
                     <li>Exenciones automáticas</li>
                 </ul>
-                <button class="btn-enter" onclick="demoLogin('conductor')">&#x1F449; Entrar como Conductor</button>
+                <button class="btn-enter" onclick="demoLogin('conductor', this)">&#x1F449; Entrar como Conductor</button>
                 <div class="credentials">DNI: <code>35123456</code> &middot; Clave: <code>1234</code></div>
             </div>
 
@@ -187,7 +187,7 @@
                     <li>Mapa de espacios con estado</li>
                     <li>Split automático 80/20 con MP</li>
                 </ul>
-                <button class="btn-enter" onclick="demoLogin('permisionario')">&#x1F449; Entrar como Permisionario</button>
+                <button class="btn-enter" onclick="demoLogin('permisionario', this)">&#x1F449; Entrar como Permisionario</button>
                 <div class="credentials">Código: <code>PER30456789</code> &middot; Clave: <code>1234</code></div>
             </div>
 
@@ -204,7 +204,7 @@
                     <li>Control de deudas</li>
                     <li>Creación de permisionarios</li>
                 </ul>
-                <button class="btn-enter" onclick="demoLogin('gestor')">&#x1F449; Entrar como Gestor</button>
+                <button class="btn-enter" onclick="demoLogin('gestor', this)">&#x1F449; Entrar como Gestor</button>
                 <div class="credentials">Usuario: <code>gestor1</code> &middot; Clave: <code>gestor123</code></div>
             </div>
 
@@ -221,7 +221,7 @@
                     <li>Deudas y penalizaciones</li>
                     <li>Configuración del sistema</li>
                 </ul>
-                <button class="btn-enter" onclick="demoLogin('admin')">&#x1F449; Entrar como Admin</button>
+                <button class="btn-enter" onclick="demoLogin('admin', this)">&#x1F449; Entrar como Admin</button>
                 <div class="credentials">Usuario: <code>admin</code> &middot; Clave: <code>admin123</code></div>
             </div>
         </div>
@@ -272,10 +272,9 @@
             admin: 'Administrador',
         };
 
-        async function demoLogin(role) {
-            const btn = event.target.closest('.btn-enter');
-            btn.disabled = true;
-            btn.textContent = 'Ingresando...';
+        async function demoLogin(role, el) {
+            el.disabled = true;
+            el.textContent = 'Ingresando...';
 
             const overlay = document.getElementById('loadingOverlay');
             const loadingText = document.getElementById('loadingText');
@@ -301,14 +300,14 @@
                     window.location.href = DEMO_REDIRECTS[role];
                 } else {
                     alert('Error: ' + (data.detail || 'No se pudo ingresar'));
-                    btn.disabled = false;
-                    btn.innerHTML = '&#x1F449; Entrar como ' + DEMO_LABELS[role];
+                    el.disabled = false;
+                    el.innerHTML = '&#x1F449; Entrar como ' + DEMO_LABELS[role];
                     overlay.classList.remove('show');
                 }
             } catch (err) {
-                alert('Error de conexión');
-                btn.disabled = false;
-                btn.innerHTML = '&#x1F449; Entrar como ' + DEMO_LABELS[role];
+                alert('Error de conexi\u00f3n: ' + err.message);
+                el.disabled = false;
+                el.innerHTML = '&#x1F449; Entrar como ' + DEMO_LABELS[role];
                 overlay.classList.remove('show');
             }
         }

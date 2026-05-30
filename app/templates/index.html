@@ -121,22 +121,22 @@
         <h2>Prob&aacute; el Sistema</h2>
         <p class="demo-sub">Ingres&aacute; directamente a cualquier m&oacute;dulo &mdash; sin registro ni contrase&ntilde;a</p>
         <div class="demo-grid">
-            <button class="demo-btn" onclick="demoLogin('conductor')">
+            <button class="demo-btn" onclick="demoLogin('conductor', this)">
                 <span class="demo-icon">&#x1F697;</span>
                 <span class="demo-role">Conductor</span>
                 <span class="demo-creds">DNI: 35123456 / 1234</span>
             </button>
-            <button class="demo-btn" onclick="demoLogin('permisionario')">
+            <button class="demo-btn" onclick="demoLogin('permisionario', this)">
                 <span class="demo-icon">&#x1F17F;&#xFE0F;</span>
                 <span class="demo-role">Permisionario</span>
                 <span class="demo-creds">C&oacute;digo: PER30456789 / 1234</span>
             </button>
-            <button class="demo-btn" onclick="demoLogin('gestor')">
+            <button class="demo-btn" onclick="demoLogin('gestor', this)">
                 <span class="demo-icon">&#x1F4CA;</span>
                 <span class="demo-role">Gestor</span>
                 <span class="demo-creds">Usuario: gestor1 / gestor123</span>
             </button>
-            <button class="demo-btn" onclick="demoLogin('admin')">
+            <button class="demo-btn" onclick="demoLogin('admin', this)">
                 <span class="demo-icon">&#x2699;&#xFE0F;</span>
                 <span class="demo-role">Administrador</span>
                 <span class="demo-creds">Usuario: admin / admin123</span>
@@ -278,12 +278,10 @@
         const DEMO_REDIRECTS = { conductor: '/conductor', permisionario: '/permisionario/panel', gestor: '/gestor', admin: '/admin' };
         const DEMO_LABELS = { conductor: 'Conductor', permisionario: 'Permisionario', gestor: 'Gestor', admin: 'Administrador' };
 
-        async function demoLogin(role) {
-            const btns = document.querySelectorAll('.demo-btn');
-            const clicked = event.target.closest('.demo-btn');
-            clicked.style.opacity = '0.6';
-            clicked.querySelector('.demo-role').textContent = 'Ingresando...';
-            btns.forEach(b => b.disabled = true);
+        async function demoLogin(role, el) {
+            el.style.opacity = '0.6';
+            el.querySelector('.demo-role').textContent = 'Ingresando...';
+            document.querySelectorAll('.demo-btn').forEach(b => b.disabled = true);
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -300,15 +298,15 @@
                     window.location.href = DEMO_REDIRECTS[role];
                 } else {
                     alert('Error: ' + (data.detail || 'No se pudo ingresar'));
-                    clicked.style.opacity = '1';
-                    clicked.querySelector('.demo-role').textContent = DEMO_LABELS[role];
-                    btns.forEach(b => b.disabled = false);
+                    el.style.opacity = '1';
+                    el.querySelector('.demo-role').textContent = DEMO_LABELS[role];
+                    document.querySelectorAll('.demo-btn').forEach(b => b.disabled = false);
                 }
-            } catch {
-                alert('Error de conexi\u00f3n');
-                clicked.style.opacity = '1';
-                clicked.querySelector('.demo-role').textContent = DEMO_LABELS[role];
-                btns.forEach(b => b.disabled = false);
+            } catch (err) {
+                alert('Error de conexi\u00f3n: ' + err.message);
+                el.style.opacity = '1';
+                el.querySelector('.demo-role').textContent = DEMO_LABELS[role];
+                document.querySelectorAll('.demo-btn').forEach(b => b.disabled = false);
             }
         }
     </script>
