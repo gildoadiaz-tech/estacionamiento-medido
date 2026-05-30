@@ -133,6 +133,25 @@
                 </div>
             </div>
 
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-family:'Montserrat',sans-serif;">Desglose por permisionario</div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Permisionario</th>
+                                <th>C&oacute;digo</th>
+                                <th>CVU</th>
+                                <th>Comisi&oacute;n permisionario</th>
+                                <th>Comisi&oacute;n municipio</th>
+                                <th>Total bruto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaFinanzasPerm"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
                 <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
                     <h3 style="font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:700;margin:0 0 16px;">Recaudaci&oacute;n por per&iacute;odo</h3>
@@ -295,6 +314,16 @@
                 document.getElementById('finanzasPermisionario').textContent = '$' + Math.round(totalPermisionario).toLocaleString('es-AR');
                 document.getElementById('finanzasMunicipio').textContent = '$' + Math.round(totalMunicipio).toLocaleString('es-AR');
                 document.getElementById('finanzasTotal').textContent = '$' + Math.round(totalBruto).toLocaleString('es-AR');
+                document.getElementById('tablaFinanzasPerm').innerHTML = arr.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Sin datos</td></tr>'
+                    : arr.map(p => `<tr>
+                        <td>${p.nombre || '#' + p.permisionario_id}</td>
+                        <td style="font-family:monospace;">${p.codigo || '-'}</td>
+                        <td style="font-family:monospace;font-size:.8rem;">${p.cvu || '<span style="color:var(--text-muted)">—</span>'}</td>
+                        <td>$${Math.round(p.comision_permisionario || 0).toLocaleString('es-AR')}</td>
+                        <td>$${Math.round(p.comision_municipio || 0).toLocaleString('es-AR')}</td>
+                        <td>$${Math.round(p.total_bruto || 0).toLocaleString('es-AR')}</td>
+                    </tr>`).join('');
             } catch {}
         }
 

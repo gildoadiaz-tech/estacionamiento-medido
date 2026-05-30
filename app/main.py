@@ -1579,6 +1579,7 @@ async def gestor_create_permisionario(data: PermisionarioCreate, current_user=De
         dni=data.dni,
         email=data.email,
         telefono=data.telefono,
+        cvu=data.cvu,
         password_hash=hash_password(data.dni[-4:]),
         activo=True,
     )
@@ -1777,7 +1778,7 @@ async def admin_create_permisionario(data: PermisionarioCreate, current_user=Dep
     codigo = f"PER{data.dni}"
     perm = Permisionario(
         codigo=codigo, nombre=data.nombre, apellido=data.apellido,
-        dni=data.dni, email=data.email, telefono=data.telefono,
+        dni=data.dni, email=data.email, telefono=data.telefono, cvu=data.cvu,
         password_hash=hash_password(data.dni[-4:]), activo=True,
     )
     db.add(perm)
@@ -1976,6 +1977,7 @@ async def admin_finanzas(current_user=Depends(require_role("admin", "gestor")), 
             "comision_municipio": comision_municipio,
             "comision_permisionario": comision_permisionario,
             "cuota_pendiente": round(comision_municipio, 2),
+            "cvu": p.cvu,
         })
     return data
 
@@ -2500,7 +2502,7 @@ async def crear_permisionario(data: PermisionarioCreate, db: AsyncSession = Depe
     codigo = f"PER{data.dni}"
     perm = Permisionario(
         codigo=codigo, nombre=data.nombre, apellido=data.apellido,
-        dni=data.dni, email=data.email, telefono=data.telefono,
+        dni=data.dni, email=data.email, telefono=data.telefono, cvu=data.cvu,
         password_hash=hash_password(data.dni[-4:]), activo=True,
     )
     db.add(perm)

@@ -95,6 +95,7 @@ class Permisionario(Base):
     telefono = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     activo = Column(Boolean, default=True)
+    cvu = Column(String, nullable=True, comment="CVU/CBU para cobro de pagos MP")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

@@ -77,6 +77,7 @@ class PermisionarioCreate(BaseModel):
     apellido: str
     email: str
     telefono: Optional[str] = None
+    cvu: Optional[str] = None
     calles: list[str] = []
     lados: list[str] = []
 
@@ -90,6 +91,7 @@ class PermisionarioOut(BaseModel):
     email: str
     telefono: Optional[str] = None
     activo: bool = True
+    cvu: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -100,6 +102,7 @@ class PermisionarioUpdate(BaseModel):
     email: Optional[str] = None
     telefono: Optional[str] = None
     activo: Optional[bool] = None
+    cvu: Optional[str] = None
 
 
 class ManoOut(BaseModel):

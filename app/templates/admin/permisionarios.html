@@ -100,7 +100,8 @@
                                 <th>C&oacute;digo</th>
                                 <th>Nombre</th>
                                 <th>DNI</th>
-                                <th>Manos asignadas</th>
+                                <th>CVU</th>
+                                <th>Manos</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -121,6 +122,7 @@
                 <input name="email" type="email" placeholder="Email" required class="modal-input">
                 <input name="dni" placeholder="DNI" required class="modal-input">
                 <input name="telefono" placeholder="Tel&eacute;fono" class="modal-input">
+                <input name="cvu" placeholder="CVU/CBU (para cobro MP)" class="modal-input" style="font-family:monospace;">
                 <input name="calle" placeholder="Calle asignada" required class="modal-input">
                 <input name="manos" type="number" placeholder="Cantidad de manos" min="1" value="1" class="modal-input">
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
@@ -134,9 +136,22 @@
     <script>
         const token = localStorage.getItem('token');
 
+        let permCache = [];
+
         function openModal(id) {
             document.getElementById('permId').value = id || '';
             document.getElementById('modalTitle').textContent = id ? 'Editar Permisionario' : 'Crear Permisionario';
+            document.getElementById('formPerm').reset();
+            if (id) {
+                const p = permCache.find(x => x.id === id);
+                if (p) {
+                    document.querySelector('#formPerm [name="nombre"]').value = p.nombre || '';
+                    document.querySelector('#formPerm [name="email"]').value = p.email || '';
+                    document.querySelector('#formPerm [name="dni"]').value = p.dni || '';
+                    document.querySelector('#formPerm [name="telefono"]').value = p.telefono || '';
+                    document.querySelector('#formPerm [name="cvu"]').value = p.cvu || '';
+                }
+            }
             document.getElementById('modalPermisionario').classList.add('show');
         }
         function closeModal() { document.getElementById('modalPermisionario').classList.remove('show'); }
@@ -184,12 +199,14 @@
                 const res = await fetch('/api/permisionarios', { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
                 const permisionarios = Array.isArray(data) ? data : [];
+                permCache = permisionarios;
                 document.getElementById('tablaPermisionarios').innerHTML = permisionarios.length === 0
-                    ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No hay permisionarios</td></tr>'
+                    ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No hay permisionarios</td></tr>'
                     : permisionarios.map(p => `<tr>
                         <td style="font-family:monospace;">${p.codigo || 'PER-' + String(p.id).padStart(4, '0')}</td>
                         <td>${p.nombre}</td>
                         <td>${p.dni || '-'}</td>
+                        <td style="font-family:monospace;font-size:.8rem;">${p.cvu || '<span style="color:var(--text-muted)">—</span>'}</td>
                         <td>${p.manos || p.cantidad_manos || 1}</td>
                         <td>${p.activo !== false ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>'}</td>
                         <td>
