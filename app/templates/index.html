@@ -2,25 +2,27 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Estacionamiento Medido - Ciudad de Salta</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#015cb4">
+    <meta name="description" content="Sistema de estacionamiento medido de la Ciudad de Salta. Buscá lugar, estacioná con QR y pagá desde tu celular.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
             --primary: #015cb4;
             --primary-light: #e7f1ff;
             --primary-dark: #014a94;
             --accent: #ec0f7f;
+            --accent-dark: #d4086e;
             --bg: #f5f7fa;
             --card: #ffffff;
             --border: #e0e5ec;
             --text: #1a1a2e;
             --text-muted: #686868;
+            --success: #16a34a;
             --radius: 16px;
         }
         @media (prefers-color-scheme: dark) {
@@ -29,6 +31,7 @@
                 --primary-light: #152238;
                 --primary-dark: #93c5fd;
                 --accent: #f472b6;
+                --accent-dark: #ec4899;
                 --bg: #0A1628;
                 --card: #152238;
                 --border: #233352;
@@ -36,78 +39,164 @@
                 --text-muted: #8B9DC3;
             }
         }
-        body { background:var(--bg); color:var(--text); font-family:'Manrope',system-ui,sans-serif; margin:0; }
-        .hero { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, #0369d1 100%); color:#fff; padding:80px 24px; text-align:center; position:relative; overflow:hidden; }
-        .hero::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
-        .hero h1 { font-family:'Montserrat',sans-serif; font-size:2.5rem; font-weight:800; margin-bottom:8px; position:relative; }
-        .hero p { font-family:'Poppins',sans-serif; font-size:1.1rem; opacity:0.9; margin-bottom:32px; position:relative; }
-        .cta-group { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; position:relative; }
-        .cta-blue { background:#fff; color:var(--primary-dark); padding:14px 32px; border-radius:14px; font-weight:700; font-size:1rem; text-decoration:none; transition:all .2s; border:2px solid #fff; }
-        .cta-blue:hover { background:var(--primary-light); color:var(--primary); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
-        .cta-pink { background:var(--accent); color:#fff; padding:14px 32px; border-radius:14px; font-weight:700; font-size:1rem; text-decoration:none; transition:all .2s; border:2px solid var(--accent); }
-        .cta-pink:hover { background:#d4086e; border-color:#d4086e; transform:translateY(-2px); box-shadow:0 8px 24px rgba(236,15,127,.3); }
-        .info-section { max-width:960px; margin:0 auto; padding:60px 24px; }
-        .info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; margin-top:32px; }
-        .info-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
-        .info-card h3 { font-family:'Montserrat',sans-serif; font-size:1.1rem; font-weight:700; color:var(--primary); margin-bottom:12px; }
-        .info-card p, .info-card li { color:var(--text-muted); font-size:.95rem; line-height:1.6; }
-        .info-card ul { padding-left:20px; }
-        .info-card li { margin-bottom:4px; }
-        .badge-municipal { display:inline-flex; align-items:center; gap:8px; background:var(--primary-light); color:var(--primary); padding:6px 16px; border-radius:999px; font-size:.8rem; font-weight:600; }
-        .footer { text-align:center; padding:32px 24px; color:var(--text-muted); font-size:.85rem; border-top:1px solid var(--border); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Manrope', system-ui, sans-serif; }
+        .hero {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, #0369d1 100%);
+            color: #fff; padding: 80px 24px 60px; text-align: center; position: relative; overflow: hidden;
+        }
+        .hero::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .hero * { position: relative; }
+        .hero h1 { font-family: 'Montserrat', sans-serif; font-size: 2.4rem; font-weight: 800; margin-bottom: 8px; }
+        .hero p { font-family: 'Poppins', sans-serif; font-size: 1.05rem; opacity: 0.9; margin-bottom: 32px; }
+        .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); color: #fff; padding: 6px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; margin-bottom: 16px; }
+        .cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; border-radius: 14px; font-weight: 700; font-size: 1rem; text-decoration: none; transition: all 0.2s; border: 2px solid transparent; font-family: inherit; }
+        .btn-blue { background: #fff; color: var(--primary-dark); border-color: #fff; }
+        .btn-blue:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .btn-pink { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-pink:hover { background: var(--accent-dark); border-color: var(--accent-dark); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(236,15,127,0.3); }
+        .section { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+        .section-title { text-align: center; font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+        .section-sub { text-align: center; color: var(--text-muted); margin-bottom: 32px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+        .card h3 { font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .card ul { padding-left: 20px; }
+        .card li { color: var(--text-muted); font-size: 0.93rem; line-height: 1.7; margin-bottom: 2px; }
+        .card li strong { color: var(--text); }
+        .icon { font-size: 1.3rem; }
+        .flow-section { background: var(--primary-light); padding: 48px 24px; }
+        .flow-inner { max-width: 960px; margin: 0 auto; }
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-top: 24px; }
+        .step { text-align: center; padding: 24px 16px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+        .step-num { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 12px; }
+        .step h4 { font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+        .step p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+        .exenciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+        .exencion { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+        .exencion span:first-child { font-size: 1.3rem; }
+        .exencion span:last-child { font-size: 0.9rem; }
+        .footer { text-align: center; padding: 32px 24px; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); }
+        .footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 600px) {
+            .hero { padding: 60px 16px 40px; }
+            .hero h1 { font-size: 1.8rem; }
+            .btn { padding: 12px 24px; font-size: 0.95rem; }
+        }
     </style>
 </head>
 <body>
     <div class="hero">
-        <div style="position:relative;">
-            <span class="badge-municipal" style="background:rgba(255,255,255,.15);color:#fff;margin-bottom:16px;">Municipalidad de Salta</span>
-            <h1>Estacionamiento Medido</h1>
-            <p>Sistema de gesti&oacute;n de estacionamiento de la Ciudad de Salta</p>
-            <div class="cta-group">
-                <a href="/login" class="cta-blue">Soy Conductor</a>
-                <a href="/permisionario" class="cta-pink">Soy Permisionario</a>
+        <span class="badge">&#x1F3D9; Municipalidad de Salta</span>
+        <h1>Estacionamiento Medido</h1>
+        <p>Busc&aacute; lugar, estacion&aacute; con QR y pag&aacute; desde tu celular</p>
+        <div class="cta-group">
+            <a href="/login" class="btn btn-blue">&#x1F697; Soy Conductor</a>
+            <a href="/permisionario" class="btn btn-pink">&#x1F17F;&#xFE0F; Soy Permisionario</a>
+        </div>
+    </div>
+
+    <div class="section">
+        <span class="badge" style="background:var(--primary-light);color:var(--primary);">&#x1F4CB; Informaci&oacute;n &uacute;til</span>
+        <h2 class="section-title">Tarifas y horarios</h2>
+        <p class="section-sub">Ordenanza N.&ordm; 12.170 &mdash; Ciudad de Salta</p>
+        <div class="grid">
+            <div class="card">
+                <h3><span class="icon">&#x1F552;</span> Horarios</h3>
+                <ul>
+                    <li><strong>Lunes a viernes:</strong> 7:00 a 21:00</li>
+                    <li><strong>S&aacute;bados:</strong> 7:00 a 14:00</li>
+                    <li><strong>Domingos y feriados:</strong> Gratuito</li>
+                    <li><strong>Zona nocturna:</strong> 22:00 a 5:00 (Balcarce, G&uuml;emes, Alvarado)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="icon">&#x1F4B2;</span> Tarifas</h3>
+                <ul>
+                    <li><strong>Auto / Camioneta:</strong> $700/hora</li>
+                    <li><strong>Moto:</strong> $300/hora</li>
+                    <li><strong>Bicicleta:</strong> Gratuito</li>
+                    <li><strong>Fraccionamiento:</strong> 15 min desde la 2da hora</li>
+                    <li><strong>Tolerancia:</strong> 5 minutos gratis</li>
+                    <li><strong>Descuento MP:</strong> 20% digital</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="icon">&#x1F6E1;&#xFE0F;</span> Exenciones</h3>
+                <div class="exenciones">
+                    <div class="exencion"><span>&#x267F;</span><span>Discapacidad (oblea)</span></div>
+                    <div class="exencion"><span>&#x1F3E0;</span><span>Frentista</span></div>
+                    <div class="exencion"><span>&#x1F1E6;&#x1F1F7;</span><span>Veterano de Malvinas</span></div>
+                </div>
+                <p style="margin-top:12px;font-size:0.88rem;color:var(--text-muted);">Todos los exentos estacionan gratis en horario diurno.</p>
             </div>
         </div>
     </div>
 
-    <div class="info-section">
-        <div style="text-align:center;margin-bottom:12px;">
-            <span class="badge-municipal">Informaci&oacute;n &uacute;til</span>
+    <div class="flow-section">
+        <div class="flow-inner">
+            <h2 class="section-title">&#x1F50D; C&oacute;mo funciona</h2>
+            <p class="section-sub">En 4 pasos simples</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <h4>Busc&aacute; lugar</h4>
+                    <p>Encontr&aacute; el espacio m&aacute;s cercano con GPS o direcci&oacute;n</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <h4>Escane&aacute; el QR</h4>
+                    <p>Al estacionar, escane&aacute; el QR del permisionario para iniciar sesi&oacute;n</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <h4>Segu&iacute; en vivo</h4>
+                    <p>Timer y costo en tiempo real desde tu celular</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <h4>Pag&aacute; y retirate</h4>
+                    <p>Finaliz&aacute; con c&oacute;digo de salida. Efectivo o Mercado Pago con 20% de descuento</p>
+                </div>
+            </div>
         </div>
-        <h2 style="text-align:center;font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:8px;">Todo lo que necesit&aacute;s saber</h2>
-        <p style="text-align:center;color:var(--text-muted);margin-bottom:32px;">Horarios, tarifas y normas del estacionamiento medido en la Ciudad de Salta</p>
-        <div class="info-grid">
-            <div class="info-card">
-                <h3>Horario</h3>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">&#x1F91D; Beneficios</h2>
+        <p class="section-sub">Para conductores y permisionarios</p>
+        <div class="grid">
+            <div class="card">
+                <h3><span class="icon">&#x1F697;</span> Conductor</h3>
                 <ul>
-                    <li><strong>Lunes a viernes:</strong> 8:00 a 20:00</li>
-                    <li><strong>S&aacute;bados:</strong> 8:00 a 13:00</li>
-                    <li><strong>Domingos y feriados:</strong> Gratuito</li>
+                    <li>Busc&aacute; estacionamiento por GPS o direcci&oacute;n</li>
+                    <li>Timer y costo en tiempo real</li>
+                    <li>Self-checkout con c&oacute;digo de 4 d&iacute;gitos</li>
+                    <li>QR de salida descargable</li>
+                    <li>Pag&aacute; con Mercado Pago (20% descuento)</li>
+                    <li>Exenciones autom&aacute;ticas (discapacidad, frentista, veterano)</li>
                 </ul>
             </div>
-            <div class="info-card">
-                <h3>Tarifas</h3>
+            <div class="card">
+                <h3><span class="icon">&#x1F17F;&#xFE0F;</span> Permisionario</h3>
                 <ul>
-                    <li><strong>Media hora:</strong> $150</li>
-                    <li><strong>Una hora:</strong> $250</li>
-                    <li><strong>Hora adicional:</strong> $200</li>
-                    <li><strong>Multa por infracci&oacute;n:</strong> $5.000</li>
-                </ul>
-            </div>
-            <div class="info-card">
-                <h3>Normas</h3>
-                <ul>
-                    <li>Estacionar dentro de las l&iacute;neas demarcadas</li>
-                    <li>Iniciar sesi&oacute;n al estacionar</li>
-                    <li>Finalizar sesi&oacute;n al retirar el veh&iacute;culo</li>
-                    <li>Respetar los carteles de restricci&oacute;n</li>
+                    <li>Panel de sesiones activas con timer y costo</li>
+                    <li>Proces&aacute; salidas (efectivo o MP)</li>
+                    <li>QR imprimible para conductores sin smartphone</li>
+                    <li>Recib&iacute;s el 80% autom&aacute;ticamente por MP</li>
+                    <li>Reportes financieros en tiempo real</li>
+                    <li>No necesit&aacute;s estar en el lugar</li>
                 </ul>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <p>Estacionamiento Medido v2.0 &middot; Municipalidad de Salta &middot; <a href="https://municipalidadsalta.gob.ar/estacionamiento-medido/" style="color:var(--primary);text-decoration:none;">municipalidadsalta.gob.ar</a></p>
+        <p>Estacionamiento Medido v2.0 &middot; Municipalidad de Salta &middot; <a href="https://municipalidadsalta.gob.ar/estacionamiento-medido/">municipalidadsalta.gob.ar</a></p>
     </div>
 
     <script>
