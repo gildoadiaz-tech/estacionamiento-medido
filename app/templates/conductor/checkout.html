@@ -62,6 +62,53 @@
             color: #856404; border-radius: var(--radius); padding: 14px;
             font-size: 14px; font-weight: 600; margin-bottom: 12px;
         }
+        .code-display {
+            text-align: center; margin: 12px 0;
+        }
+        .code-display .code {
+            font-size: 36px; font-weight: 800; letter-spacing: 8px;
+            font-family: 'SF Mono', 'Fira Code', monospace; color: var(--primary);
+            background: var(--primary-light); border-radius: var(--radius-sm);
+            padding: 8px 16px; display: inline-block;
+        }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+        .form-group input {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 20px; font-weight: 700;
+            font-family: 'SF Mono', 'Fira Code', monospace; text-align: center;
+            letter-spacing: 6px; outline: none; transition: border-color 0.2s;
+        }
+        .form-group input:focus { border-color: var(--primary); }
+        .form-group select {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 16px; font-weight: 600;
+            outline: none; background: #fff; transition: border-color 0.2s;
+        }
+        .form-group select:focus { border-color: var(--primary); }
+        .btn-primary {
+            display: block; width: 100%; padding: 16px; border: none;
+            border-radius: var(--radius-sm); font-size: 16px; font-weight: 700;
+            color: #fff; background: var(--primary); cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-success {
+            display: block; width: 100%; padding: 16px; border: none;
+            border-radius: var(--radius-sm); font-size: 16px; font-weight: 700;
+            color: #fff; background: var(--success); cursor: pointer; text-align: center;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .btn-success:hover { background: #15803d; }
+        .success-box {
+            text-align: center; padding: 20px;
+        }
+        .success-box .check { font-size: 48px; color: var(--success); margin-bottom: 8px; }
+        .success-box h2 { font-size: 20px; margin-bottom: 4px; }
+        .success-box p { color: var(--text-secondary); font-size: 15px; margin-bottom: 4px; }
+        .success-box .total { font-size: 28px; font-weight: 800; color: var(--primary); margin: 8px 0; }
+        .error-msg { color: var(--danger); font-size: 14px; margin-top: 8px; text-align: center; display: none; }
     </style>
 </head>
 <body>
@@ -109,6 +156,14 @@
             </div>
         </div>
 
+        <div class="card" id="qrSalidaCard" style="display:none;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:8px;text-align:center;">QR de salida</div>
+            <p style="font-size:12px;color:var(--text-tertiary);text-align:center;margin-bottom:10px;">
+                Guardá este QR para escanearlo cuando vuelvas a tu vehículo
+            </p>
+            <div style="text-align:center;" id="qrSalidaContainer"></div>
+        </div>
+
         <div id="waitingBadge" class="waiting-badge">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Esperá al permisionario para finalizar el estacionamiento
@@ -124,7 +179,38 @@
             </a>
         </div>
 
-        <div class="card">
+        <div id="selfCheckoutCard" class="card" style="display:none;">
+            <div class="code-display">
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Tu código de salida</div>
+                <div class="code" id="codigoSalidaDisplay">----</div>
+            </div>
+            <p style="font-size:13px;color:var(--text-tertiary);text-align:center;margin-bottom:12px;">
+                Ingresá el código para confirmar que querés finalizar
+            </p>
+            <div class="form-group">
+                <label for="codigoInput">Código de salida</label>
+                <input type="text" id="codigoInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="1234">
+            </div>
+            <div class="form-group">
+                <label for="metodoPagoSelect">Método de pago</label>
+                <select id="metodoPagoSelect">
+                    <option value="efectivo">Efectivo — pagas al permisionario</option>
+                    <option value="mercadopago">Mercado Pago — 20% de descuento</option>
+                </select>
+            </div>
+            <button class="btn-primary" id="btnFinalizar" onclick="finalizarSesion()">Finalizar estacionamiento</button>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <div id="resultCard" class="card" style="display:none;">
+            <div class="success-box">
+                <div class="check">✓</div>
+                <h2 id="resultTitle">Estacionamiento finalizado</h2>
+                <p id="resultSubtitle">Gracias por usar el servicio</p>
+                <div class="total" id="resultTotal"></div>
+                <a id="resultActionBtn" href="/conductor" class="btn-success" style="margin-top:12px;">Volver al inicio</a>
+            </div>
+        </div>
     </div>
 
     <nav style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 8px rgba(0,0,0,0.06);height:var(--nav-height);display:flex;align-items:center;justify-content:space-around;z-index:1000;padding-bottom:env(safe-area-inset-bottom,0)">
@@ -140,6 +226,7 @@
         if (!token || localStorage.getItem('role') !== 'conductor') { window.location.href = '/login'; }
         let timerInterval = null;
         let pollInterval = null;
+        let sesionActual = null;
         const EXENCION_LABELS = { discapacidad: 'Oblea discapacidad - GRATUITO', frentista: 'Frentista - GRATUITO', veterano_malvinas: 'Veterano Malvinas - GRATUITO' };
 
         async function api(url, opts = {}) {
@@ -155,7 +242,9 @@
                 document.querySelector('.container').innerHTML = '<div style="text-align:center;padding:40px"><h2>Sesión no encontrada</h2><a href="/conductor" style="color:var(--primary)">Volver al inicio</a></div>';
                 return;
             }
+            sesionActual = s;
             updateUI(s);
+            cargarQrSalida(s.id);
             const inicio = new Date(s.hora_inicio + (s.hora_inicio.endsWith('Z') ? '' : 'Z')).getTime();
             function tick() {
                 const diff = Date.now() - inicio;
@@ -168,7 +257,11 @@
                 try {
                     const pr = await api('/api/conductor/sesion-activa');
                     const ps = await pr.json();
-                    if (pr.ok && ps && ps.id) { updateUI(ps); }
+                    if (pr.ok && ps && ps.id) {
+                        sesionActual = ps;
+                        updateUI(ps);
+                        cargarQrSalida(ps.id);
+                    }
                 } catch(e) {}
             }, 30000);
         }
@@ -191,13 +284,104 @@
             } else if (s.costo_estimado != null) {
                 document.getElementById('costoEstimado').textContent = '$' + Math.ceil(s.costo_estimado);
             }
+
             if (s.pago_pendiente) {
                 document.getElementById('waitingBadge').style.display = 'none';
+                document.getElementById('selfCheckoutCard').style.display = 'none';
                 document.getElementById('pendingPaymentBox').style.display = 'block';
                 document.getElementById('btnPagarMP').href = '/conductor/pago-mercadopago/' + s.id;
+                document.getElementById('qrSalidaCard').style.display = 'none';
+            } else if (s.codigo_salida && s.estado === 'activa') {
+                document.getElementById('waitingBadge').style.display = 'none';
+                document.getElementById('pendingPaymentBox').style.display = 'none';
+                document.getElementById('selfCheckoutCard').style.display = 'block';
+                document.getElementById('codigoSalidaDisplay').textContent = s.codigo_salida;
+                document.getElementById('codigoInput').value = s.codigo_salida;
+                cargarQrSalida(s.id);
             } else {
                 document.getElementById('waitingBadge').style.display = 'flex';
+                document.getElementById('selfCheckoutCard').style.display = 'none';
                 document.getElementById('pendingPaymentBox').style.display = 'none';
+                document.getElementById('qrSalidaCard').style.display = 'none';
+            }
+        }
+
+        async function cargarQrSalida(sesionId) {
+            try {
+                const res = await api('/api/conductor/sesion-qr/' + sesionId);
+                const d = await res.json();
+                if (res.ok && d.qr) {
+                    document.getElementById('qrSalidaCard').style.display = 'block';
+                    document.getElementById('qrSalidaContainer').innerHTML =
+                        '<img src="data:image/png;base64,' + d.qr + '" style="width:160px;height:160px;display:block;margin:0 auto;border-radius:8px;border:2px solid var(--border);padding:8px;background:#fff">' +
+                        '<a href="data:image/png;base64,' + d.qr + '" download="qr_salida_' + sesionId + '.png" style="display:inline-block;margin-top:8px;font-size:13px;color:var(--primary);font-weight:600;text-decoration:none;">📥 Guardar QR</a>';
+                }
+            } catch {}
+        }
+
+        async function finalizarSesion() {
+            const btn = document.getElementById('btnFinalizar');
+            const errEl = document.getElementById('errorMsg');
+            errEl.style.display = 'none';
+
+            const codigo = document.getElementById('codigoInput').value.trim();
+            if (!codigo || codigo.length !== 4) {
+                errEl.textContent = 'Ingresá el código de salida de 4 dígitos';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            const metodo = document.getElementById('metodoPagoSelect').value;
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+
+            try {
+                const res = await api('/api/conductor/self-checkout/' + sesionActual.id, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo_salida: codigo, metodo: metodo }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errEl.textContent = data.detail || 'Error al finalizar';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Finalizar estacionamiento';
+                    return;
+                }
+
+                clearInterval(timerInterval);
+                clearInterval(pollInterval);
+
+                document.getElementById('selfCheckoutCard').style.display = 'none';
+                document.getElementById('waitingBadge').style.display = 'none';
+                document.getElementById('pendingPaymentBox').style.display = 'none';
+                document.getElementById('resultCard').style.display = 'block';
+
+                if (data.metodo === 'mercadopago' && data.init_point) {
+                    document.getElementById('resultTitle').textContent = 'Pago pendiente';
+                    document.getElementById('resultSubtitle').textContent = 'Finalizá el pago con Mercado Pago';
+                    document.getElementById('resultTotal').textContent = '$' + Math.ceil(data.costo_total);
+                    const btnEl = document.getElementById('resultActionBtn');
+                    btnEl.textContent = 'Pagar con Mercado Pago';
+                    btnEl.href = data.init_point;
+                    btnEl.target = '_blank';
+                    btnEl.className = 'btn-primary';
+                } else {
+                    const total = Math.ceil(data.costo_total || 0);
+                    document.getElementById('resultTitle').textContent = total > 0 ? 'Estacionamiento finalizado' : 'Estacionamiento finalizado';
+                    document.getElementById('resultSubtitle').textContent = total > 0 ? 'Pagá $' + total + ' al permisionario' : 'Sin costo — gracias por usar el servicio';
+                    document.getElementById('resultTotal').textContent = total > 0 ? '$' + total : 'GRATIS';
+                    document.getElementById('resultActionBtn').textContent = 'Volver al inicio';
+                    document.getElementById('resultActionBtn').href = '/conductor';
+                    document.getElementById('resultActionBtn').target = '_self';
+                    document.getElementById('resultActionBtn').className = 'btn-success';
+                }
+            } catch(e) {
+                errEl.textContent = 'Error de conexión';
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Finalizar estacionamiento';
             }
         }
 

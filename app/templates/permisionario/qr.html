@@ -123,12 +123,29 @@
             -webkit-tap-highlight-color: transparent;
         }
         .bottom-nav a.active { color: var(--primary); }
+
+        .print-btn {
+            display: block; width: 100%; padding: 14px; border: none;
+            border-radius: var(--radius-sm); font-size: 15px; font-weight: 700;
+            color: #fff; background: var(--primary); cursor: pointer;
+            margin-bottom: 16px; text-align: center;
+        }
+        .print-btn:hover { background: var(--primary-dark); }
+
+        @media print {
+            .bottom-nav, .print-btn, .header { display: none !important; }
+            body { background: #fff; padding: 0; }
+            .container { max-width: 100%; padding: 8px; }
+            .mano-card { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
+            .mano-card .qr-wrap img { width: 200px; height: 200px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1 class="title">Mis QR</h1>
+        <button class="print-btn" onclick="window.print()">🖨 Imprimir QR para pegar en los espacios</button>
         </div>
         <div id="qrContainer" class="loading">
             <p>Cargando…</p>
@@ -203,6 +220,7 @@
                                     <img src="data:image/png;base64,${data.qr_base64}" alt="QR ${altText}">
                                 </div>
                                 <p class="qr-hint">Escaneá para estacionar en ${mano.calle}, lado ${mano.lado === 'par' ? 'par' : 'impar'}</p>
+                                <a href="data:image/png;base64,${data.qr_base64}" download="qr_${mano.calle.replace(/\s+/g,'_').toLowerCase()}.png" style="display:inline-block;margin-top:8px;font-size:13px;color:var(--primary);font-weight:600;text-decoration:none;">📥 Descargar QR</a>
                             </div>
                         `;
                     }).join('');

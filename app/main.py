@@ -1,4 +1,4 @@
-import csv, io, httpx
+import csv, io, httpx, random, math
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
@@ -14,7 +14,7 @@ from app.models import (
     Conductor, Permisionario, Admin, Gestor, Espacio, Mano,
     SesionEstacionamiento, Pago, Deuda, Penalizacion,
     EmailVerification, Vehiculo, CuotaPermisionario,
-    EstadoSesion, MetodoPago, MetodoIngreso, TipoVehiculo, LadoMano,
+    EstadoSesion, MetodoPago, MetodoIngreso, TipoVehiculo, LadoMano, ExencionTipo,
 )
 from app.schemas import *
 from app.qr_utils import generar_qr_base64
@@ -108,6 +108,70 @@ def _get_espacios():
     return _espacios_cache
 
 
+async def ensure_test_users():
+    async with async_session() as db:
+        existing = await db.execute(select(Admin))
+        if existing.scalars().first():
+            return
+
+        admin = Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123"))
+        db.add(admin)
+
+        gestor = Gestor(
+            nombre="Carlos", apellido="Méndez",
+            dni="12345678", email="gestor@municipalidad.gob.ar",
+            username="gestor1", password_hash=hash_password("gestor123"),
+            permisos="permisionarios,conductores,sesiones,reportes,deudas",
+        )
+        db.add(gestor)
+        await db.flush()
+
+        juan = Permisionario(
+            codigo="PER30456789", nombre="Juan", apellido="Pérez",
+            dni="30456789", email="juan@ejemplo.com", telefono="3874123456",
+            password_hash=hash_password("1234"),
+        )
+        maria = Permisionario(
+            codigo="PER28345678", nombre="María", apellido="García",
+            dni="28345678", email="maria@ejemplo.com", telefono="3874234567",
+            password_hash=hash_password("1234"),
+        )
+        db.add_all([juan, maria])
+        await db.flush()
+
+        manos = [
+            Mano(permisionario_id=juan.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="par", lat=-24.7869, lng=-65.4054),
+            Mano(permisionario_id=juan.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="impar", lat=-24.7869, lng=-65.4054),
+            Mano(permisionario_id=maria.id, calle="CASEROS", altura_desde=1100, altura_hasta=1200, lado="par", lat=-24.7892, lng=-65.4204),
+        ]
+        db.add_all(manos)
+        await db.flush()
+
+        conductores = [
+            Conductor(dni="35123456", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+            Conductor(dni="36234567", nombre="Ana", apellido="Martínez", email="ana@ejemplo.com", telefono="3874456789", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+            Conductor(dni="30111222", nombre="Carlos", apellido="Ruiz", email="carlos.disc@ejemplo.com", telefono="3874567890", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.discapacidad),
+            Conductor(dni="29444555", nombre="Lucía", apellido="Fernández", email="lucia.frentista@ejemplo.com", telefono="3874678901", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.frentista),
+            Conductor(dni="20999888", nombre="Roberto", apellido="Gómez", email="roberto.veterano@ejemplo.com", telefono="3874789012", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.veterano_malvinas),
+            Conductor(dni="37555666", nombre="Eva", apellido="Torres", email="eva.bici@ejemplo.com", telefono="3874890123", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna),
+        ]
+        db.add_all(conductores)
+        await db.flush()
+
+        vehiculos = [
+            Vehiculo(conductor_id=conductores[0].id, patente="AB123CD", tipo=TipoVehiculo.auto, marca="Toyota", modelo="Corolla", predeterminado=True),
+            Vehiculo(conductor_id=conductores[0].id, patente="AB456EF", tipo=TipoVehiculo.moto, marca="Honda", modelo="CG 150"),
+            Vehiculo(conductor_id=conductores[1].id, patente="BC789GH", tipo=TipoVehiculo.camioneta, marca="Ford", modelo="Ranger", predeterminado=True),
+            Vehiculo(conductor_id=conductores[2].id, patente="CD111AA", tipo=TipoVehiculo.auto, marca="Chevrolet", modelo="Corsa", predeterminado=True),
+            Vehiculo(conductor_id=conductores[3].id, patente="EF222BB", tipo=TipoVehiculo.auto, marca="Volkswagen", modelo="Gol", predeterminado=True),
+            Vehiculo(conductor_id=conductores[4].id, patente="GH333CC", tipo=TipoVehiculo.auto, marca="Fiat", modelo="Cronos", predeterminado=True),
+            Vehiculo(conductor_id=conductores[5].id, patente="BI001BICI", tipo=TipoVehiculo.bicicleta, marca="Venzo", modelo="Urban", predeterminado=True),
+        ]
+        db.add_all(vehiculos)
+        await db.commit()
+        print("[SEED] Test users created")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -119,6 +183,10 @@ async def lifespan(app: FastAPI):
             await sync_espacios_db(session)
     except Exception as e:
         print(f"[INIT] IDEMSA sync failed: {e}")
+    try:
+        await ensure_test_users()
+    except Exception as e:
+        print(f"[INIT] Seed failed: {e}")
     yield
 
 
@@ -222,6 +290,15 @@ def calcular_costo_estacionamiento(inicio: datetime, fin: datetime, tipo_vehicul
         chunk = min(fin, prox)
         horas_no_diurnas += (chunk - current).total_seconds() / 3600
         current = chunk
+    # Fraccionamiento 15 min desde 2da hora (Ordenanza 12.170)
+    if total > 0:
+        horas_cobradas = total / precio_hora
+        if horas_cobradas <= 1:
+            total = precio_hora
+        else:
+            extra_horas = horas_cobradas - 1
+            bloques_15 = math.ceil(extra_horas * 4)
+            total = precio_hora + (bloques_15 / 4) * precio_hora
     return round(total, 2), round(horas_no_diurnas, 2)
 
 
@@ -480,6 +557,27 @@ async def admin_permisionarios_page(request: Request):
     return templates.TemplateResponse(request, "admin/permisionarios.html", {})
 
 
+@app.get("/admin/permisionarios/{perm_id}/qr", response_class=HTMLResponse)
+async def admin_permisionario_qr_page(request: Request, perm_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user["role"] not in ("admin", "gestor"):
+        raise HTTPException(403)
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    base_url = os.getenv("BASE_URL", "http://localhost:8000")
+    qr_data = f"{base_url}/conductor/estacionar?perm={perm.id}"
+    qr_b64 = generar_qr_base64(qr_data)
+    manos_result = await db.execute(select(Mano).where(Mano.permisionario_id == perm.id))
+    manos = manos_result.scalars().all()
+    return templates.TemplateResponse(request, "permisionario/qr_print.html", {
+        "request": request,
+        "perm": perm,
+        "qr_base64": qr_b64,
+        "qr_data": qr_data,
+        "manos": manos,
+    })
+
+
 @app.get("/admin/gestores", response_class=HTMLResponse)
 async def admin_gestores_page(request: Request):
     return templates.TemplateResponse(request, "admin/gestores.html", {})
@@ -707,6 +805,7 @@ async def conductor_sesion_activa(current_user=Depends(get_current_user), db: As
         "costo_diurno": costo_diurno,
         "es_gratuito": esGratis,
         "pago_pendiente": sesion.hora_fin is not None and not sesion.pagado,
+        "codigo_salida": sesion.codigo_salida,
     }
 
 
@@ -777,6 +876,7 @@ async def conductor_checkin(data: CheckInRequest, current_user=Depends(get_curre
         except ValueError:
             pass
 
+    codigo_salida = str(random.randint(1000, 9999))
     sesion = SesionEstacionamiento(
         espacio_id=espacio_id,
         conductor_id=conductor_id,
@@ -784,6 +884,7 @@ async def conductor_checkin(data: CheckInRequest, current_user=Depends(get_curre
         permisionario_id=permisionario_id,
         hora_inicio=now_naive(),
         metodo_ingreso=metodo_ingreso,
+        codigo_salida=codigo_salida,
         estado=EstadoSesion.activa,
         pagado=False,
     )
@@ -803,6 +904,7 @@ async def conductor_checkin(data: CheckInRequest, current_user=Depends(get_curre
         "ubicacion": espacio.ubicacion,
         "vehiculo_id": sesion.vehiculo_id,
         "metodo_ingreso": sesion.metodo_ingreso.value,
+        "codigo_salida": sesion.codigo_salida,
         "qr_salida": qr_b64,
     }
 
@@ -892,12 +994,15 @@ async def conductor_elegir_pago(sesion_id: int, body: ElegirPagoRequest, current
 
     if body.metodo == "mercadopago":
         cond = await db.get(Conductor, sesion.conductor_id)
+        perm = await db.get(Permisionario, sesion.permisionario_id) if sesion.permisionario_id else None
         mp_result = await crear_preferencia_pago(
             monto=costo_final,
             concepto=f"Estacionamiento #{sesion.id}",
             conductor_email=cond.email if cond else "conductor@email.com",
             notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mp/webhook",
             external_reference=str(sesion.id),
+            collector_id=perm.mp_collector_id if perm else None,
+            marketplace_fee=comision_municipio,
         )
         pago.mp_preference_id = mp_result.get("preference_id", "")
         pago.mp_status = "pending"
@@ -907,6 +1012,88 @@ async def conductor_elegir_pago(sesion_id: int, body: ElegirPagoRequest, current
     db.add(pago)
     await db.commit()
     return resp
+
+
+@app.post("/api/conductor/self-checkout/{sesion_id}")
+async def conductor_self_checkout(sesion_id: int, body: SelfCheckoutRequest, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user["role"] != "conductor":
+        raise HTTPException(403, "Solo conductores")
+    sesion = await db.get(SesionEstacionamiento, sesion_id)
+    if not sesion or sesion.conductor_id != current_user["id"]:
+        raise HTTPException(404, "Sesion no encontrada")
+    if sesion.estado != EstadoSesion.activa:
+        raise HTTPException(400, "La sesion no esta activa")
+    if not sesion.codigo_salida:
+        raise HTTPException(400, "Esta sesion no tiene codigo de salida")
+    if sesion.codigo_salida != body.codigo_salida:
+        raise HTTPException(403, "Codigo de salida incorrecto")
+    if body.metodo not in ("efectivo", "mercadopago"):
+        raise HTTPException(400, "Metodo de pago invalido")
+
+    metodo_pago_enum = MetodoPago.efectivo if body.metodo == "efectivo" else MetodoPago.mercadopago
+    sesion.metodo_pago = metodo_pago_enum
+
+    ahora = now_naive()
+    monto_original, _, _, _ = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db
+    )
+
+    if body.metodo == "mercadopago":
+        costo_final = round(monto_original * (1 - MP_DESCUENTO), 2)
+        comision_municipio = 0.0
+        comision_permisionario = round(monto_original * 0.8, 2)
+    else:
+        costo_final = monto_original
+        comision_municipio = round(monto_original * 0.2, 2)
+        comision_permisionario = round(monto_original * 0.8, 2)
+
+    sesion.costo_total = costo_final
+
+    pago = Pago(
+        sesion_id=sesion.id,
+        monto=costo_final,
+        monto_original=monto_original,
+        metodo=sesion.metodo_pago,
+        comision_municipio=comision_municipio,
+        comision_permisionario=comision_permisionario,
+        confirmado=False,
+    )
+    db.add(pago)
+
+    if body.metodo == "efectivo":
+        sesion.pagado = True
+        sesion.hora_fin = ahora
+        sesion.estado = EstadoSesion.finalizada
+        pago.confirmado = True
+        espacio = await db.get(Espacio, sesion.espacio_id)
+        if espacio:
+            espacio.disponible = True
+        await db.commit()
+        return {"ok": True, "metodo": "efectivo", "costo_total": costo_final, "monto_original": monto_original}
+    else:
+        cond = await db.get(Conductor, sesion.conductor_id)
+        perm = await db.get(Permisionario, sesion.permisionario_id) if sesion.permisionario_id else None
+        mp_result = await crear_preferencia_pago(
+            monto=costo_final,
+            concepto=f"Estacionamiento #{sesion.id}",
+            conductor_email=cond.email if cond else "conductor@email.com",
+            notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mp/webhook",
+            external_reference=str(sesion.id),
+            collector_id=perm.mp_collector_id if perm else None,
+            marketplace_fee=comision_municipio,
+        )
+        pago.mp_preference_id = mp_result.get("preference_id", "")
+        pago.mp_status = "pending"
+        await db.commit()
+        return {
+            "ok": True,
+            "metodo": "mercadopago",
+            "costo_total": costo_final,
+            "monto_original": monto_original,
+            "descuento_mp": MP_DESCUENTO,
+            "init_point": mp_result.get("init_point", ""),
+            "preference_id": mp_result.get("preference_id", ""),
+        }
 
 
 @app.post("/api/conductor/confirmar-pago-efectivo/{sesion_id}")
@@ -928,6 +1115,7 @@ async def conductor_confirmar_pago_efectivo(sesion_id: int, current_user=Depends
     sesion.hora_fin = ahora
     sesion.estado = EstadoSesion.finalizada
 
+    espacio = await db.get(Espacio, sesion.espacio_id)
     if espacio:
         espacio.disponible = True
 
@@ -1418,12 +1606,15 @@ async def permisionario_salida(body: SalidaRequest, current_user=Depends(get_cur
 
     if metodo_pago == MetodoPago.mercadopago:
         cond = await db.get(Conductor, sesion.conductor_id)
+        perm = await db.get(Permisionario, sesion.permisionario_id) if sesion.permisionario_id else None
         mp_result = await crear_preferencia_pago(
             monto=costo,
             concepto=f"Estacionamiento #{sesion.id}",
             conductor_email=cond.email if cond else "conductor@email.com",
             notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mp/webhook",
             external_reference=str(sesion.id),
+            collector_id=perm.mp_collector_id if perm else None,
+            marketplace_fee=0.0,
         )
         pago.mp_preference_id = mp_result.get("preference_id", "")
         pago.mp_status = "pending"
@@ -1544,6 +1735,35 @@ async def permisionario_qr_data(current_user=Depends(get_current_user), db: Asyn
             for m in manos
         ],
 }
+
+
+@app.get("/api/admin/permisionarios/{perm_id}/qr")
+async def admin_permisionario_qr(perm_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user["role"] not in ("admin", "gestor"):
+        raise HTTPException(403)
+    perm = await db.get(Permisionario, perm_id)
+    if not perm:
+        raise HTTPException(404)
+    base_url = os.getenv("BASE_URL", "http://localhost:8000")
+    qr_data = f"{base_url}/conductor/estacionar?perm={perm.id}"
+    qr_b64 = generar_qr_base64(qr_data)
+    manos_result = await db.execute(select(Mano).where(Mano.permisionario_id == perm.id))
+    manos = manos_result.scalars().all()
+    return {
+        "permisionario_id": perm.id,
+        "codigo": perm.codigo,
+        "nombre": f"{perm.nombre} {perm.apellido}",
+        "qr_base64": qr_b64,
+        "qr_data": qr_data,
+        "manos": [
+            {
+                "id": m.id, "calle": m.calle,
+                "lado": m.lado.value if hasattr(m.lado, 'value') else m.lado,
+                "altura_desde": m.altura_desde, "altura_hasta": m.altura_hasta,
+            }
+            for m in manos
+        ],
+    }
 
 
 @app.get("/api/reservas/pendientes/{perm_id}")
@@ -2207,6 +2427,24 @@ async def listar_espacios(
     return data
 
 
+@app.get("/api/espacios/disponibles")
+async def espacios_disponibles(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Espacio).where(Espacio.disponible == True))
+    return result.scalars().all()
+
+
+@app.get("/api/espacios/con-estado")
+async def espacios_con_estado(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Espacio.disponible, func.count(Espacio.id)).group_by(Espacio.disponible))
+    conteo = {"libres": 0, "ocupados": 0}
+    for disp, cnt in result:
+        if disp:
+            conteo["libres"] = cnt
+        else:
+            conteo["ocupados"] = cnt
+    return conteo
+
+
 @app.get("/api/espacios/{espacio_id}")
 async def get_espacio(espacio_id: int, db: AsyncSession = Depends(get_db)):
     espacio = await db.get(Espacio, espacio_id)
@@ -2566,24 +2804,6 @@ async def cambiar_password(body: PasswordChangeRequest, current_user=Depends(get
     user.password_hash = hash_password(body.new_password)
     await db.commit()
     return {"ok": True, "mensaje": "Contrasena actualizada"}
-
-
-@app.get("/api/espacios/disponibles")
-async def espacios_disponibles(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Espacio).where(Espacio.disponible == True))
-    return result.scalars().all()
-
-
-@app.get("/api/espacios/con-estado")
-async def espacios_con_estado(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Espacio.disponible, func.count(Espacio.id)).group_by(Espacio.disponible))
-    conteo = {"libres": 0, "ocupados": 0}
-    for disp, cnt in result:
-        if disp:
-            conteo["libres"] = cnt
-        else:
-            conteo["ocupados"] = cnt
-    return conteo
 
 
 @app.get("/api/espacio/by-location")

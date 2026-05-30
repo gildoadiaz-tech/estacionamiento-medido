@@ -78,6 +78,7 @@ class PermisionarioCreate(BaseModel):
     email: str
     telefono: Optional[str] = None
     cvu: Optional[str] = None
+    mp_collector_id: Optional[str] = None
     calles: list[str] = []
     lados: list[str] = []
 
@@ -92,6 +93,7 @@ class PermisionarioOut(BaseModel):
     telefono: Optional[str] = None
     activo: bool = True
     cvu: Optional[str] = None
+    mp_collector_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -103,6 +105,7 @@ class PermisionarioUpdate(BaseModel):
     telefono: Optional[str] = None
     activo: Optional[bool] = None
     cvu: Optional[str] = None
+    mp_collector_id: Optional[str] = None
 
 
 class ManoOut(BaseModel):
@@ -165,6 +168,11 @@ class SalidaRequest(BaseModel):
 class ElegirPagoRequest(BaseModel):
     metodo: str
     patente: Optional[str] = None
+
+
+class SelfCheckoutRequest(BaseModel):
+    codigo_salida: str
+    metodo: str = "efectivo"
 
 
 class GestorCreate(BaseModel):

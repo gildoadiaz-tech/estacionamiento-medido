@@ -96,6 +96,7 @@ class Permisionario(Base):
     password_hash = Column(String, nullable=False)
     activo = Column(Boolean, default=True)
     cvu = Column(String, nullable=True, comment="CVU/CBU para cobro de pagos MP")
+    mp_collector_id = Column(String, nullable=True, comment="ID de collector en Mercado Pago para split payments")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -152,6 +153,7 @@ class SesionEstacionamiento(Base):
     metodo_pago = Column(Enum(MetodoPago), nullable=True)
     metodo_ingreso = Column(Enum(MetodoIngreso), default=MetodoIngreso.qr)
     exencion = Column(Enum(ExencionTipo), default=ExencionTipo.ninguna)
+    codigo_salida = Column(String(10), nullable=True, comment="Código de validación para auto-checkout")
     estado = Column(Enum(EstadoSesion), default=EstadoSesion.activa, index=True)
     pago_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

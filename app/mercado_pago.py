@@ -42,6 +42,8 @@ async def crear_preferencia_pago(
     conductor_email: str,
     notification_url: str = "",
     external_reference: str = "",
+    collector_id: str | None = None,
+    marketplace_fee: float = 0.0,
 ) -> dict:
     headers = {
         "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
@@ -69,6 +71,12 @@ async def crear_preferencia_pago(
         payload["notification_url"] = notification_url
     if external_reference:
         payload["external_reference"] = external_reference
+
+    # Split de pagos: si hay collector_id, el pago va directo al permisionario
+    if collector_id:
+        payload["collector_id"] = collector_id
+        if marketplace_fee > 0:
+            payload["marketplace_fee"] = round(marketplace_fee, 2)
 
     async with httpx.AsyncClient() as client:
         try:

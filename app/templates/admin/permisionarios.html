@@ -101,6 +101,7 @@
                                 <th>Nombre</th>
                                 <th>DNI</th>
                                 <th>CVU</th>
+                                <th>Collector ID</th>
                                 <th>Manos</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -123,6 +124,7 @@
                 <input name="dni" placeholder="DNI" required class="modal-input">
                 <input name="telefono" placeholder="Tel&eacute;fono" class="modal-input">
                 <input name="cvu" placeholder="CVU/CBU (para cobro MP)" class="modal-input" style="font-family:monospace;">
+                <input name="mp_collector_id" placeholder="Collector ID de Mercado Pago (split)" class="modal-input" style="font-family:monospace;">
                 <input name="calle" placeholder="Calle asignada" required class="modal-input">
                 <input name="manos" type="number" placeholder="Cantidad de manos" min="1" value="1" class="modal-input">
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
@@ -150,6 +152,7 @@
                     document.querySelector('#formPerm [name="dni"]').value = p.dni || '';
                     document.querySelector('#formPerm [name="telefono"]').value = p.telefono || '';
                     document.querySelector('#formPerm [name="cvu"]').value = p.cvu || '';
+                    document.querySelector('#formPerm [name="mp_collector_id"]').value = p.mp_collector_id || '';
                 }
             }
             document.getElementById('modalPermisionario').classList.add('show');
@@ -201,16 +204,18 @@
                 const permisionarios = Array.isArray(data) ? data : [];
                 permCache = permisionarios;
                 document.getElementById('tablaPermisionarios').innerHTML = permisionarios.length === 0
-                    ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No hay permisionarios</td></tr>'
+                    ? '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">No hay permisionarios</td></tr>'
                     : permisionarios.map(p => `<tr>
                         <td style="font-family:monospace;">${p.codigo || 'PER-' + String(p.id).padStart(4, '0')}</td>
                         <td>${p.nombre}</td>
                         <td>${p.dni || '-'}</td>
                         <td style="font-family:monospace;font-size:.8rem;">${p.cvu || '<span style="color:var(--text-muted)">—</span>'}</td>
+                        <td style="font-family:monospace;font-size:.8rem;">${p.mp_collector_id || '<span style="color:var(--text-muted)">—</span>'}</td>
                         <td>${p.manos || p.cantidad_manos || 1}</td>
                         <td>${p.activo !== false ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>'}</td>
                         <td>
                             <button onclick="openModal(${p.id})" class="btn-sm" style="background:var(--primary);color:#fff;margin-right:4px;">Editar</button>
+                            <a href="/admin/permisionarios/${p.id}/qr" target="_blank" class="btn-sm" style="background:var(--success);color:#fff;margin-right:4px;display:inline-block;text-decoration:none;">QR</a>
                             <button onclick="toggleActivo(${p.id}, ${p.activo !== false})" class="btn-sm" style="background:${p.activo !== false ? '#dc2626' : '#16a34a'};color:#fff;margin-right:4px;">${p.activo !== false ? 'Desactivar' : 'Activar'}</button>
                             <button onclick="eliminarPermisionario(${p.id})" class="btn-sm" style="background:#dc2626;color:#fff;">Eliminar</button>
                         </td>

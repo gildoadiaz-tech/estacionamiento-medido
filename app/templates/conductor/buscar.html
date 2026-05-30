@@ -226,7 +226,7 @@
             let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">' + data.resultados.length + ' espacios encontrados</div>';
             data.bloques.forEach(b => {
                 const espacios = data.resultados.filter(r => r.calle === b.calle && r.altura === b.altura);
-                html += '<div class="bloque-card"><div class="bloque-header"><div><div class="bloque-calle">' + b.calle + '</div><div class="bloque-altura">' + (b.altura ? 'Altura ' + b.altura : '') + '</div></div><div class="bloque-count"><span class="libre">' + b.disponibles + '</span><span class="total">/' + b.total + ' libres</span></div></div><div class="bloque-dist">' + Math.round(b.distancia_min) + 'm' + (data.consulta !== 'Mi ubicacion' ? ' del destino' : '') + '</div><div style="margin-top:8px;display:flex;gap:8px"><button onclick="abrirGMaps(' + b.lat + ',' + b.lng + ')" class="btn-gmaps">Navegar</button><div class="bloque-expand" onclick="toggleDetalles(this)">Ver espacios</div></div><div class="bloque-detalles">' + espacios.map(r => '<div class="result-item" style="margin-bottom:6px"><div class="info"><div class="dist">' + r.distancia + 'm</div><div class="estado" style="color:' + (r.disponible ? 'var(--primary)' : '#dc2626') + '">' + (r.disponible ? 'Disponible' : 'Ocupado') + '</div></div><div style="text-align:right"><div class="precio">$' + r.precio_por_hora + '/h</div><div style="display:flex;gap:4px;margin-top:4px"><button onclick="abrirGMaps(' + r.lat + ',' + r.lng + ')" class="btn-gmaps" style="padding:6px 10px;font-size:12px">Mapa</button>' + (r.disponible ? '<button onclick="estacionarAqui(' + r.espacio_id + ')" class="btn-gmaps" style="padding:6px 10px;font-size:12px;background:var(--accent)">P</button>' : '') + '</div></div></div>').join('') + '</div></div>';
+                    html += '<div class="bloque-card"><div class="bloque-header"><div><div class="bloque-calle">' + b.calle + '</div><div class="bloque-altura">' + (b.altura ? 'Altura ' + b.altura : '') + '</div></div><div class="bloque-count"><span class="libre">' + b.disponibles + '</span><span class="total">/' + b.total + ' libres</span></div></div><div class="bloque-dist">' + Math.round(b.distancia_min) + 'm' + (data.consulta !== 'Mi ubicacion' ? ' del destino' : '') + '</div><div style="margin-top:8px;display:flex;gap:8px"><button onclick="abrirGMaps(' + b.lat + ',' + b.lng + ')" class="btn-gmaps">Navegar</button><div class="bloque-expand" onclick="toggleDetalles(this)">Ver espacios</div></div><div class="bloque-detalles">' + espacios.map(r => '<div class="result-item" style="margin-bottom:6px"><div class="info"><div class="dist">' + r.distancia + 'm</div><div class="estado" style="color:' + (r.disponible ? 'var(--primary)' : '#dc2626') + '">' + (r.disponible ? 'Disponible' : 'Ocupado') + '</div></div><div style="text-align:right"><div class="precio">$' + r.precio_por_hora + '/h</div><div style="margin-top:4px"><button onclick="abrirGMaps(' + r.lat + ',' + r.lng + ')" class="btn-gmaps" style="padding:6px 10px;font-size:12px">Navegar</button></div></div></div>').join('') + '</div></div>';
             });
             el.innerHTML = html;
         }
@@ -238,15 +238,6 @@
         }
 
         function abrirGMaps(lat, lng) { window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving', '_blank'); }
-
-        async function estacionarAqui(espacioId) {
-            try {
-                const res = await api('/api/conductor/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ espacio_id: espacioId }) });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Error');
-                window.location.href = '/conductor/checkout/' + data.sesion_id;
-            } catch (e) { alert('Error: ' + e.message); }
-        }
 
         function buscarPorGPS() {
             if (!navigator.geolocation) { alert('GPS no disponible'); return; }
