@@ -36,24 +36,23 @@ class RegisterConductorRequest(BaseModel):
 @router.post("/login")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     try:
-        from app.database import init_db, async_session as _as
+        from app.database import init_db
         await init_db()
-        async with _as() as _s:
-            r = await _s.execute(select(Admin))
-            if not r.scalars().first():
-                _s.add(Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123")))
-                _s.add(Gestor(nombre="Carlos", apellido="Méndez", dni="12345678", email="gestor@municipalidad.gob.ar", username="gestor1", password_hash=hash_password("gestor123"), permisos="permisionarios,conductores,sesiones,reportes,deudas"))
-                await _s.flush()
-                p1 = Permisionario(codigo="PER30456789", nombre="Juan", apellido="Pérez", dni="30456789", email="juan@ejemplo.com", telefono="3874123456", password_hash=hash_password("1234"))
-                p2 = Permisionario(codigo="PER28345678", nombre="María", apellido="García", dni="28345678", email="maria@ejemplo.com", telefono="3874234567", password_hash=hash_password("1234"))
-                _s.add_all([p1, p2])
-                await _s.flush()
-                _s.add_all([Mano(permisionario_id=p1.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="par", lat=-24.7869, lng=-65.4054), Mano(permisionario_id=p1.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="impar", lat=-24.7869, lng=-65.4054), Mano(permisionario_id=p2.id, calle="CASEROS", altura_desde=1100, altura_hasta=1200, lado="par", lat=-24.7892, lng=-65.4204)])
-                cs = [Conductor(dni="35123456", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna), Conductor(dni="36234567", nombre="Ana", apellido="Martínez", email="ana@ejemplo.com", telefono="3874456789", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna), Conductor(dni="30111222", nombre="Carlos", apellido="Ruiz", email="carlos.disc@ejemplo.com", telefono="3874567890", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.discapacidad), Conductor(dni="29444555", nombre="Lucía", apellido="Fernández", email="lucia.frentista@ejemplo.com", telefono="3874678901", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.frentista), Conductor(dni="20999888", nombre="Roberto", apellido="Gómez", email="roberto.veterano@ejemplo.com", telefono="3874789012", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.veterano_malvinas), Conductor(dni="37555666", nombre="Eva", apellido="Torres", email="eva.bici@ejemplo.com", telefono="3874890123", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna)]
-                _s.add_all(cs)
-                await _s.flush()
-                _s.add_all([Vehiculo(conductor_id=cs[0].id, patente="AB123CD", tipo=TipoVehiculo.auto, marca="Toyota", modelo="Corolla", predeterminado=True), Vehiculo(conductor_id=cs[0].id, patente="AB456EF", tipo=TipoVehiculo.moto, marca="Honda", modelo="CG 150"), Vehiculo(conductor_id=cs[1].id, patente="BC789GH", tipo=TipoVehiculo.camioneta, marca="Ford", modelo="Ranger", predeterminado=True), Vehiculo(conductor_id=cs[2].id, patente="CD111AA", tipo=TipoVehiculo.auto, marca="Chevrolet", modelo="Corsa", predeterminado=True), Vehiculo(conductor_id=cs[3].id, patente="EF222BB", tipo=TipoVehiculo.auto, marca="Volkswagen", modelo="Gol", predeterminado=True), Vehiculo(conductor_id=cs[4].id, patente="GH333CC", tipo=TipoVehiculo.auto, marca="Fiat", modelo="Cronos", predeterminado=True), Vehiculo(conductor_id=cs[5].id, patente="BI001BICI", tipo=TipoVehiculo.bicicleta, marca="Venzo", modelo="Urban", predeterminado=True)])
-                await _s.commit()
+        r = await db.execute(select(Admin))
+        if not r.scalars().first():
+            db.add(Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123")))
+            db.add(Gestor(nombre="Carlos", apellido="Méndez", dni="12345678", email="gestor@municipalidad.gob.ar", username="gestor1", password_hash=hash_password("gestor123"), permisos="permisionarios,conductores,sesiones,reportes,deudas"))
+            await db.flush()
+            p1 = Permisionario(codigo="PER30456789", nombre="Juan", apellido="Pérez", dni="30456789", email="juan@ejemplo.com", telefono="3874123456", password_hash=hash_password("1234"))
+            p2 = Permisionario(codigo="PER28345678", nombre="María", apellido="García", dni="28345678", email="maria@ejemplo.com", telefono="3874234567", password_hash=hash_password("1234"))
+            db.add_all([p1, p2])
+            await db.flush()
+            db.add_all([Mano(permisionario_id=p1.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="par", lat=-24.7869, lng=-65.4054), Mano(permisionario_id=p1.id, calle="GENERAL GUEMES", altura_desde=100, altura_hasta=200, lado="impar", lat=-24.7869, lng=-65.4054), Mano(permisionario_id=p2.id, calle="CASEROS", altura_desde=1100, altura_hasta=1200, lado="par", lat=-24.7892, lng=-65.4204)])
+            cs = [Conductor(dni="35123456", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna), Conductor(dni="36234567", nombre="Ana", apellido="Martínez", email="ana@ejemplo.com", telefono="3874456789", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna), Conductor(dni="30111222", nombre="Carlos", apellido="Ruiz", email="carlos.disc@ejemplo.com", telefono="3874567890", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.discapacidad), Conductor(dni="29444555", nombre="Lucía", apellido="Fernández", email="lucia.frentista@ejemplo.com", telefono="3874678901", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.frentista), Conductor(dni="20999888", nombre="Roberto", apellido="Gómez", email="roberto.veterano@ejemplo.com", telefono="3874789012", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.veterano_malvinas), Conductor(dni="37555666", nombre="Eva", apellido="Torres", email="eva.bici@ejemplo.com", telefono="3874890123", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna)]
+            db.add_all(cs)
+            await db.flush()
+            db.add_all([Vehiculo(conductor_id=cs[0].id, patente="AB123CD", tipo=TipoVehiculo.auto, marca="Toyota", modelo="Corolla", predeterminado=True), Vehiculo(conductor_id=cs[0].id, patente="AB456EF", tipo=TipoVehiculo.moto, marca="Honda", modelo="CG 150"), Vehiculo(conductor_id=cs[1].id, patente="BC789GH", tipo=TipoVehiculo.camioneta, marca="Ford", modelo="Ranger", predeterminado=True), Vehiculo(conductor_id=cs[2].id, patente="CD111AA", tipo=TipoVehiculo.auto, marca="Chevrolet", modelo="Corsa", predeterminado=True), Vehiculo(conductor_id=cs[3].id, patente="EF222BB", tipo=TipoVehiculo.auto, marca="Volkswagen", modelo="Gol", predeterminado=True), Vehiculo(conductor_id=cs[4].id, patente="GH333CC", tipo=TipoVehiculo.auto, marca="Fiat", modelo="Cronos", predeterminado=True), Vehiculo(conductor_id=cs[5].id, patente="BI001BICI", tipo=TipoVehiculo.bicicleta, marca="Venzo", modelo="Urban", predeterminado=True)])
+            await db.commit()
     except Exception:
         pass
     login_map = [
