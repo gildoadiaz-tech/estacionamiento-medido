@@ -6,3 +6,10 @@ __pycache__/
 node_modules/
 .expo/
 dist/
+demo_video*.mp4
+demo_screenshots/
+demo_*.py
+contexto_video_demo.md
+seed_*.py
+*.db-shm
+*.db-wal

@@ -64,13 +64,30 @@ def _get_espacios():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
-    async with async_session() as session:
-        await sync_espacios_db(session)
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"[INIT] DB init failed: {e}")
+    try:
+        async with async_session() as session:
+            await sync_espacios_db(session)
+    except Exception as e:
+        print(f"[INIT] IDEMSA sync failed: {e}")
     yield
 
 
 app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
+
+
+@app.get("/api/health")
+async def health():
+    import sys
+    return {
+        "status": "ok",
+        "python": sys.version,
+        "database_url": os.getenv("DATABASE_URL", "not set"),
+        "postgres_url": "set" if os.getenv("POSTGRES_URL") else "not set",
+    }
 
 app.include_router(auth_router, prefix="/api/auth")
 
