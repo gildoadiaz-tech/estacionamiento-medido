@@ -1662,6 +1662,18 @@ async def permisionario_salida(body: SalidaRequest, current_user=Depends(get_cur
     return resp
 
 
+@app.get("/api/permisionario/sesion-qr-salida/{sesion_id}")
+async def permisionario_sesion_qr_salida(sesion_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user["role"] != "permisionario":
+        raise HTTPException(403, "Solo permisionarios")
+    sesion = await db.get(SesionEstacionamiento, sesion_id)
+    if not sesion or sesion.estado != EstadoSesion.activa:
+        raise HTTPException(404, "Sesion no encontrada o no activa")
+    qr_data = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/permisionario/salida?sesion_id={sesion.id}"
+    qr_b64 = generar_qr_base64(qr_data)
+    return {"qr": qr_b64, "sesion_id": sesion.id, "codigo_salida": sesion.codigo_salida}
+
+
 @app.post("/api/permisionario/reportar-deuda")
 async def permisionario_reportar_deuda(body: ReporteDeudaRequest, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if current_user["role"] != "permisionario":

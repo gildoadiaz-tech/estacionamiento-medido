@@ -127,7 +127,7 @@
         .session-item .info-row { display: flex; gap: 16px; margin: 8px 0; }
         .session-item .info-item label { font-size: 11px; opacity: 0.65; display: block; }
         .session-item .info-item span { font-size: 15px; font-weight: 700; }
-        .session-item .actions { display: flex; gap: 6px; margin-top: 8px; }
+        .session-item .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
         .session-item .btn-sm {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -140,6 +140,7 @@
             font-family: inherit;
             -webkit-appearance: none;
         }
+        .qr-salida-container { margin-top: 8px; text-align: center; }
 
         .quick-actions {
             display: flex;
@@ -397,7 +398,9 @@
                             </div>
                             <div class="actions">
                                 <button class="btn-sm" onclick="window.location.href='/permisionario/salida'">Procesar salida</button>
+                                <button class="btn-sm" onclick="verQRSalida(${s.id}, this)">QR salida</button>
                             </div>
+                            <div class="qr-salida-container" id="qrSalida-${s.id}" style="display:none"></div>
                         </div>`;
                     }).join('');
                     startTimers();
@@ -427,6 +430,20 @@
                 tick();
                 setInterval(tick, 1000);
             });
+        }
+
+        async function verQRSalida(sesionId, btn) {
+            const container = document.getElementById('qrSalida-' + sesionId);
+            if (container.style.display !== 'none') { container.style.display = 'none'; container.innerHTML = ''; return; }
+            try {
+                const res = await fetch('/api/permisionario/sesion-qr-salida/' + sesionId, { headers: headers() });
+                const d = await res.json();
+                if (!res.ok) { alert(d.detail || 'Error'); return; }
+                container.innerHTML = '<img src="data:image/png;base64,' + d.qr + '" style="width:140px;height:140px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);padding:6px;background:#fff;display:block;margin:0 auto">' +
+                    '<p style="font-size:11px;opacity:0.7;margin-top:4px">Código: ' + d.codigo_salida + '</p>' +
+                    '<p style="font-size:10px;opacity:0.5;margin-top:2px">Escaneá para procesar la salida</p>';
+                container.style.display = 'block';
+            } catch { alert('Error al cargar QR'); }
         }
 
         async function loadFinanzas() {

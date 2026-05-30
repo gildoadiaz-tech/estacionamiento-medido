@@ -180,9 +180,7 @@
             </div>
             <div class="actions">
                 <button id="btnCheckout" class="btn-outline">Ver sesión</button>
-                <button id="btnVerQR" class="btn-outline">QR</button>
             </div>
-            <div id="qrSalida" style="margin-top:12px;text-align:center;display:none"></div>
         </div>
 
         <a href="/conductor/estacionar" class="highlight-link">
@@ -303,18 +301,6 @@
 
         document.getElementById('btnCheckout').addEventListener('click', () => {
             if (sesionActual) window.location.href = '/conductor/checkout/' + sesionActual.id;
-        });
-
-        document.getElementById('btnVerQR').addEventListener('click', async () => {
-            if (!sesionActual) return;
-            const c = document.getElementById('qrSalida');
-            if (c.style.display !== 'none') { c.style.display = 'none'; c.innerHTML = ''; return; }
-            try {
-                const res = await api('/api/conductor/sesion-qr/' + sesionActual.id);
-                const d = await res.json();
-                c.innerHTML = '<img src="data:image/png;base64,' + d.qr + '" style="width:160px;height:160px;margin:0 auto;display:block"><p style="font-size:11px;opacity:0.7;margin-top:6px;text-align:center">QR de salida</p>';
-                c.style.display = 'block';
-            } catch {}
         });
 
         let scanInterval = null, scanningActive = false;
