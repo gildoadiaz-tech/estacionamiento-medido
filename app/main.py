@@ -452,6 +452,11 @@ async def index_page(request: Request):
     return templates.TemplateResponse(request, "index.html", {})
 
 
+@app.get("/demo", response_class=HTMLResponse)
+async def demo_page(request: Request):
+    return templates.TemplateResponse(request, "demo.html", {})
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse(request, "auth/login.html", {})
