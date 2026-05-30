@@ -38,15 +38,18 @@ FERIADOS_2026 = {
     (1, 1),     # Año Nuevo
     (16, 2),    # Carnaval
     (17, 2),    # Carnaval
+    (20, 2),    # Batalla de Salta (provincial)
     (24, 3),    # Memoria
     (2, 4),     # Malvinas / Jueves Santo
     (3, 4),     # Viernes Santo
     (1, 5),     # Día del Trabajador
     (25, 5),    # Revolución de Mayo
-    (15, 6),    # Güemes (trasladado)
+    (15, 6),    # Güemes (nacional, trasladado)
+    (17, 6),    # Güemes (provincial, inamovible en Salta)
     (20, 6),    # Belgrano
     (9, 7),     # Independencia
     (17, 8),    # San Martín
+    (15, 9),    # Virgen del Milagro (provincial)
     (12, 10),   # Diversidad Cultural
     (23, 11),   # Soberanía Nacional (trasladado)
     (8, 12),    # Inmaculada Concepción
