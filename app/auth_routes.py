@@ -37,7 +37,7 @@ class RegisterConductorRequest(BaseModel):
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
+@limiter.limit("20/minute")
 async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_db)):
     login_map = [
         (Conductor, "conductor", Conductor.dni),

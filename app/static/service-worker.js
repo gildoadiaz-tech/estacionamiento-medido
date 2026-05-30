@@ -1,4 +1,4 @@
-const CACHE = "estacionamiento-v1";
+const CACHE = "estacionamiento-v2";
 const STATIC = [
   "/",
   "/login",
