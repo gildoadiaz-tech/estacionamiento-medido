@@ -198,6 +198,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
 
 
+@app.get("/api/debug/db")
+async def debug_db():
+    from app.database import init_db, async_session
+    from app.models import Admin, Conductor, Permisionario
+    from sqlalchemy import select
+    try:
+        await init_db()
+        async with async_session() as s:
+            adm = (await s.execute(select(Admin))).scalars().all()
+            cond = (await s.execute(select(Conductor))).scalars().all()
+            perm = (await s.execute(select(Permisionario))).scalars().all()
+            return {"admin_count": len(adm), "conductor_count": len(cond), "permisionario_count": len(perm)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/health")
 async def health():
     import sys
