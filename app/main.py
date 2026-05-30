@@ -215,7 +215,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-PROTECTED_PREFIXES = ("/conductor", "/permisionario", "/gestor", "/admin")
+PROTECTED_PREFIXES = ("/conductor", "/permisionario", "/admin")
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -584,9 +584,7 @@ async def permisionario_reservas(request: Request):
     return templates.TemplateResponse(request, "permisionario/reservas.html", {})
 
 
-@app.get("/gestor", response_class=HTMLResponse)
-async def gestor_home(request: Request):
-    return templates.TemplateResponse(request, "gestor/index.html", {})
+
 
 
 @app.get("/admin", response_class=HTMLResponse)

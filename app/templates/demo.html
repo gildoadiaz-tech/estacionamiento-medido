@@ -156,7 +156,7 @@
     <div class="section">
         <h2 class="section-title">4 Módulos del Sistema</h2>
         <p class="section-sub">Tocá "Entrar" para acceder directamente a cada rol</p>
-        <div class="modules-grid">
+        <div class="modules-grid" style="max-width:700px;">
             <div class="module-card conductor">
                 <span class="module-icon">&#x1F697;</span>
                 <h3>Conductor</h3>
@@ -191,30 +191,13 @@
                 <div class="credentials">C&oacute;digo: <code>PERM001</code> &middot; Clave: <code>demo1234</code></div>
             </div>
 
-            <div class="module-card gestor">
-                <span class="module-icon">&#x1F4CA;</span>
-                <h3>Gestor</h3>
-                <span class="role-tag">Municipalidad</span>
-                <p class="desc">Supervisá permisionarios, sesiones y reportes desde la Municipalidad.</p>
-                <ul class="module-features">
-                    <li>Dashboard con métricas en vivo</li>
-                    <li>Gestión de permisionarios</li>
-                    <li>Reportes de recaudación</li>
-                    <li>Mapa de sesiones activas</li>
-                    <li>Control de deudas</li>
-                    <li>Creación de permisionarios</li>
-                </ul>
-                <button class="btn-enter" onclick="demoLogin('gestor', this)">&#x1F449; Entrar como Gestor</button>
-                <div class="credentials">Usuario: <code>gestor1</code> &middot; Clave: <code>demo1234</code></div>
-            </div>
-
             <div class="module-card admin">
                 <span class="module-icon">&#x2699;&#xFE0F;</span>
                 <h3>Administrador</h3>
                 <span class="role-tag">Control total</span>
                 <p class="desc">Acceso completo al sistema: conductores, espacios, finanzas y configuración.</p>
                 <ul class="module-features">
-                    <li>Todas las funciones de Gestor</li>
+                    <li>Dashboard con m&eacute;tricas en vivo</li>
                     <li>CRUD de conductores y espacios</li>
                     <li>Reportes financieros detallados</li>
                     <li>Gestión de gestores</li>
@@ -254,21 +237,18 @@
         const DEMO_CREDENTIALS = {
             conductor: { username: '87654321', password: 'demo1234' },
             permisionario: { username: 'PERM001', password: 'demo1234' },
-            gestor: { username: 'gestor1', password: 'demo1234' },
             admin: { username: 'admin', password: 'demo1234' },
         };
 
         const DEMO_REDIRECTS = {
             conductor: '/conductor',
             permisionario: '/permisionario/panel',
-            gestor: '/gestor',
             admin: '/admin',
         };
 
         const DEMO_LABELS = {
             conductor: 'Conductor',
             permisionario: 'Permisionario',
-            gestor: 'Gestor',
             admin: 'Administrador',
         };
 

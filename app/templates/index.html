@@ -120,7 +120,7 @@
         <span class="badge" style="background:rgba(255,255,255,0.2);color:#fff;">&#x1F3AC; Modo Demostraci&oacute;n</span>
         <h2>Prob&aacute; el Sistema</h2>
         <p class="demo-sub">Ingres&aacute; directamente a cualquier m&oacute;dulo &mdash; sin registro ni contrase&ntilde;a</p>
-        <div class="demo-grid">
+        <div class="demo-grid" style="max-width:700px;">
             <button class="demo-btn" onclick="demoLogin('conductor', this)">
                 <span class="demo-icon">&#x1F697;</span>
                 <span class="demo-role">Conductor</span>
@@ -130,11 +130,6 @@
                 <span class="demo-icon">&#x1F17F;&#xFE0F;</span>
                 <span class="demo-role">Permisionario</span>
                 <span class="demo-creds">C&oacute;digo: PERM001 / demo1234</span>
-            </button>
-            <button class="demo-btn" onclick="demoLogin('gestor', this)">
-                <span class="demo-icon">&#x1F4CA;</span>
-                <span class="demo-role">Gestor</span>
-                <span class="demo-creds">Usuario: gestor1 / demo1234</span>
             </button>
             <button class="demo-btn" onclick="demoLogin('admin', this)">
                 <span class="demo-icon">&#x2699;&#xFE0F;</span>
@@ -277,11 +272,10 @@
         const DEMO_CREDS = {
             conductor: { username: '87654321', password: 'demo1234' },
             permisionario: { username: 'PERM001', password: 'demo1234' },
-            gestor: { username: 'gestor1', password: 'demo1234' },
             admin: { username: 'admin', password: 'demo1234' },
         };
-        const DEMO_REDIRECTS = { conductor: '/conductor', permisionario: '/permisionario/panel', gestor: '/gestor', admin: '/admin' };
-        const DEMO_LABELS = { conductor: 'Conductor', permisionario: 'Permisionario', gestor: 'Gestor', admin: 'Administrador' };
+        const DEMO_REDIRECTS = { conductor: '/conductor', permisionario: '/permisionario/panel', admin: '/admin' };
+        const DEMO_LABELS = { conductor: 'Conductor', permisionario: 'Permisionario', admin: 'Administrador' };
 
         async function demoLogin(role, el) {
             el.style.opacity = '0.6';
