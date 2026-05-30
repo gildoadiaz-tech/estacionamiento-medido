@@ -203,15 +203,43 @@ async def debug_db():
     from app.database import init_db, async_session
     from app.models import Admin, Conductor, Permisionario
     from sqlalchemy import select
+    from app.auth import hash_password
+    from app.models import Gestor, ExencionTipo, TipoVehiculo, Mano, Vehiculo
+    errors = []
     try:
         await init_db()
+    except Exception as e:
+        errors.append(f"init_db: {e}")
+    try:
         async with async_session() as s:
+            try:
+                await s.execute(select(Admin))
+            except Exception as e:
+                errors.append(f"query_admin: {e}")
+            try:
+                # Try seeding inline
+                r = await s.execute(select(Admin))
+                if not r.scalars().first():
+                    s.add(Admin(nombre="Administrador", username="admin", password_hash=hash_password("admin123")))
+                    s.add(Gestor(nombre="Carlos", apellido="Méndez", dni="12345678", email="gestor@municipalidad.gob.ar", username="gestor1", password_hash=hash_password("gestor123"), permisos="permisionarios,conductores,sesiones,reportes,deudas"))
+                    await s.flush()
+                    p1 = Permisionario(codigo="PER30456789", nombre="Juan", apellido="Pérez", dni="30456789", email="juan@ejemplo.com", telefono="3874123456", password_hash=hash_password("1234"))
+                    p2 = Permisionario(codigo="PER28345678", nombre="María", apellido="García", dni="28345678", email="maria@ejemplo.com", telefono="3874234567", password_hash=hash_password("1234"))
+                    s.add_all([p1, p2])
+                    await s.flush()
+                    cs = [Conductor(dni="35123456", nombre="Pedro", apellido="López", email="pedro@ejemplo.com", telefono="3874345678", password_hash=hash_password("1234"), email_verified=True, exencion=ExencionTipo.ninguna)]
+                    s.add_all(cs)
+                    await s.commit()
+                    errors.append("seed_ok")
+            except Exception as e:
+                errors.append(f"seed: {e}")
+                await s.rollback()
             adm = (await s.execute(select(Admin))).scalars().all()
             cond = (await s.execute(select(Conductor))).scalars().all()
             perm = (await s.execute(select(Permisionario))).scalars().all()
-            return {"admin_count": len(adm), "conductor_count": len(cond), "permisionario_count": len(perm)}
+            return {"admin_count": len(adm), "conductor_count": len(cond), "permisionario_count": len(perm), "errors": errors}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "errors": errors}
 
 
 @app.get("/api/health")
