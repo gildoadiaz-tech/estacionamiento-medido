@@ -109,6 +109,11 @@ def _get_espacios():
 
 
 async def ensure_test_users():
+    try:
+        from app.database import init_db
+        await init_db()
+    except Exception:
+        pass
     async with async_session() as db:
         existing = await db.execute(select(Admin))
         if existing.scalars().first():
@@ -191,6 +196,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Estacionamiento Medido v2.0", lifespan=lifespan)
+
+
+@app.on_event("startup")
+async def startup_seed():
+    try:
+        await ensure_test_users()
+    except Exception as e:
+        print(f"[STARTUP] Seed failed: {e}")
 
 
 @app.get("/api/health")
