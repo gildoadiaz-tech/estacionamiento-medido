@@ -85,15 +85,27 @@
             </div>
             <div class="info-row">
                 <span class="label">Tarifa</span>
-                <span class="value">$600/hora</span>
+                <span class="value" id="tarifaLabel">$700/hora</span>
             </div>
             <div class="info-row">
                 <span class="label">Horario cobrable</span>
-                <span class="value">7:00 – 21:00</span>
+                <span class="value" id="horarioLabel">7:00 – 21:00</span>
+            </div>
+            <div id="zonaNocturnaRow" class="info-row" style="display:none;">
+                <span class="label">Zona nocturna</span>
+                <span class="value" id="zonaNocturnaLabel" style="color:var(--success);font-weight:700">SÍ</span>
             </div>
             <div class="info-row">
                 <span class="label">Costo estimado</span>
                 <span class="value" id="costoEstimado">$0</span>
+            </div>
+            <div id="pendingHoursRow" class="info-row" style="display:none;">
+                <span class="label">Hs. pendientes (sesión anterior)</span>
+                <span class="value" id="horasPendientesLabel" style="color:var(--warning)">0h</span>
+            </div>
+            <div id="mpDiscountRow" class="info-row" style="display:none;">
+                <span class="label">Desc. MP (20%)</span>
+                <span class="value" id="mpDiscountLabel" style="color:var(--accent);font-weight:700">-$0</span>
             </div>
         </div>
 
@@ -165,10 +177,15 @@
             document.getElementById('ubicacionLabel').textContent = s.ubicacion || 'Espacio #' + s.espacio_id;
             if (s.vehiculo && s.vehiculo.patente) document.getElementById('patenteLabel').textContent = s.vehiculo.patente + ' (' + (s.vehiculo.tipo || 'auto') + ')';
             const esGratis = s.es_gratuito || (s.exencion && s.exencion !== 'ninguna') || ((s.vehiculo && s.vehiculo.tipo) === 'bicicleta');
-            const tarifa = s.tarifa_por_hora || 600;
+            const tarifa = s.tarifa_por_hora || 700;
             const exencion = s.exencion || 'ninguna';
+            const horariosEl = document.getElementById('horarioLabel');
+            horariosEl.textContent = exencion !== 'ninguna' ? (EXENCION_LABELS[exencion] || exencion) : '7:00 – 21:00 Lun-Vie / 7-14 Sáb';
             document.querySelector('.info-row:nth-child(2) .value').textContent = esGratis ? 'GRATUITO' : ('$' + tarifa + '/hora');
-            document.querySelector('.info-row:nth-child(3) .value').textContent = exencion !== 'ninguna' ? EXENCION_LABELS[exencion] || exencion : '7:00 – 21:00 / 22:00 – 5:00';
+            if (s.horas_pendientes_previas > 0) {
+                document.getElementById('pendingHoursRow').style.display = 'flex';
+                document.getElementById('horasPendientesLabel').textContent = s.horas_pendientes_previas + 'h ($' + Math.ceil(s.horas_pendientes_previas * tarifa) + ')';
+            }
             if (esGratis) {
                 document.getElementById('costoEstimado').textContent = 'GRATUITO';
             } else if (s.costo_estimado != null) {

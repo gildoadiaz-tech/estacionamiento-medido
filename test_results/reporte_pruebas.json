@@ -1,0 +1,228 @@
+{
+  "date": "2026-05-29T23:45:03.616243",
+  "base_url": "http://localhost:8000",
+  "viewport": "430x932 (mobile)",
+  "results": [
+    {
+      "status": "INFO",
+      "message": "Iniciando pruebas: 2026-05-29T23:43:39.627559"
+    },
+    {
+      "status": "INFO",
+      "message": "URL base: http://localhost:8000"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 1. LANDING ==="
+    },
+    {
+      "status": "PASS",
+      "message": "1.1 Landing carga con titulo correcto"
+    },
+    {
+      "status": "PASS",
+      "message": "1.2 Landing muestra boton Soy Conductor"
+    },
+    {
+      "status": "PASS",
+      "message": "1.3 Landing muestra boton Soy Permisionario"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 2. LOGIN ==="
+    },
+    {
+      "status": "PASS",
+      "message": "2.1 Login page carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 3. LOGIN CONDUCTOR ==="
+    },
+    {
+      "status": "PASS",
+      "message": "3.1 Login conductor redirige a /conductor"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 4. CONDUCTOR HOME ==="
+    },
+    {
+      "status": "PASS",
+      "message": "4.1 Home carga con timer y costo (sesion activa JS-rendered)"
+    },
+    {
+      "status": "PASS",
+      "message": "4.2 Muestra costo/tarifa"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 5. CONDUCTOR HISTORIAL ==="
+    },
+    {
+      "status": "PASS",
+      "message": "5.1 Historial muestra vehiculo/pedro"
+    },
+    {
+      "status": "PASS",
+      "message": "5.2 Muestra sesiones finalizadas con costos"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 6. CONDUCTOR PERFIL ==="
+    },
+    {
+      "status": "PASS",
+      "message": "6.1 Perfil muestra datos del conductor"
+    },
+    {
+      "status": "PASS",
+      "message": "6.2 Muestra DNI"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 7. LOGIN INVALIDO ==="
+    },
+    {
+      "status": "PASS",
+      "message": "7.1 Login invalido muestra error en pantalla"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 8. CONDUCTOR DISCAPACIDAD (gratis) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "8.1 Login discapacidad exitoso"
+    },
+    {
+      "status": "PASS",
+      "message": "8.2 Perfil carga datos de Carlos (Carlos Ruiz)"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 9. CONDUCTOR BICICLETA (gratis) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "9.1 Login bicicleta exitoso"
+    },
+    {
+      "status": "PASS",
+      "message": "9.2 Vehiculos muestra bicicleta (BI001BICI)"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 10. PERMISIONARIO (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "10.1 Login permisionario redirige a /permisionario"
+    },
+    {
+      "status": "PASS",
+      "message": "10.2 Panel permisionario carga con datos"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 11. PERMISIONARIO ESPACIOS (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "11.1 Espacios carga con datos"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 12. PERMISIONARIO QR (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "12.1 Pagina QR carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 13. GESTOR (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "13.1 Login gestor redirige a /gestor"
+    },
+    {
+      "status": "PASS",
+      "message": "13.2 Dashboard gestor carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 14. ADMIN (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "14.1 Login admin redirige a /admin"
+    },
+    {
+      "status": "PASS",
+      "message": "14.2 Dashboard admin carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 15. ADMIN CONDUCTORES (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "15.1 Lista conductores muestra DNI de todos"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 16. ADMIN DEUDAS (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "16.1 Deudas muestra montos y registros"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 17. ADMIN SESIONES (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "17.1 Mapa de sesiones activas carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 18. ADMIN REPORTES (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "18.1 Reportes carga"
+    },
+    {
+      "status": "INFO",
+      "message": "\n=== 19. VERIFY EMAIL (mobile) ==="
+    },
+    {
+      "status": "PASS",
+      "message": "19.1 Token invalido muestra mensaje de error"
+    },
+    {
+      "status": "INFO",
+      "message": "\n============================================================"
+    },
+    {
+      "status": "INFO",
+      "message": "RESULTADOS DE PRUEBAS"
+    },
+    {
+      "status": "INFO",
+      "message": "============================================================"
+    },
+    {
+      "status": "INFO",
+      "message": "\nTotal: 29 pasaron, 0 fallaron de 53"
+    }
+  ],
+  "summary": {
+    "passed": 29,
+    "failed": 0,
+    "total": 54
+  }
+}

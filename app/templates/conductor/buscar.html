@@ -107,7 +107,7 @@
             border-radius: var(--radius); padding: 14px 20px; font-weight: 700;
             font-size: 15px; cursor: pointer; font-family: inherit; -webkit-appearance: none;
         }
-        #mapa { width: 100%; height: 300px; border-radius: var(--radius); margin-bottom: 16px; }
+        #mapa { width: 100%; height: 300px; border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; position: relative; z-index: 0; }
         .bloque-card {
             background: var(--bg-card); border: 1px solid var(--border);
             border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
@@ -179,7 +179,7 @@
         </div>
 
         <div id="mapa">
-            <iframe src="https://idemsa.municipalidadsalta.gob.ar/visor/maps/estacionamiento_mar25.html" width="100%" height="600" style="border:none;border-radius:var(--radius)"></iframe>
+            <iframe src="https://idemsa.municipalidadsalta.gob.ar/visor/maps/estacionamiento_mar25.html" width="100%" height="300" style="border:none;border-radius:var(--radius)"></iframe>
         </div>
         <div id="resultados"></div>
     </div>

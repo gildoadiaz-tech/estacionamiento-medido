@@ -25,11 +25,53 @@ from app.auth_routes import router as auth_router
 from app.deps import get_current_user, require_role
 from app.auth import hash_password, verify_password
 
-PRECIO_AUTO = 600.0
-PRECIO_MOTO = 100.0
+PRECIO_AUTO = 700.0
+PRECIO_MOTO = 300.0
 HORARIO_CIERRE = 21
 HORARIO_CIERRE_SAB = 14
 DEUDA_MAXIMA = 10000.0
+
+ZONAS_NOCTURNAS = ["BALCARCE", "GÜEMES", "GUEMES", "ALVARADO"]
+MP_DESCUENTO = 0.20  # 20% off for Mercado Pago
+
+FERIADOS_2026 = {
+    (1, 1),     # Año Nuevo
+    (16, 2),    # Carnaval
+    (17, 2),    # Carnaval
+    (24, 3),    # Memoria
+    (2, 4),     # Malvinas / Jueves Santo
+    (3, 4),     # Viernes Santo
+    (1, 5),     # Día del Trabajador
+    (25, 5),    # Revolución de Mayo
+    (15, 6),    # Güemes (trasladado)
+    (20, 6),    # Belgrano
+    (9, 7),     # Independencia
+    (17, 8),    # San Martín
+    (12, 10),   # Diversidad Cultural
+    (23, 11),   # Soberanía Nacional (trasladado)
+    (8, 12),    # Inmaculada Concepción
+    (25, 12),   # Navidad
+}
+
+DIAS_NO_LABORABLES_2026 = {
+    (23, 3),    # puente turístico
+    (10, 7),    # puente turístico
+    (7, 12),    # puente turístico
+}
+
+
+def es_feriado(dt: datetime) -> bool:
+    return (dt.day, dt.month) in FERIADOS_2026 or (dt.day, dt.month) in DIAS_NO_LABORABLES_2026
+
+
+def es_zona_nocturna(ubicacion: str | None) -> bool:
+    if not ubicacion:
+        return False
+    u = ubicacion.upper().strip()
+    for z in ZONAS_NOCTURNAS:
+        if z in u:
+            return True
+    return False
 
 
 def _filtrar_espacios_por_mano(espacios: list, mano) -> list:
@@ -109,39 +151,47 @@ def now_naive():
     return datetime.utcnow()
 
 
-def calcular_costo_estacionamiento(inicio: datetime, fin: datetime, tipo_vehiculo: str = "auto", exencion: str = "ninguna") -> float:
+def calcular_costo_estacionamiento(inicio: datetime, fin: datetime, tipo_vehiculo: str = "auto", exencion: str = "ninguna", ubicacion: str | None = None) -> tuple[float, float]:
     if exencion and exencion != "ninguna":
-        return 0.0
+        return 0.0, 0.0
     if tipo_vehiculo == "bicicleta":
-        return 0.0
+        return 0.0, 0.0
     precio_hora = PRECIO_MOTO if tipo_vehiculo == "moto" else PRECIO_AUTO
     if inicio >= fin:
-        return 0.0
+        return 0.0, 0.0
+    zona_nocturna = es_zona_nocturna(ubicacion)
     total = 0.0
+    horas_no_diurnas = 0.0
     current = inicio
     while current < fin:
         wd = current.weekday()
         h = current.hour
-        # Domingo: gratis
+        es_feriado_hoy = es_feriado(current)
+        # Domingo: todo es no diurno (gratis)
         if wd == 6:
-            current = current.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            prox = current.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            chunk = min(fin, prox)
+            horas_no_diurnas += (chunk - current).total_seconds() / 3600
+            current = chunk
             continue
-        # Sabado: 7-14 diurno, 22-5 nocturno
-        # Lun-Vie: 7-21 diurno, 22-5 nocturno
+        # Sabado: 7-14 diurno
         if wd == 5:
             diurno_inicio, diurno_fin = 7, 14
         else:
             diurno_inicio, diurno_fin = 7, 21
         nocturno_inicio, nocturno_fin = 22, 5
-        # esta en horario diurno?
+        # horario diurno → se cobra siempre (excepto feriados)
         if diurno_inicio <= h < diurno_fin:
             fin_rango = current.replace(hour=diurno_fin, minute=0, second=0, microsecond=0)
             chunk = min(fin, fin_rango)
             horas = (chunk - current).total_seconds() / 3600
-            total += horas * precio_hora
+            if es_feriado_hoy:
+                horas_no_diurnas += horas
+            else:
+                total += horas * precio_hora
             current = chunk
             continue
-        # esta en horario nocturno (22-5)?
+        # horario nocturno (22-5)
         if h >= nocturno_inicio or h < nocturno_fin:
             if h >= nocturno_inicio:
                 fin_rango = current.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1, hours=nocturno_fin)
@@ -149,17 +199,24 @@ def calcular_costo_estacionamiento(inicio: datetime, fin: datetime, tipo_vehicul
                 fin_rango = current.replace(hour=nocturno_fin, minute=0, second=0, microsecond=0)
             chunk = min(fin, fin_rango)
             horas = (chunk - current).total_seconds() / 3600
-            total += horas * precio_hora
+            if zona_nocturna:
+                total += horas * precio_hora
+            else:
+                horas_no_diurnas += horas
             current = chunk
             continue
-        # Fuera de horario cobrable, saltar al proximo inicio
+        # Fuera de horario (gaps: 21-22, 14-22 sab, 5-7) → no se cobra, va a pendientes
         if h < diurno_inicio:
-            current = current.replace(hour=diurno_inicio, minute=0, second=0, microsecond=0)
+            prox = current.replace(hour=diurno_inicio, minute=0, second=0, microsecond=0)
         elif h >= diurno_fin and h < nocturno_inicio:
-            current = current.replace(hour=nocturno_inicio, minute=0, second=0, microsecond=0)
+            prox = current.replace(hour=nocturno_inicio, minute=0, second=0, microsecond=0)
         else:
             current += timedelta(hours=1)
-    return round(total, 2)
+            continue
+        chunk = min(fin, prox)
+        horas_no_diurnas += (chunk - current).total_seconds() / 3600
+        current = chunk
+    return round(total, 2), round(horas_no_diurnas, 2)
 
 
 def get_precio_por_tipo(tipo_vehiculo: str) -> float:
@@ -173,6 +230,55 @@ async def get_exencion(conductor_id: int, db: AsyncSession) -> str:
     if cond and hasattr(cond, 'exencion') and cond.exencion:
         return cond.exencion.value if hasattr(cond.exencion, 'value') else str(cond.exencion)
     return "ninguna"
+
+
+def exencion_efectiva(exencion: str, frentista_calle: str | None, ubicacion: str | None) -> str:
+    if exencion == "frentista" and frentista_calle and ubicacion:
+        if not ubicacion.upper().startswith(frentista_calle.upper()):
+            return "ninguna"
+    return exencion
+
+
+async def get_exencion_con_ubicacion(conductor_id: int, ubicacion: str, db: AsyncSession) -> str:
+    cond = await db.get(Conductor, conductor_id)
+    if cond and hasattr(cond, 'exencion') and cond.exencion:
+        raw = cond.exencion.value if hasattr(cond.exencion, 'value') else str(cond.exencion)
+        fcalle = getattr(cond, 'frentista_calle', None)
+        return exencion_efectiva(raw, fcalle, ubicacion)
+    return "ninguna"
+
+
+async def calcular_costo_con_pendientes(
+    sesion, conductor_id: int, ahora: datetime, db: AsyncSession,
+    tipo: str | None = None, exencion: str | None = None, actualizar_pendientes: bool = False,
+    ubicacion: str | None = None
+) -> tuple[float, float, float, float]:
+    """Calcula costo incluyendo horas_pendientes del conductor.
+    Returns (costo_total, horas_no_diurnas_nuevas, horas_pendientes_viejas, costo_diurno)."""
+    if tipo is None and sesion.vehiculo_id:
+        veh = await db.get(Vehiculo, sesion.vehiculo_id)
+        if veh:
+            tipo = veh.tipo.value if hasattr(veh.tipo, 'value') else str(veh.tipo)
+    if tipo is None:
+        tipo = "auto"
+    if ubicacion is None:
+        espacio = await db.get(Espacio, sesion.espacio_id)
+        ubicacion = espacio.ubicacion if espacio else ""
+    if exencion is None:
+        exencion = await get_exencion_con_ubicacion(conductor_id, ubicacion, db)
+
+    costo_diurno, horas_no_diurnas = calcular_costo_estacionamiento(
+        sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion, ubicacion=ubicacion
+    )
+    cond = await db.get(Conductor, conductor_id)
+    horas_pendientes_viejas = getattr(cond, 'horas_pendientes', 0.0) or 0.0
+    precio_hora = get_precio_por_tipo(tipo)
+    costo_total = costo_diurno + (horas_pendientes_viejas * precio_hora)
+
+    if actualizar_pendientes:
+        cond.horas_pendientes = horas_no_diurnas
+
+    return round(costo_total, 2), horas_no_diurnas, horas_pendientes_viejas, costo_diurno
 
 
 async def verificar_bloqueo(conductor_id: int, db: AsyncSession) -> dict:
@@ -421,6 +527,7 @@ async def conductor_me(current_user=Depends(get_current_user), db: AsyncSession 
         "email_verified": cond.email_verified,
         "bloqueado": cond.bloqueado,
         "saldo_deudor": cond.saldo_deudor or 0,
+        "horas_pendientes": getattr(cond, 'horas_pendientes', 0.0) or 0.0,
         "exencion": cond.exencion.value if hasattr(cond.exencion, 'value') else (cond.exencion or "ninguna"),
         "vehiculos": [
             {
@@ -561,15 +668,21 @@ async def conductor_sesion_activa(current_user=Depends(get_current_user), db: As
         if v:
             vehiculo = {"id": v.id, "patente": v.patente, "tipo": v.tipo.value if hasattr(v.tipo, 'value') else v.tipo}
     tipo = (vehiculo and vehiculo["tipo"]) or "auto"
-    exencion = cond.exencion.value if hasattr(cond.exencion, 'value') else (cond.exencion or "ninguna")
-    esGratis = exencion != "ninguna" or tipo == "bicicleta"
+    exencion_raw = cond.exencion.value if hasattr(cond.exencion, 'value') else (cond.exencion or "ninguna")
+    fcalle = getattr(cond, 'frentista_calle', None)
+    ubic = (espacio.ubicacion if espacio else None)
+    exencion_eff = exencion_efectiva(exencion_raw, fcalle, ubic)
+    esGratis = exencion_eff != "ninguna" or tipo == "bicicleta"
     tarifa = 0 if esGratis else get_precio_por_tipo(tipo)
     if sesion.hora_fin is not None and sesion.costo_total is not None:
-        # Costo ya bloqueado (pago MP pendiente de confirmacion)
         costo = sesion.costo_total
+        horas_pend_viejas = 0
+        costo_diurno = costo
     else:
         ahora = now_naive()
-        costo = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion)
+        costo, _, horas_pend_viejas, costo_diurno = await calcular_costo_con_pendientes(
+            sesion, sesion.conductor_id, ahora, db, tipo=tipo, exencion=exencion_eff
+        )
     return {
         "id": sesion.id,
         "espacio_id": sesion.espacio_id,
@@ -578,12 +691,14 @@ async def conductor_sesion_activa(current_user=Depends(get_current_user), db: As
         "hora_inicio": sesion.hora_inicio.isoformat(),
         "metodo_ingreso": sesion.metodo_ingreso.value if sesion.metodo_ingreso else None,
         "estado": sesion.estado.value,
-        "ubicacion": espacio.ubicacion if espacio else None,
+        "ubicacion": ubic,
         "vehiculo": vehiculo,
-        "exencion": exencion,
+        "exencion": exencion_raw,
         "tipo_vehiculo": tipo,
         "tarifa_por_hora": tarifa,
         "costo_estimado": 0 if esGratis else costo,
+        "horas_pendientes_previas": horas_pend_viejas,
+        "costo_diurno": costo_diurno,
         "es_gratuito": esGratis,
         "pago_pendiente": sesion.hora_fin is not None and not sesion.pagado,
     }
@@ -713,16 +828,19 @@ async def conductor_checkout_api(sesion_id: int, current_user=Depends(get_curren
     tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
 
     ahora = now_naive()
-    exencion_val = await get_exencion(sesion.conductor_id, db)
-    costo = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_val)
+    costo_total, horas_no_diurnas, horas_pend_viejas, costo_diurno = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db, tipo=tipo
+    )
 
     return {
         "sesion_id": sesion.id,
         "hora_inicio": sesion.hora_inicio.isoformat(),
-        "costo_estimado": costo,
+        "costo_estimado": costo_total,
         "tipo_vehiculo": tipo,
         "precio_por_hora": get_precio_por_tipo(tipo),
         "ubicacion": espacio.ubicacion if espacio else None,
+        "horas_pendientes_previas": horas_pend_viejas,
+        "costo_diurno": costo_diurno,
     }
 
 
@@ -738,26 +856,29 @@ async def conductor_elegir_pago(sesion_id: int, body: ElegirPagoRequest, current
 
     sesion.metodo_pago = MetodoPago.efectivo if body.metodo == "efectivo" else MetodoPago.mercadopago
 
-    vehiculo = await db.get(Vehiculo, sesion.vehiculo_id) if sesion.vehiculo_id else None
-    tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
     ahora = now_naive()
-    exencion_val = await get_exencion(sesion.conductor_id, db)
-    costo = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_val)
-    sesion.costo_total = costo
+    costo_total, _, _, _ = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db
+    )
+
+    if body.metodo == "mercadopago":
+        costo_total = round(costo_total * (1 - MP_DESCUENTO), 2)
+
+    sesion.costo_total = costo_total
 
     pago = Pago(
         sesion_id=sesion.id,
-        monto=costo,
+        monto=costo_total,
         metodo=sesion.metodo_pago,
         confirmado=False,
     )
 
-    resp = {"ok": True, "metodo": body.metodo, "costo_total": costo}
+    resp = {"ok": True, "metodo": body.metodo, "costo_total": costo_total, "descuento_mp": MP_DESCUENTO if body.metodo == "mercadopago" else 0}
 
     if body.metodo == "mercadopago":
         cond = await db.get(Conductor, sesion.conductor_id)
         mp_result = await crear_preferencia_pago(
-            monto=costo,
+            monto=costo_total,
             concepto=f"Estacionamiento #{sesion.id}",
             conductor_email=cond.email if cond else "conductor@email.com",
             notification_url=f"{os.getenv('BASE_URL', 'http://localhost:8000')}/api/mp/webhook",
@@ -783,16 +904,15 @@ async def conductor_confirmar_pago_efectivo(sesion_id: int, current_user=Depends
     if sesion.metodo_pago != MetodoPago.efectivo:
         raise HTTPException(400, "Esta sesion no esta configurada para pago en efectivo")
 
-    vehiculo = await db.get(Vehiculo, sesion.vehiculo_id) if sesion.vehiculo_id else None
-    tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
     ahora = now_naive()
-    exencion_s = await get_exencion(sesion.conductor_id, db)
-    sesion.costo_total = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_s)
+    costo_total, _, _, _ = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db, actualizar_pendientes=True
+    )
+    sesion.costo_total = costo_total
     sesion.pagado = True
     sesion.hora_fin = ahora
     sesion.estado = EstadoSesion.finalizada
 
-    espacio = await db.get(Espacio, sesion.espacio_id)
     if espacio:
         espacio.disponible = True
 
@@ -1110,17 +1230,22 @@ async def permisionario_sesiones_activas(current_user=Depends(get_current_user),
         veh = await db.get(Vehiculo, s.vehiculo_id) if s.vehiculo_id else None
         tipo = veh.tipo.value if veh and hasattr(veh.tipo, 'value') else "auto"
         exencion_val = cond.exencion.value if cond and hasattr(cond.exencion, 'value') else (cond.exencion or "ninguna") if cond else "ninguna"
-        es_gratuito = exencion_val != "ninguna" or tipo == "bicicleta"
+        fcalle = getattr(cond, 'frentista_calle', None) if cond else None
+        ubic = esp.ubicacion if esp else ""
+        exencion_eff = exencion_efectiva(exencion_val, fcalle, ubic)
+        es_gratuito = exencion_eff != "ninguna" or tipo == "bicicleta"
         tarifa = get_precio_por_tipo(tipo)
         if s.hora_fin is not None and s.costo_total is not None:
             costo = s.costo_total
             pago_pendiente = not s.pagado
         else:
-            costo = calcular_costo_estacionamiento(s.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_val)
+            costo, _, _, _ = await calcular_costo_con_pendientes(
+                s, s.conductor_id, ahora, db, tipo=tipo, exencion=exencion_eff
+            )
             pago_pendiente = False
         data.append({
             "id": s.id, "espacio_id": s.espacio_id,
-            "ubicacion": esp.ubicacion if esp else "",
+            "ubicacion": ubic,
             "conductor_nombre": f"{cond.nombre} {cond.apellido}" if cond else "",
             "patente": veh.patente if veh else "",
             "tipo_vehiculo": tipo,
@@ -1244,18 +1369,18 @@ async def permisionario_salida(body: SalidaRequest, current_user=Depends(get_cur
     if sesion.estado != EstadoSesion.activa:
         raise HTTPException(400, "Sesion no esta activa")
 
-    vehiculo = await db.get(Vehiculo, sesion.vehiculo_id) if sesion.vehiculo_id else None
-    tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
     ahora = now_naive()
-    exencion_val = await get_exencion(sesion.conductor_id, db)
-    costo = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_val)
-
-    sesion.costo_total = costo
-    sesion.hora_fin = ahora
+    costo, _, _, _ = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db, actualizar_pendientes=True
+    )
 
     metodo_pago = MetodoPago.efectivo
     if body.metodo_pago == "mercadopago":
         metodo_pago = MetodoPago.mercadopago
+        costo = round(costo * (1 - MP_DESCUENTO), 2)
+
+    sesion.costo_total = costo
+    sesion.hora_fin = ahora
     sesion.metodo_pago = metodo_pago
 
     if metodo_pago == MetodoPago.efectivo:
@@ -1265,7 +1390,6 @@ async def permisionario_salida(body: SalidaRequest, current_user=Depends(get_cur
         if espacio:
             espacio.disponible = True
     else:
-        # MP: no finalizar, esperar confirmacion de pago
         sesion.pagado = False
         sesion.estado = EstadoSesion.activa
 
@@ -1306,11 +1430,10 @@ async def permisionario_reportar_deuda(body: ReporteDeudaRequest, current_user=D
     if not sesion:
         raise HTTPException(404, "Sesion no encontrada")
 
-    vehiculo = await db.get(Vehiculo, sesion.vehiculo_id) if sesion.vehiculo_id else None
-    tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
     ahora = now_naive()
-    exencion_val = await get_exencion(sesion.conductor_id, db)
-    costo = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_val)
+    costo, _, _, _ = await calcular_costo_con_pendientes(
+        sesion, sesion.conductor_id, ahora, db, actualizar_pendientes=True
+    )
 
     sesion.costo_total = costo
     sesion.hora_fin = ahora
@@ -1669,6 +1792,9 @@ async def admin_list_conductores(current_user=Depends(require_role("admin")), db
             "email": c.email, "telefono": c.telefono,
             "email_verified": c.email_verified, "bloqueado": c.bloqueado,
             "saldo_deudor": c.saldo_deudor or 0,
+            "horas_pendientes": getattr(c, 'horas_pendientes', 0.0) or 0.0,
+            "exencion": c.exencion.value if hasattr(c.exencion, 'value') else str(c.exencion),
+            "frentista_calle": getattr(c, 'frentista_calle', None),
             "vehiculos": [
                 {"id": v.id, "patente": v.patente, "tipo": v.tipo.value if hasattr(v.tipo, 'value') else v.tipo}
                 for v in vehiculos
@@ -1793,7 +1919,8 @@ async def admin_get_config(current_user=Depends(require_role("admin"))):
     return {
         "PRECIO_AUTO": PRECIO_AUTO, "PRECIO_MOTO": PRECIO_MOTO,
         "HORARIO_CIERRE": HORARIO_CIERRE, "HORARIO_CIERRE_SAB": HORARIO_CIERRE_SAB,
-        "DEUDA_MAXIMA": DEUDA_MAXIMA,
+        "DEUDA_MAXIMA": DEUDA_MAXIMA, "MP_DESCUENTO": MP_DESCUENTO,
+        "ZONAS_NOCTURNAS": ZONAS_NOCTURNAS,
     }
 
 
@@ -2137,11 +2264,10 @@ async def mercadopago_webhook(request: Request, db: AsyncSession = Depends(get_d
 
         if sesion and sesion.estado == EstadoSesion.activa and not sesion.pagado:
             ahora = now_naive()
-            vehiculo = await db.get(Vehiculo, sesion.vehiculo_id) if sesion.vehiculo_id else None
-            tipo = vehiculo.tipo.value if vehiculo and hasattr(vehiculo.tipo, 'value') else "auto"
-            exencion_s = await get_exencion(sesion.conductor_id, db)
-            if not sesion.costo_total:
-                sesion.costo_total = calcular_costo_estacionamiento(sesion.hora_inicio, ahora, tipo_vehiculo=tipo, exencion=exencion_s)
+            sesion.costo_total, _, _, _ = await calcular_costo_con_pendientes(
+                sesion, sesion.conductor_id, ahora, db, actualizar_pendientes=True
+            )
+            sesion.costo_total = round(sesion.costo_total * (1 - MP_DESCUENTO), 2)
             sesion.pagado = True
             sesion.estado = EstadoSesion.finalizada
             sesion.hora_fin = ahora

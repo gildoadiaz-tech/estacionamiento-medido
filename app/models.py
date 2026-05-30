@@ -56,7 +56,9 @@ class Conductor(Base):
     bloqueado = Column(Boolean, default=False)
     bloqueado_hasta = Column(DateTime, nullable=True)
     saldo_deudor = Column(Float, default=0.0)
+    horas_pendientes = Column(Float, default=0.0, comment="Horas no diurnas acumuladas para cobrar en la proxima sesion")
     exencion = Column(Enum(ExencionTipo), default=ExencionTipo.ninguna)
+    frentista_calle = Column(String, nullable=True, comment="Calle registrada del frentista para validar gratuidad")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

@@ -280,7 +280,7 @@
             const veh = s.vehiculo || {};
             if (veh.patente) { document.getElementById('patenteDisplay').style.display = 'block'; document.getElementById('patenteTexto').textContent = veh.patente + (veh.tipo ? ' (' + veh.tipo + ')' : ''); }
             const esGratis = s.es_gratuito || (s.exencion && s.exencion !== 'ninguna') || ((veh.tipo || 'auto') === 'bicicleta');
-            const tarifa = s.tarifa_por_hora || 600;
+            const tarifa = s.tarifa_por_hora || 700;
             const exencion = s.exencion || 'ninguna';
             const EXENCION_LABELS = { discapacidad: 'Discapacidad - GRATUITO', frentista: 'Frentista - GRATUITO', veterano_malvinas: 'Veterano Malvinas - GRATUITO' };
             const inicio = new Date(s.hora_inicio + (s.hora_inicio.endsWith('Z') ? '' : 'Z')).getTime();

@@ -52,7 +52,9 @@ class ConductorOut(BaseModel):
     email_verified: bool = False
     bloqueado: bool = False
     saldo_deudor: float = 0.0
+    horas_pendientes: float = 0.0
     exencion: str = "ninguna"
+    frentista_calle: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

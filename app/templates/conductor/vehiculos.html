@@ -210,7 +210,8 @@
         async function cargarVehiculos() {
             try {
                 const res = await api('/api/conductor/me');
-                const vehiculos = await res.json();
+                const data = await res.json();
+                const vehiculos = data.vehiculos || [];
                 const el = document.getElementById('vehicleList');
                 if (!vehiculos.length) {
                     el.innerHTML = '<div class="empty">No tenés vehículos registrados. Agregá uno abajo.</div>';
