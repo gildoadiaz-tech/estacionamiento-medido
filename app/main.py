@@ -26,7 +26,7 @@ from app.mercado_pago import crear_preferencia_pago
 from app.mapa_data import CENTRO_SALTA
 from app.idemsa_data import get_all_calles_cached, get_espacios_cached, sync_espacios_db
 from app.auth_routes import router as auth_router
-from app.deps import get_current_user, require_role
+from app.deps import get_current_user, require_role, require_auth_page, require_role_page
 from app.auth import hash_password, verify_password
 
 PRECIO_AUTO = 700.0
@@ -214,6 +214,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+PROTECTED_PREFIXES = ("/conductor", "/permisionario", "/gestor", "/admin")
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    needs_auth = any(path.startswith(p) for p in PROTECTED_PREFIXES)
+    if needs_auth:
+        token = request.cookies.get("token", "")
+        if not token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token and request.query_params.get("token"):
+            token = request.query_params["token"]
+        from app.auth import decode_token as _decode
+        if not _decode(token):
+            return RedirectResponse(url="/login", status_code=303)
+    return await call_next(request)
 
 
 @app.get("/api/health")

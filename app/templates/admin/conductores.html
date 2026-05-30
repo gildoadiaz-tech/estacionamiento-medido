@@ -76,7 +76,7 @@
                 <a href="/admin/reportes" class="sidebar-link">&#128200; Reportes</a>
                 <a href="/admin/deudas" class="sidebar-link">&#128176; Deudas</a>
                 <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
-                <a href="#" onclick="localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
+                <a href="#" onclick="document.cookie='token=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT';localStorage.removeItem('token');window.location='/login';return false;" class="sidebar-link" style="color:#dc2626;">&#128682; Cerrar sesi&oacute;n</a>
             </nav>
         </aside>
         <main style="flex:1;padding:24px;margin-left:260px;">

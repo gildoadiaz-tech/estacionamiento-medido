@@ -272,6 +272,11 @@
             admin: 'Administrador',
         };
 
+        function setCookie(name, value, days) {
+            const d = new Date(); d.setTime(d.getTime() + days*24*60*60*1000);
+            document.cookie = name + '=' + value + ';path=/;expires=' + d.toUTCString();
+        }
+
         async function demoLogin(role, el) {
             el.disabled = true;
             el.textContent = 'Ingresando...';
@@ -297,6 +302,7 @@
                     localStorage.setItem('conductor_id', data.user_id);
                     localStorage.setItem('user_nombre', data.nombre);
                     localStorage.setItem('demo_mode', 'true');
+                    setCookie('token', data.token, 1);
                     window.location.href = DEMO_REDIRECTS[role];
                 } else {
                     alert('Error: ' + (data.detail || 'No se pudo ingresar'));

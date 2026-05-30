@@ -1,4 +1,5 @@
 from fastapi import Request, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -46,4 +47,28 @@ def require_role(*roles: str):
         if current_user["role"] not in roles:
             raise HTTPException(403, "No tenés permisos para esta acción")
         return current_user
+    return _check
+
+
+async def require_auth_page(request: Request, db: AsyncSession = Depends(get_db)):
+    token = request.cookies.get("token", "")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        token = auth.replace("Bearer ", "") if auth else ""
+        if not token and request.query_params.get("token"):
+            token = request.query_params["token"]
+    payload = decode_token(token) if token else None
+    if payload:
+        return payload
+    return RedirectResponse(url="/login", status_code=303)
+
+
+async def require_role_page(*roles: str):
+    async def _check(request: Request, db: AsyncSession = Depends(get_db)):
+        result = await require_auth_page(request, db)
+        if isinstance(result, RedirectResponse):
+            return result
+        if result["role"] not in roles:
+            return RedirectResponse(url="/login", status_code=303)
+        return result
     return _check
