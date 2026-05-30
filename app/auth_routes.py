@@ -35,6 +35,12 @@ class RegisterConductorRequest(BaseModel):
 
 @router.post("/login")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    # Auto-seed test users if DB is empty (Vercel cold start)
+    try:
+        from app.main import ensure_test_users
+        await ensure_test_users()
+    except Exception:
+        pass
     login_map = [
         (Conductor, "conductor", Conductor.dni),
         (Permisionario, "permisionario", Permisionario.codigo),
